@@ -85,10 +85,10 @@ def train_one_epoch_with_fsdp(
                 import pdb; pdb.set_trace()
                 video =  samples['video'].to(accelerator.device)
                 text = samples['text']
-                identifier = samples['identifier']
+                #identifier = samples['identifier']
 
                 # Perform the forward using the accerlate
-                loss, log_loss = runner(video, text, identifier, 
+                loss, log_loss = runner(video, text, identifier=None, 
                     use_temporal_pyramid=use_temporal_pyramid, accelerator=accelerator)
 
                 # Check if the loss is nan
