@@ -497,10 +497,12 @@ def main(args):
 
     # Load the VAE and EMAmodel to GPU
     if runner.vae:
-        runner.vae.to(device)
+        runner.vae = accelerator.prepare(runner.vae)
+        #runner.vae.to(device)
 
     if runner.text_encoder:
-        runner.text_encoder.to(device)
+        runner.text_encoder = accelerator.prepare(runner.text_encoder)
+        #runner.text_encoder.to(device)
 
     logger.info(f'after accelerator.prepare')
     logger.info(f'{runner.dit}')
