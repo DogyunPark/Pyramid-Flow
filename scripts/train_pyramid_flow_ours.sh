@@ -4,13 +4,13 @@
 # It enables the autoregressive video generative training with temporal pyramid
 # make sure to set, NUM_FRAMES % VIDEO_SYNC_GROUP == 0; GPUS % VIDEO_SYNC_GROUP == 0
 
-GPUS=8  # The gpu number
-SHARD_STRATEGY=zero2   # zero2 or zero3
-VIDEO_SYNC_GROUP=8     # values in [4, 8, 16] The number of process that accepts the same input video, used for temporal pyramid AR training.
+#GPUS=8  # The gpu number
+#SHARD_STRATEGY=zero2   # zero2 or zero3
+#VIDEO_SYNC_GROUP=8     # values in [4, 8, 16] The number of process that accepts the same input video, used for temporal pyramid AR training.
 MODEL_NAME=pyramid_flux     # The model name, `pyramid_flux` or `pyramid_mmdit`
-MODEL_PATH=./output/pyramid-flow-miniflux  # The downloaded ckpt dir. IMPORTANT: It should match with model_name, flux or mmdit (sd3)
+MODEL_PATH=/data/cvpr25/Pyramid-Flow/output/pyramid-flow-miniflux  # The downloaded ckpt dir. IMPORTANT: It should match with model_name, flux or mmdit (sd3)
 VARIANT=diffusion_transformer_image  # The DiT Variant
-OUTPUT_DIR=./result/test    # The checkpoint saving dir
+OUTPUT_DIR=/data/cvpr25/Pyramid-Flow/result/test    # The checkpoint saving dir
 
 BATCH_SIZE=4    # It should satisfy batch_size % 4 == 0
 GRAD_ACCU_STEPS=2
@@ -24,13 +24,8 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 python \
     train/train_pyramid_flow_ours.py \
     --num_workers 8 \
     --task t2v \
-    #--use_fsdp \
-    #--fsdp_shard_strategy $SHARD_STRATEGY \
     --use_temporal_causal \
-    #--use_temporal_pyramid \
     --interp_condition_pos \
-    #--sync_video_input \
-    #--video_sync_group $VIDEO_SYNC_GROUP \
     --load_text_encoder \
     --model_name $MODEL_NAME \
     --model_path $MODEL_PATH \
@@ -42,7 +37,6 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 python \
     --batch_size $BATCH_SIZE \
     --max_frames $NUM_FRAMES \
     --resolution $RESOLUTION \
-    #--anno_file $ANNO_FILE \
     --frame_per_unit 1 \
     --lr_scheduler constant_with_warmup \
     --opt adamw \
