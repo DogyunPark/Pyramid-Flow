@@ -127,7 +127,7 @@ def get_args():
     parser.add_argument('--corrupt_ratio', default=1/3, type=float, help="The corruption ratio for the clean history in AR training")
 
     # Dataset Cconfig
-    parser.add_argument('--anno_file', default='', type=str, help="The annotation jsonl file")
+    #parser.add_argument('--anno_file', default='', type=str, help="The annotation jsonl file")
     parser.add_argument('--resolution', default='384p', type=str, help="The input resolution", choices=['384p', '768p'])
 
     # Training set config
@@ -387,7 +387,7 @@ def main(args):
 
     # building dataloader
     global_rank = accelerator.process_index
-    anno_file = args.anno_file
+    #anno_file = args.anno_file
 
     
     # For video generation training
@@ -406,7 +406,7 @@ def main(args):
     accelerator.wait_for_everyone()
 
     import pdb; pdb.set_trace()
-    
+
     logger.info("Building dataset finished")
 
 
