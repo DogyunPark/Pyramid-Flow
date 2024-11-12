@@ -1200,6 +1200,7 @@ class PyramidDiTForVideoGeneration:
             generated_latents_list.append(intermed_latents[-1])
             last_generated_latents = intermed_latents
 
+        import pdb; pdb.set_trace()
         generated_latents = torch.cat(generated_latents_list, dim=2)
 
         if output_type == "latent":
@@ -1217,8 +1218,230 @@ class PyramidDiTForVideoGeneration:
                 # not technically necessary, but returns the pipeline to its original state
 
         return image
+    
 
-    def decode_latent(self, latents, save_memory=True, inference_multigpu=False):
+
+    @torch.no_grad()
+    def generate_without_ar(
+        self,
+        prompt: Union[str, List[str]] = None,
+        height: Optional[int] = None,
+        width: Optional[int] = None,
+        temp: int = 1,
+        num_inference_steps: Optional[Union[int, List[int]]] = 28,
+        video_num_inference_steps: Optional[Union[int, List[int]]] = 28,
+        guidance_scale: float = 7.0,
+        video_guidance_scale: float = 7.0,
+        min_guidance_scale: float = 2.0,
+        use_linear_guidance: bool = False,
+        alpha: float = 0.5,
+        negative_prompt: Optional[Union[str, List[str]]]="cartoon style, worst quality, low quality, blurry, absolute black, absolute white, low res, extra limbs, extra digits, misplaced objects, mutated anatomy, monochrome, horror",
+        num_images_per_prompt: Optional[int] = 1,
+        generator: Optional[Union[torch.Generator, List[torch.Generator]]] = None,
+        output_type: Optional[str] = "pil",
+        save_memory: bool = True,
+        cpu_offloading: bool = False, # If true, reload device will be cuda.
+        inference_multigpu: bool = False,
+        callback: Optional[Callable[[int, int, Dict], None]] = None,
+    ):
+        if self.sequential_offload_enabled and not cpu_offloading:
+            print("Warning: overriding cpu_offloading set to false, as it's needed for sequential cpu offload")
+            cpu_offloading=True
+        device = self.device if not cpu_offloading else torch.device("cuda")
+        dtype = self.dtype
+        if cpu_offloading:
+            # skip caring about the text encoder here as its about to be used anyways.
+            if not self.sequential_offload_enabled:
+                if str(self.dit.device) != "cpu":
+                    print("(dit) Warning: Do not preload pipeline components (i.e. to cuda) with cpu offloading enabled! Otherwise, a second transfer will occur needlessly taking up time.")
+                    self.dit.to("cpu")
+                    torch.cuda.empty_cache()
+            if str(self.vae.device) != "cpu":
+                print("(vae) Warning: Do not preload pipeline components (i.e. to cuda) with cpu offloading enabled! Otherwise, a second transfer will occur needlessly taking up time.")
+                self.vae.to("cpu")
+                torch.cuda.empty_cache()
+
+
+        assert (temp - 1) % self.frame_per_unit == 0, "The frames should be divided by frame_per unit"
+
+        if isinstance(prompt, str):
+            batch_size = 1
+            prompt = prompt + ", hyper quality, Ultra HD, 8K"        # adding this prompt to improve aesthetics
+        else:
+            assert isinstance(prompt, list)
+            batch_size = len(prompt)
+            prompt = [_ + ", hyper quality, Ultra HD, 8K" for _ in prompt]
+
+        if isinstance(num_inference_steps, int):
+            num_inference_steps = [num_inference_steps] * len(self.stages)
+
+        if isinstance(video_num_inference_steps, int):
+            video_num_inference_steps = [video_num_inference_steps] * len(self.stages)
+
+        negative_prompt = negative_prompt or ""
+
+        # Get the text embeddings
+        if cpu_offloading and not self.sequential_offload_enabled:
+            self.text_encoder.to("cuda")
+        prompt_embeds, prompt_attention_mask, pooled_prompt_embeds = self.text_encoder(prompt, device)
+        negative_prompt_embeds, negative_prompt_attention_mask, negative_pooled_prompt_embeds = self.text_encoder(negative_prompt, device)
+        if cpu_offloading:
+            if not self.sequential_offload_enabled:
+                self.text_encoder.to("cpu")
+                self.dit.to("cuda")
+            torch.cuda.empty_cache()
+
+        if use_linear_guidance:
+            max_guidance_scale = guidance_scale
+            # guidance_scale_list = torch.linspace(max_guidance_scale, min_guidance_scale, temp).tolist()
+            guidance_scale_list = [max(max_guidance_scale - alpha * t_, min_guidance_scale) for t_ in range(temp)]
+            print(guidance_scale_list)
+
+        self._guidance_scale = guidance_scale
+        self._video_guidance_scale = video_guidance_scale
+
+        if self.do_classifier_free_guidance:
+            prompt_embeds = torch.cat([negative_prompt_embeds, prompt_embeds], dim=0)
+            pooled_prompt_embeds = torch.cat([negative_pooled_prompt_embeds, pooled_prompt_embeds], dim=0)
+            prompt_attention_mask = torch.cat([negative_prompt_attention_mask, prompt_attention_mask], dim=0)
+
+        if is_sequence_parallel_initialized():
+            # sync the prompt embedding across multiple GPUs
+            sp_group_rank = get_sequence_parallel_group_rank()
+            global_src_rank = sp_group_rank * get_sequence_parallel_world_size()
+            torch.distributed.broadcast(prompt_embeds, global_src_rank, group=get_sequence_parallel_group())
+            torch.distributed.broadcast(pooled_prompt_embeds, global_src_rank, group=get_sequence_parallel_group())
+            torch.distributed.broadcast(prompt_attention_mask, global_src_rank, group=get_sequence_parallel_group())
+
+        # Create the initial random noise
+        num_channels_latents = (self.dit.config.in_channels // 4) if self.model_name == "pyramid_flux" else  self.dit.config.in_channels
+        latents = self.prepare_latents(
+            batch_size * num_images_per_prompt,
+            num_channels_latents,
+            temp,
+            height,
+            width,
+            prompt_embeds.dtype,
+            device,
+            generator,
+        )
+
+        temp, height, width = latents.shape[-3], latents.shape[-2], latents.shape[-1]
+
+        latents = rearrange(latents, 'b c t h w -> (b t) c h w')
+        # by default, we needs to start from the block noise
+        for _ in range(len(self.stages)-1):
+            height //= 2;width //= 2
+            latents = F.interpolate(latents, size=(height, width), mode='bilinear') * 2
+        
+        latents = rearrange(latents, '(b t) c h w -> b c t h w', t=temp)
+
+        num_units = 1 + (temp - 1) // self.frame_per_unit
+        stages = self.stages
+
+        generated_latents_list = []    # The generated results
+        last_generated_latents = None
+
+        #for unit_index in tqdm(range(num_units)):
+        gc.collect()
+        torch.cuda.empty_cache()
+
+        unit_index = 0
+        import pdb; pdb.set_trace()
+    
+        if use_linear_guidance:
+            self._guidance_scale = guidance_scale_list[unit_index]
+            self._video_guidance_scale = guidance_scale_list[unit_index]
+
+        if unit_index == 0:
+            past_condition_latents = [[] for _ in range(len(stages))]
+            intermed_latents = self.generate_one_unit(
+                #latents[:,:,:1],
+                latents,
+                past_condition_latents,
+                prompt_embeds,
+                prompt_attention_mask,
+                pooled_prompt_embeds,
+                num_inference_steps,
+                height,
+                width,
+                temp,
+                device,
+                dtype,
+                generator,
+                is_first_frame=True,
+            )
+        else:
+            # prepare the condition latents
+            past_condition_latents = []
+            clean_latents_list = self.get_pyramid_latent(torch.cat(generated_latents_list, dim=2), len(stages) - 1)
+            
+            for i_s in range(len(stages)):
+                last_cond_latent = clean_latents_list[i_s][:,:,-(self.frame_per_unit):]
+
+                stage_input = [torch.cat([last_cond_latent] * 2) if self.do_classifier_free_guidance else last_cond_latent]
+        
+                # pad the past clean latents
+                cur_unit_num = unit_index
+                cur_stage = i_s
+                cur_unit_ptx = 1
+
+                while cur_unit_ptx < cur_unit_num:
+                    cur_stage = max(cur_stage - 1, 0)
+                    if cur_stage == 0:
+                        break
+                    cur_unit_ptx += 1
+                    cond_latents = clean_latents_list[cur_stage][:, :, -(cur_unit_ptx * self.frame_per_unit) : -((cur_unit_ptx - 1) * self.frame_per_unit)]
+                    stage_input.append(torch.cat([cond_latents] * 2) if self.do_classifier_free_guidance else cond_latents)
+
+                if cur_stage == 0 and cur_unit_ptx < cur_unit_num:
+                    cond_latents = clean_latents_list[0][:, :, :-(cur_unit_ptx * self.frame_per_unit)]
+                    stage_input.append(torch.cat([cond_latents] * 2) if self.do_classifier_free_guidance else cond_latents)
+            
+                stage_input = list(reversed(stage_input))
+                past_condition_latents.append(stage_input)
+
+            intermed_latents = self.generate_one_unit(
+                latents[:,:, 1 + (unit_index - 1) * self.frame_per_unit:1 + unit_index * self.frame_per_unit],
+                past_condition_latents,
+                prompt_embeds,
+                prompt_attention_mask,
+                pooled_prompt_embeds,
+                video_num_inference_steps,
+                height,
+                width,
+                self.frame_per_unit,
+                device,
+                dtype,
+                generator,
+                is_first_frame=False,
+            )
+
+            generated_latents_list.append(intermed_latents[-1])
+            last_generated_latents = intermed_latents
+
+        #generated_latents = torch.cat(generated_latents_list, dim=2)
+        generated_latents = intermed_latents[-1]
+
+        import pdb; pdb.set_trace()
+
+        if output_type == "latent":
+            image = generated_latents
+        else:
+            if cpu_offloading:
+                if not self.sequential_offload_enabled:
+                    self.dit.to("cpu")
+                self.vae.to("cuda")
+                torch.cuda.empty_cache()
+            image = self.decode_latent(generated_latents, save_memory=save_memory, inference_multigpu=inference_multigpu)
+            if cpu_offloading:
+                self.vae.to("cpu")
+                torch.cuda.empty_cache()
+                # not technically necessary, but returns the pipeline to its original state
+
+        return image
+
+    def decode_latent(self, latents, save_memory=True, inference_multigpu=False, return_torch=True):
         # only the main process needs vae decoding
         if inference_multigpu and get_rank() != 0:
             return None
@@ -1233,7 +1456,8 @@ class PyramidDiTForVideoGeneration:
             # reducing the tile size and temporal chunk window size
             image = self.vae.decode(latents, temporal_chunk=True, window_size=1, tile_sample_min_size=256).sample
         else:
-            image = self.vae.decode(latents, temporal_chunk=True, window_size=2, tile_sample_min_size=512).sample
+            #image = self.vae.decode(latents, temporal_chunk=True, window_size=2, tile_sample_min_size=512).sample
+            image = self.vae.decode(latents, temporal_chunk=False, window_size=2, tile_sample_min_size=512).sample
 
         image = image.mul(127.5).add(127.5).clamp(0, 255).byte()
         image = rearrange(image, "B C T H W -> (B T) H W C")

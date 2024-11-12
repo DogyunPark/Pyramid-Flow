@@ -13,7 +13,7 @@ from diffusers.models.modeling_utils import ModelMixin
 from diffusers.utils import is_torch_version
 
 from .modeling_normalization import AdaLayerNormContinuous
-from .modeling_embedding import CombinedTimestepGuidanceTextProjEmbeddings, CombinedTimestepTextProjEmbeddings
+from .modeling_embedding import CombinedTimestepGuidanceTextProjEmbeddings, CombinedTimestepTextProjEmbeddings, VisionRotaryEmbedding
 from .modeling_flux_block import FluxTransformerBlock, FluxSingleTransformerBlock
 
 from trainer_misc import (
@@ -56,6 +56,32 @@ class EmbedND(nn.Module):
         )
         return emb.unsqueeze(2)
 
+class EmbedNDwithVisionRotary(nn.Module):
+    def __init__(self, dim: int, theta: int, axes_dim: List[int]):
+        super().__init__()
+        self.dim = dim
+        self.theta = theta
+        self.axes_dim = axes_dim
+        self.vision_rotary_embedding = VisionRotaryEmbedding(head_dim=self.dim, custom_freqs='yarn', 
+                                                             theta=10000, ori_max_pe_len=int(1024//8),
+                                                             max_pe_len_h=int(1024//8), max_pe_len_w=int(1024//8))
+        self.size = (int(1024//8), int(1024//8), int(1024//8))
+    def rope_vision(self, pos: torch.Tensor, dim: int, size: int) -> torch.Tensor:
+        assert dim % 2 == 0, "The dimension must be even."
+        batch_size, seq_length = pos.shape
+        cos_out, sin_out = self.vision_rotary_embedding.online_get_1d_rope_from_grid(pos, size, dim)
+        stacked_out = torch.stack([cos_out, -sin_out, sin_out, cos_out], dim=-1)
+        out = stacked_out.view(batch_size, -1, dim // 2, 2, 2)
+        return out.float()
+
+    def forward(self, ids: torch.Tensor) -> torch.Tensor:
+        n_axes = ids.shape[-1]
+
+        emb = torch.cat(
+            [self.rope_vision(ids[..., i], self.axes_dim[i], self.size[i]) for i in range(n_axes)],
+            dim=-3,
+        )
+        return emb.unsqueeze(2)
 
 class PyramidFluxTransformer(ModelMixin, ConfigMixin):
     """
@@ -98,7 +124,9 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
         self.out_channels = in_channels
         self.inner_dim = self.config.num_attention_heads * self.config.attention_head_dim
 
-        self.pos_embed = EmbedND(dim=self.inner_dim, theta=10000, axes_dim=axes_dims_rope)
+        #self.pos_embed = EmbedND(dim=self.inner_dim, theta=10000, axes_dim=axes_dims_rope)
+        self.pos_embed = EmbedNDwithVisionRotary(dim=self.inner_dim, theta=10000, axes_dim=axes_dims_rope)
+        #self.pos_embed = VisionRotaryEmbedding(head_dim=self.inner_dim, custom_freqs='normal', theta=10000, online_rope=True)
         self.time_text_embed = CombinedTimestepTextProjEmbeddings(
             embedding_dim=self.inner_dim, pooled_projection_dim=self.config.pooled_projection_dim
         )
