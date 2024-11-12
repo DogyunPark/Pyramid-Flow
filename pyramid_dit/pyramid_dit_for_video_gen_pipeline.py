@@ -636,20 +636,25 @@ class PyramidDiTForVideoGeneration:
         else:
             return diffusion_loss, {}
 
-    def __call__(self, video, text, identifier=['video'], use_temporal_pyramid=True, accelerator: Accelerator=None):
+    def __call__(self, video, text, identifier, use_temporal_pyramid=True, accelerator: Accelerator=None):
         xdim = video.ndim
         device = video.device
 
-        if 'video' in identifier:
-            assert 'image' not in identifier
-            is_image = False
-        else:
-            assert 'video' not in identifier
-            video = video.unsqueeze(2)  # 'b c h w -> b c 1 h w'
-            is_image = True
+        # if 'video' in identifier:
+        #     assert 'image' not in identifier
+        #     is_image = False
+        # else:
+        #     assert 'video' not in identifier
+        #     video = video.unsqueeze(2)  # 'b c h w -> b c 1 h w'
+        #     is_image = True
 
         # TODO: now have 3 stages, firstly get the vae latents
         with torch.no_grad(), accelerator.autocast():
+            # make vae latents
+            vae_latents = self.vae.encode_latent(video, sample=True, window_size=16, temporal_chunk=True, tile_sample_min_size=256)
+            import pdb; pdb.set_trace()
+
+
             # 10% prob drop the text
             batch_size = len(video)
             rand_idx = torch.rand((batch_size,)) <= self.cfg_rate
