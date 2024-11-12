@@ -12,6 +12,7 @@ onnx_model/*.onnx
 onnx_model/antelope/*.onnx
 
 output
+train_data
 logs/
 prompts/
 
