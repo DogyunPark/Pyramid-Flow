@@ -11,7 +11,7 @@ __pycache__/
 onnx_model/*.onnx
 onnx_model/antelope/*.onnx
 
-
+output
 logs/
 prompts/
 
