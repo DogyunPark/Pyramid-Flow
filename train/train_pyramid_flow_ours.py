@@ -83,6 +83,10 @@ from diffusers.optimization import get_scheduler
 
 logger = get_logger(__name__)
 
+def cycle(dl):
+    while True:
+        for data in dl:
+            yield data
 
 def get_args():
     parser = argparse.ArgumentParser('Pyramid-Flow Multi-process Training script', add_help=False)
@@ -488,6 +492,8 @@ def main(args):
 
     # Only wrapping the trained dit and huge text encoder
     runner.dit, optimizer = accelerator.prepare(runner.dit, optimizer)
+    train_dataloader = accelerator.prepare(train_dataloader)
+    train_dataloader = cycle(train_dataloader)
 
     # Load the VAE and EMAmodel to GPU
     if runner.vae:
