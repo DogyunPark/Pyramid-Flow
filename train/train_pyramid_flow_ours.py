@@ -502,8 +502,8 @@ def main(args):
     if model_ema and (not args.load_model_ema_to_cpu):
         model_ema.to(device)
 
-    if accelerator.is_main_process:
-        accelerator.init_trackers(os.path.basename(args.output_dir), config=vars(args))
+    # if accelerator.is_main_process:
+    #     accelerator.init_trackers(os.path.basename(args.output_dir), config=vars(args))
 
     # Report the training info
     total_batch_size = args.batch_size * accelerator.num_processes * args.gradient_accumulation_steps
