@@ -583,6 +583,7 @@ class PyramidDiTForVideoGeneration:
             video[:, :, :1] = (video[:, :, :1] - self.vae_shift_factor) * self.vae_scale_factor
             video[:, :, 1:] =  (video[:, :, 1:] - self.vae_video_shift_factor) * self.vae_video_scale_factor
         
+        import pdb; pdb.set_trace()
         # Get the pyramidal stages
         vae_latent_list = self.get_pyramid_latent(video, len(self.stages) - 1)
 
@@ -650,11 +651,6 @@ class PyramidDiTForVideoGeneration:
 
         # TODO: now have 3 stages, firstly get the vae latents
         with torch.no_grad(), accelerator.autocast():
-            # make vae latents
-            vae_latents = self.vae.encode(video, window_size=16, temporal_chunk=True, tile_sample_min_size=256).latent_dist.sample()
-            import pdb; pdb.set_trace()
-
-
             # 10% prob drop the text
             batch_size = len(video)
             rand_idx = torch.rand((batch_size,)) <= self.cfg_rate
