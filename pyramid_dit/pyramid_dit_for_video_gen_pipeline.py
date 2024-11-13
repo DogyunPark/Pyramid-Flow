@@ -570,7 +570,24 @@ class PyramidDiTForVideoGeneration:
         return vae_latent_list
 
     @torch.no_grad()
-    def get_vae_latent(self, video, use_temporal_pyramid=True):
+    def get_pyramid_latent_with_temporal_downsample(self, x, stage_num):
+        # x is the origin vae latent
+        vae_latent_list = []
+        vae_latent_list.append(x)
+
+        temp, height, width = x.shape[-3], x.shape[-2], x.shape[-1]
+        for _ in range(stage_num):
+            height //= 2
+            width //= 2
+            temp //= 2
+            x = torch.nn.functional.interpolate(x, size=(temp, height, width), mode='bilinear')
+            vae_latent_list.append(x)
+
+        vae_latent_list = list(reversed(vae_latent_list))
+        return vae_latent_list
+
+    @torch.no_grad()
+    def get_vae_latent(self, video, use_temporal_pyramid=False, use_temporal_downsample=True):
         if self.load_vae:
             assert video.shape[1] == 3, "The vae is loaded, the input should be raw pixels"
             video = self.vae.encode(video, temporal_chunk=True, window_size=8, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
@@ -582,11 +599,15 @@ class PyramidDiTForVideoGeneration:
             # is video
             video[:, :, :1] = (video[:, :, :1] - self.vae_shift_factor) * self.vae_scale_factor
             video[:, :, 1:] =  (video[:, :, 1:] - self.vae_video_shift_factor) * self.vae_video_scale_factor
-        
-        import pdb; pdb.set_trace()
-        # Get the pyramidal stages
-        vae_latent_list = self.get_pyramid_latent(video, len(self.stages) - 1)
 
+        # Get the pyramidal stages
+        if use_temporal_downsample:
+            vae_latent_list = self.get_pyramid_latent_with_temporal_downsample(video, len(self.stages) - 1)
+        else:
+            vae_latent_list = self.get_pyramid_latent(video, len(self.stages) - 1)
+
+        import pdb; pdb.set_trace()
+        
         if use_temporal_pyramid:
             noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_with_temporal_pyramid(vae_latent_list, self.sample_ratios)
         else:
