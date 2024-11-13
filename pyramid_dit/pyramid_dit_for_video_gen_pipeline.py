@@ -655,6 +655,7 @@ class PyramidDiTForVideoGeneration:
             batch_size = len(video)
             rand_idx = torch.rand((batch_size,)) <= self.cfg_rate
             prompt_embeds, prompt_attention_mask, pooled_prompt_embeds = self.get_text_embeddings(text, rand_idx, device)
+            import pdb; pdb.set_trace()
             noisy_latents_list, ratios_list, timesteps_list, targets_list = self.get_vae_latent(video, use_temporal_pyramid=use_temporal_pyramid)
 
         timesteps = torch.cat([timestep.unsqueeze(-1) for timestep in timesteps_list], dim=-1)
