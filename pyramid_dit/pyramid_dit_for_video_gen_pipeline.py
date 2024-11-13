@@ -573,7 +573,7 @@ class PyramidDiTForVideoGeneration:
     def get_vae_latent(self, video, use_temporal_pyramid=True):
         if self.load_vae:
             assert video.shape[1] == 3, "The vae is loaded, the input should be raw pixels"
-            video = self.vae.encode(video, temporal_chunk=True, window_size=16, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
+            video = self.vae.encode(video, temporal_chunk=True, window_size=4, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
 
         if video.shape[2] == 1:
             # is image
