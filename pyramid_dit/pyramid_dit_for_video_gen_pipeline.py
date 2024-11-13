@@ -580,7 +580,7 @@ class PyramidDiTForVideoGeneration:
             height //= 2
             width //= 2
             temp //= 2
-            x = torch.nn.functional.interpolate(x, size=(temp, height, width), mode='bilinear')
+            x = torch.nn.functional.interpolate(x, size=(temp, height, width), mode='trilinear')
             vae_latent_list.append(x)
 
         vae_latent_list = list(reversed(vae_latent_list))
@@ -607,12 +607,15 @@ class PyramidDiTForVideoGeneration:
             vae_latent_list = self.get_pyramid_latent(video, len(self.stages) - 1)
 
         import pdb; pdb.set_trace()
-        
+
         if use_temporal_pyramid:
             noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_with_temporal_pyramid(vae_latent_list, self.sample_ratios)
         else:
             # Only use the spatial pyramidal (without temporal ar)
-            noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise(vae_latent_list, self.sample_ratios)
+            if use_temporal_downsample:
+                noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_with_temporal_downsample(vae_latent_list, self.sample_ratios)
+            else:
+                noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise(vae_latent_list, self.sample_ratios)
         
         return noisy_latents_list, ratios_list, timesteps_list, targets_list
 
