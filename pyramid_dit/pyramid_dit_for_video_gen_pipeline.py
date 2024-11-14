@@ -1558,10 +1558,10 @@ class PyramidDiTForVideoGeneration:
 
             generated_latents_list.append(latents.detach().clone())
 
-        generated_latents = torch.cat(generated_latents_list, dim=2)
+        #generated_latents = torch.cat(generated_latents_list, dim=2)
 
         if output_type == "latent":
-            image = generated_latents
+            image = latents
         else:
             if cpu_offloading:
                 if not self.sequential_offload_enabled:
