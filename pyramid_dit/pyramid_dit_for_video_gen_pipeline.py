@@ -682,7 +682,7 @@ class PyramidDiTForVideoGeneration:
         # x is the origin vae latent
         video_list = []
         video_list.append(x)
-        temp_list = [1, 16, 33, 65] # Hard code the temporal length of each stage
+        temp_list = [33, 16, 1] # Hard code the temporal length of each stage
 
         temp, height, width = x.shape[-3], x.shape[-2], x.shape[-1]
         for idx in range(stage_num):
