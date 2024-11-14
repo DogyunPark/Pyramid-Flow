@@ -61,8 +61,8 @@ class PyramidFlowMatchEulerDiscreteScheduler(SchedulerMixin, ConfigMixin):
         self.end_sigmas = {}
         self.ori_start_sigmas = {}
 
-        # self.init_sigmas()
-        self.init_sigmas_for_each_stage()
+        self.init_sigmas()
+        #self.init_sigmas_for_each_stage()
         self.sigma_min = self.sigmas[-1].item()
         self.sigma_max = self.sigmas[0].item()
         self.gamma = gamma

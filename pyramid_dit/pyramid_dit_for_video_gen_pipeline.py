@@ -417,8 +417,10 @@ class PyramidDiTForVideoGeneration:
 
             indices = (u * training_steps).long()   # Totally 1000 training steps per stage
             indices = indices.clamp(0, training_steps-1)
-            timesteps = self.scheduler.timesteps_per_stage[i_s][indices].to(device=device)
-            ratios = self.scheduler.sigmas_per_stage[i_s][indices].to(device=device)
+            timesteps = self.scheduler.timesteps[indices].to(device=device)
+            #timesteps = self.scheduler.timesteps_per_stage[i_s][indices].to(device=device)
+            ratios = self.scheduler.sigmas[indices].to(device=device)
+            #ratios = self.scheduler.sigmas_per_stage[i_s][indices].to(device=device)
 
             while len(ratios.shape) < start_point.ndim:
                 ratios = ratios.unsqueeze(-1)
@@ -748,6 +750,7 @@ class PyramidDiTForVideoGeneration:
         #     vae_latent_list = self.get_pyramid_latent_with_temporal_downsample(video, len(self.stages))
         # else:
         #     vae_latent_list = self.get_pyramid_latent(video, len(self.stages) - 1)
+
 
         if use_temporal_pyramid:
             noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_with_temporal_pyramid(vae_latent_list, self.sample_ratios)
