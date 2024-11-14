@@ -577,10 +577,13 @@ class PyramidDiTForVideoGeneration:
         vae_latent_list.append(x)
 
         temp, height, width = x.shape[-3], x.shape[-2], x.shape[-1]
+        pad_size = (0, 0, 0, 0, 1, 0)
         for _ in range(stage_num):
             height //= 2
             width //= 2
             temp //= 2
+            
+            x = torch.nn.functional.pad(x, pad_size, mode='constant')
             x = torch.nn.functional.interpolate(x, size=(temp, height, width), mode='trilinear')
             vae_latent_list.append(x)
 
@@ -591,8 +594,8 @@ class PyramidDiTForVideoGeneration:
     def get_vae_latent(self, video, use_temporal_pyramid=False, use_temporal_downsample=True):
         if self.load_vae:
             assert video.shape[1] == 3, "The vae is loaded, the input should be raw pixels"
-            #video = self.vae.encode(video, temporal_chunk=True, window_size=8, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
-            video = self.vae.encode(video, temporal_chunk=False, window_size=8, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
+            video = self.vae.encode(video, temporal_chunk=True, window_size=8, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
+            #video = self.vae.encode(video, temporal_chunk=False, window_size=8, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
 
         if video.shape[2] == 1:
             # is image
@@ -601,13 +604,6 @@ class PyramidDiTForVideoGeneration:
             # is video
             video[:, :, :1] = (video[:, :, :1] - self.vae_shift_factor) * self.vae_scale_factor
             video[:, :, 1:] =  (video[:, :, 1:] - self.vae_video_shift_factor) * self.vae_video_scale_factor
-
-        import pdb; pdb.set_trace()
-
-        # Just to debug the temporal downsample
-        image = self.decode_latent(video, save_memory=False)
-        export_to_video(image, "./vae_latent_sample.mp4", fps=24)
-        import pdb; pdb.set_trace()
 
         # Get the pyramidal stages
         if use_temporal_downsample:
