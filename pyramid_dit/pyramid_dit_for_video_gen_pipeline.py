@@ -413,8 +413,6 @@ class PyramidDiTForVideoGeneration:
                 mode_scale=1.29,
             )
 
-            import pdb; pdb.set_trace()
-
             indices = (u * training_steps).long()   # Totally 1000 training steps per stage
             indices = indices.clamp(0, training_steps-1)
             timesteps = self.scheduler.timesteps[indices].to(device=device)
