@@ -16,6 +16,7 @@ import transformers
 from pathlib import Path
 from packaging import version
 from copy import deepcopy
+import gc
 
 from einops import rearrange
 
@@ -229,7 +230,7 @@ def get_args():
     # Added by us
     parser.add_argument('--num_frames', default=65, type=int, help='number of frames in a video')
     parser.add_argument('--frame_interval', default=1, type=int, help='frame interval')
-    parser.add_argument('--image_size', default=(384, 384), type=tuple, help='image size')
+    parser.add_argument('--image_size', default=(256, 384), type=tuple, help='image size')
     parser.add_argument('--data_root', default='./train_data/data/train/OpenVidHD.csv', type=str, help='The data root')
     parser.add_argument('--root', default='./train_data/video', type=str, help='The root')
     parser.add_argument('--promptdir', default='/data/cvpr25/prompts/1024/', type=str, help='The prompt directory')
@@ -557,6 +558,9 @@ def main(args):
     export_to_video(image, "./output/text_to_video_sample.mp4", fps=24)
     
     accelerator.wait_for_everyone()
+
+    gc.collect()
+    torch.cuda.empty_cache()  
 
     print("Start training...")
     for epoch in range(first_epoch, args.epochs):
