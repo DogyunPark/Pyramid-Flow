@@ -18,6 +18,7 @@ from packaging import version
 from copy import deepcopy
 
 from openviddata.datasets import DatasetFromCSV, get_transforms_video
+from tools.inference import load_data_prompts
 
 from dataset import (
     ImageTextDataset,
@@ -220,9 +221,10 @@ def get_args():
     # Added by us
     parser.add_argument('--num_frames', default=65, type=int, help='number of frames in a video')
     parser.add_argument('--frame_interval', default=1, type=int, help='frame interval')
-    parser.add_argument('--image_size', default=(192, 320), type=tuple, help='image size')
+    parser.add_argument('--image_size', default=(480, 480), type=tuple, help='image size')
     parser.add_argument('--data_root', default='./train_data/data/train/OpenVidHD.csv', type=str, help='The data root')
     parser.add_argument('--root', default='./train_data/video', type=str, help='The root')
+    parser.add_argument('--promptdir', default='./train_data/prompt', type=str, help='The prompt directory')
 
     return parser.parse_args()
 
@@ -507,6 +509,10 @@ def main(args):
 
     if model_ema and (not args.load_model_ema_to_cpu):
         model_ema.to(device)
+    
+    if 1:
+        filename_list, data_list, validation_prompts = load_data_prompts(args.promptdir, video_size=args.image_size, video_frames=args.num_frames)
+        import pdb; pdb.set_trace()
 
     # if accelerator.is_main_process:
     #     accelerator.init_trackers(os.path.basename(args.output_dir), config=vars(args))
@@ -565,6 +571,9 @@ def main(args):
         if args.output_dir and accelerator.is_main_process:
             with open(os.path.join(args.output_dir, "log.txt"), mode="a", encoding="utf-8") as f:
                 f.write(json.dumps(log_stats) + "\n")
+    
+        if 1:
+            
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
