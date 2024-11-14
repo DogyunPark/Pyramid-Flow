@@ -312,8 +312,9 @@ class CausalVideoVAE(ModelMixin, ConfigMixin):
         # Only used during inference
         # Encode a long video clips through sliding window
         num_frames = x.shape[2]
-        assert (num_frames - 1) % self.downsample_scale == 0
-        init_window_size = window_size + 1
+        #assert (num_frames - 1) % self.downsample_scale == 0
+        #init_window_size = window_size + 1
+        init_window_size = window_size
         frame_list = [x[:,:,:init_window_size]]
 
         # To chunk the long video 
