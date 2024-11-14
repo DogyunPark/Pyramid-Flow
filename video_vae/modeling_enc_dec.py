@@ -358,6 +358,7 @@ class CausalVaeDecoder(nn.Module):
             for up_block in self.up_blocks:
                 sample = up_block(sample, is_init_image=is_init_image, temporal_chunk=temporal_chunk,)
 
+                import pdb; pdb.set_trace()
         # post-process
         sample = self.conv_norm_out(sample)
         sample = self.conv_act(sample)
