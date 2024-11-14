@@ -602,7 +602,7 @@ class PyramidDiTForVideoGeneration:
 
         # Get the pyramidal stages
         if use_temporal_downsample:
-            vae_latent_list = self.get_pyramid_latent_with_temporal_downsample(video, len(self.stages) - 1)
+            vae_latent_list = self.get_pyramid_latent_with_temporal_downsample(video, len(self.stages))
         else:
             vae_latent_list = self.get_pyramid_latent(video, len(self.stages) - 1)
 
