@@ -825,8 +825,12 @@ class PyramidDiTForVideoGeneration:
             prompt_embeds, prompt_attention_mask, pooled_prompt_embeds = self.get_text_embeddings(text, rand_idx, device)
             noisy_latents_list, ratios_list, timesteps_list, targets_list = self.get_vae_latent(video, use_temporal_pyramid=use_temporal_pyramid)
 
+        import pdb; pdb.set_trace()
+
         timesteps = torch.cat([timestep.unsqueeze(-1) for timestep in timesteps_list], dim=-1)
         timesteps = timesteps.reshape(-1)
+
+        import pdb; pdb.set_trace()
 
         assert timesteps.shape[0] == prompt_embeds.shape[0]
 
