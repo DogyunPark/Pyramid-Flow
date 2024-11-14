@@ -1532,7 +1532,7 @@ class PyramidDiTForVideoGeneration:
 
                 #prompt_embeds = prompt_embeds.to(latent_model_input.dtype)
                 #pooled_prompt_embeds = pooled_prompt_embeds.to(latent_model_input.dtype)
-                import pdb; pdb.set_trace()
+                #import pdb; pdb.set_trace()
                 noise_pred = self.dit(
                     sample=[[latent_model_input]],
                     timestep_ratio=timestep,
