@@ -724,7 +724,7 @@ class PyramidDiTForVideoGeneration:
     def get_pyramid_latent_upsample(self, vae_latent_list):
         # x is the origin vae latent
         next_vae_latent_list = []
-        stage_num = len(vae_latent_list)
+        stage_num = len(vae_latent_list)-1
 
         for idx in range(stage_num):
             next_idx = idx + 1
