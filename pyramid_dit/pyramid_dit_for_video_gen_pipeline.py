@@ -1559,7 +1559,7 @@ class PyramidDiTForVideoGeneration:
             generated_latents_list.append(latents.detach().clone())
 
         #generated_latents = torch.cat(generated_latents_list, dim=2)
-        latents = latents.to(dtype)
+        latents = latents.to(torch.bfloat16)
         import pdb; pdb.set_trace()
 
         if output_type == "latent":
