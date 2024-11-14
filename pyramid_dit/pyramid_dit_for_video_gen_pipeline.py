@@ -678,6 +678,27 @@ class PyramidDiTForVideoGeneration:
         return vae_latent_list
 
     @torch.no_grad()
+    def get_pyramid_input(self, x, stage_num):
+        # x is the origin vae latent
+        video_list = []
+        video_list.append(x)
+
+        temp, height, width = x.shape[-3], x.shape[-2], x.shape[-1]
+        for _ in range(stage_num):
+            height //= 2
+            width //= 2
+            temp //= 2
+            temp += 1
+            x = x[:, :, :temp]
+            x = rearrange(x, 'b c t h w -> (b t) c h w')
+            x = torch.nn.functional.interpolate(x, size=(height, width), mode='bilinear')
+            x = rearrange(x, '(b t) c h w -> b c t h w', t=temp)
+            video_list.append(x)
+
+        video_list = list(reversed(video_list))
+        return video_list
+
+    @torch.no_grad()
     def get_pyramid_latent_with_temporal_downsample(self, x, stage_num):
         # x is the origin vae latent
         vae_latent_list = []
@@ -699,6 +720,11 @@ class PyramidDiTForVideoGeneration:
 
     @torch.no_grad()
     def get_vae_latent(self, video, use_temporal_pyramid=False, use_temporal_downsample=True):
+        
+        video_list = self.get_pyramid_input(video, len(self.stages))
+
+        import pdb; pdb.set_trace()
+
         if self.load_vae:
             assert video.shape[1] == 3, "The vae is loaded, the input should be raw pixels"
             video = self.vae.encode(video, temporal_chunk=True, window_size=8, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
@@ -791,7 +817,6 @@ class PyramidDiTForVideoGeneration:
             batch_size = len(video)
             rand_idx = torch.rand((batch_size,)) <= self.cfg_rate
             prompt_embeds, prompt_attention_mask, pooled_prompt_embeds = self.get_text_embeddings(text, rand_idx, device)
-            import pdb; pdb.set_trace()
             noisy_latents_list, ratios_list, timesteps_list, targets_list = self.get_vae_latent(video, use_temporal_pyramid=use_temporal_pyramid)
 
         timesteps = torch.cat([timestep.unsqueeze(-1) for timestep in timesteps_list], dim=-1)
