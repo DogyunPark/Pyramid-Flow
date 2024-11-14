@@ -336,7 +336,7 @@ class CausalVideoVAE(ModelMixin, ConfigMixin):
                 h = self.encoder(frames, is_init_image=False, temporal_chunk=True)
                 moments = self.quant_conv(h, is_init_image=False, temporal_chunk=True)
 
-            import pdb; pdb.set_trace()
+            #import pdb; pdb.set_trace()
             latent_list.append(moments)
 
         latent = torch.cat(latent_list, dim=2)
