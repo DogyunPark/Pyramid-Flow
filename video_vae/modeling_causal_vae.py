@@ -318,9 +318,7 @@ class CausalVideoVAE(ModelMixin, ConfigMixin):
 
         # To chunk the long video 
         full_chunk_size = (num_frames - init_window_size) // window_size
-        7
         fid = init_window_size
-        9
         for idx in range(full_chunk_size):
             frame_list.append(x[:, :, fid:fid+window_size])
             fid += window_size
