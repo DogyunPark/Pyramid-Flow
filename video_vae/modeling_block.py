@@ -748,19 +748,14 @@ class UpDecoderBlockCausal3D(nn.Module):
         for resnet in self.resnets:
             hidden_states = resnet(hidden_states, temb=temb, is_init_image=is_init_image, temporal_chunk=temporal_chunk)
 
-        import pdb; pdb.set_trace()
-
         if self.upsamplers is not None:
             for upsampler in self.upsamplers:
                 hidden_states = upsampler(hidden_states, is_init_image=is_init_image, temporal_chunk=temporal_chunk)
-        
-        import pdb; pdb.set_trace()
 
         if self.temporal_upsamplers is not None:
             for temporal_upsampler in self.temporal_upsamplers:
                 hidden_states = temporal_upsampler(hidden_states, is_init_image=is_init_image, temporal_chunk=temporal_chunk)
 
-        import pdb; pdb.set_trace()
         
         return hidden_states
 

@@ -721,6 +721,9 @@ class CausalTemporalUpsample2x(nn.Module):
         assert hidden_states.shape[1] == self.channels
         t = hidden_states.shape[2]
         hidden_states = self.conv(hidden_states, is_init_image=is_init_image, temporal_chunk=temporal_chunk) 
+
+        import pdb; pdb.set_trace()
+        
         hidden_states = rearrange(hidden_states, 'b (c p) t h w -> b c (t p) h w', p=2)
 
         if is_init_image:
