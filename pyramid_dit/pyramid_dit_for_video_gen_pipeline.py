@@ -682,13 +682,13 @@ class PyramidDiTForVideoGeneration:
         # x is the origin vae latent
         video_list = []
         video_list.append(x)
+        temp_list = [1, 16, 33, 65] # Hard code the temporal length of each stage
 
         temp, height, width = x.shape[-3], x.shape[-2], x.shape[-1]
-        for _ in range(stage_num):
+        for idx in range(stage_num):
             height //= 2
             width //= 2
-            temp //= 2
-            temp += 1
+            temp = temp_list[idx]
             x = x[:, :, :temp]
             x = rearrange(x, 'b c t h w -> (b t) c h w')
             x = torch.nn.functional.interpolate(x, size=(height, width), mode='bilinear')
@@ -725,7 +725,7 @@ class PyramidDiTForVideoGeneration:
 
         import pdb; pdb.set_trace()
 
-        video_latent_list = []
+        vae_latent_list = []
 
         if self.load_vae:
             assert video_list[0].shape[1] == 3, "The vae is loaded, the input should be raw pixels"
@@ -741,7 +741,7 @@ class PyramidDiTForVideoGeneration:
                     video[:, :, :1] = (video[:, :, :1] - self.vae_shift_factor) * self.vae_scale_factor
                     video[:, :, 1:] =  (video[:, :, 1:] - self.vae_video_shift_factor) * self.vae_video_scale_factor
 
-                video_latent_list.append(video)
+                vae_latent_list.append(video)
 
         # Get the pyramidal stages
         # if use_temporal_downsample:
