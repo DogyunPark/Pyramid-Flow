@@ -1390,16 +1390,14 @@ class PyramidDiTForVideoGeneration:
 
 
     @torch.no_grad()
-    def generate_without_ar(
+    def generate_video(
         self,
-        prompt: Union[str, List[str]] = None,
-        height: Optional[int] = None,
-        width: Optional[int] = None,
+        prompt: Union[str, List[str]] = '',
+        input_image: PIL.Image = None,
         temp: int = 1,
         num_inference_steps: Optional[Union[int, List[int]]] = 28,
-        video_num_inference_steps: Optional[Union[int, List[int]]] = 28,
         guidance_scale: float = 7.0,
-        video_guidance_scale: float = 7.0,
+        video_guidance_scale: float = 4.0,
         min_guidance_scale: float = 2.0,
         use_linear_guidance: bool = False,
         alpha: float = 0.5,

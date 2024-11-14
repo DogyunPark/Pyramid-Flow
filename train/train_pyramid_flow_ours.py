@@ -17,6 +17,8 @@ from pathlib import Path
 from packaging import version
 from copy import deepcopy
 
+from einops import rearrange
+
 from openviddata.datasets import DatasetFromCSV, get_transforms_video, load_data_prompts
 
 from dataset import (
@@ -511,7 +513,10 @@ def main(args):
     
     if 1:
         filename_list, data_list, validation_prompts = load_data_prompts(args.promptdir, video_size=args.image_size, video_frames=args.num_frames)
-        import pdb; pdb.set_trace()
+        validation_prompt = validation_prompts[0].to(accelerator.device)
+        validation_image = data_list[0][:,0].to(accelerator.device)
+        validation_image = rearrange(validation_image, "C H W -> T C H W", T=1)
+        validation_image = validation_image.unsqueeze(0)
 
     # if accelerator.is_main_process:
     #     accelerator.init_trackers(os.path.basename(args.output_dir), config=vars(args))
@@ -533,6 +538,15 @@ def main(args):
     # Start Train!
     start_time = time.time()
     accelerator.wait_for_everyone()
+
+    if 1:
+        runner.generate_video(
+            prompt=validation_prompt,
+            input_image=validation_image,
+            num_inference_steps=[20, 20, 20],
+            output_type="pil",
+            save_memory=True, 
+        )
 
     for epoch in range(first_epoch, args.epochs):
         train_stats = train_one_epoch_with_fsdp(
@@ -572,7 +586,13 @@ def main(args):
                 f.write(json.dumps(log_stats) + "\n")
         
         if 1:
-            pass
+            runner.generate_video(
+                prompt=validation_prompt,
+                input_image=validation_image,
+                num_inference_steps=[20, 20, 20],
+                output_type="pil",
+                save_memory=True, 
+            )
 
 
     total_time = time.time() - start_time
