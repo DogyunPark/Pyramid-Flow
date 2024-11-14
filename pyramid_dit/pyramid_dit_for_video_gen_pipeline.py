@@ -725,24 +725,29 @@ class PyramidDiTForVideoGeneration:
 
         import pdb; pdb.set_trace()
 
-        if self.load_vae:
-            assert video.shape[1] == 3, "The vae is loaded, the input should be raw pixels"
-            video = self.vae.encode(video, temporal_chunk=True, window_size=8, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
-            #video = self.vae.encode(video, temporal_chunk=False, window_size=8, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
+        video_latent_list = []
 
-        if video.shape[2] == 1:
-            # is image
-            video = (video - self.vae_shift_factor) * self.vae_scale_factor
-        else:
-            # is video
-            video[:, :, :1] = (video[:, :, :1] - self.vae_shift_factor) * self.vae_scale_factor
-            video[:, :, 1:] =  (video[:, :, 1:] - self.vae_video_shift_factor) * self.vae_video_scale_factor
+        if self.load_vae:
+            assert video_list[0].shape[1] == 3, "The vae is loaded, the input should be raw pixels"
+            for video in video_list:
+                video = self.vae.encode(video, temporal_chunk=True, window_size=8, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
+                #video = self.vae.encode(video, temporal_chunk=False, window_size=8, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
+
+                if video.shape[2] == 1:
+                    # is image
+                    video = (video - self.vae_shift_factor) * self.vae_scale_factor
+                else:
+                    # is video
+                    video[:, :, :1] = (video[:, :, :1] - self.vae_shift_factor) * self.vae_scale_factor
+                    video[:, :, 1:] =  (video[:, :, 1:] - self.vae_video_shift_factor) * self.vae_video_scale_factor
+
+                video_latent_list.append(video)
 
         # Get the pyramidal stages
-        if use_temporal_downsample:
-            vae_latent_list = self.get_pyramid_latent_with_temporal_downsample(video, len(self.stages))
-        else:
-            vae_latent_list = self.get_pyramid_latent(video, len(self.stages) - 1)
+        # if use_temporal_downsample:
+        #     vae_latent_list = self.get_pyramid_latent_with_temporal_downsample(video, len(self.stages))
+        # else:
+        #     vae_latent_list = self.get_pyramid_latent(video, len(self.stages) - 1)
 
         import pdb; pdb.set_trace()
 
