@@ -517,7 +517,8 @@ def main(args):
         validation_image = data_list[0][:,0].to(accelerator.device)
         x = validation_image.unsqueeze(0)
         height, width = validation_image.shape[-2], validation_image.shape[-1]
-        for idx in range(3):
+        import pdb; pdb.set_trace()
+        for idx in range(4):
             height //= 2
             width //= 2
             x = torch.nn.functional.interpolate(x, size=(height, width), mode='bilinear')
