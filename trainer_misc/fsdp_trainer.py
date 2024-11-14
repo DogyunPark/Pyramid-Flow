@@ -61,6 +61,8 @@ def train_one_epoch_with_fsdp(
     iters_per_epoch=2000,
     ema_decay=0.9999,
     use_temporal_pyramid=True,
+    validation_prompt=None,
+    validation_image=None,
 ):
     runner.dit.train()
     metric_logger = MetricLogger(delimiter="  ")
@@ -154,6 +156,20 @@ def train_one_epoch_with_fsdp(
                         weight_decay_value = group["weight_decay"]
                 metric_logger.update(weight_decay=weight_decay_value)
                 metric_logger.update(grad_norm=grad_norm)
+
+        # Generate the video for validation
+        if step % 10 == 0:
+            assert validation_prompt is not None and validation_image is not None
+            image = runner.generate_video(
+                prompt=validation_prompt,
+                input_image=validation_image,
+                num_inference_steps=[20, 20, 20],
+                output_type="pil",
+                save_memory=True, 
+            )
+            export_to_video(image, "./output/text_to_video_sample-{}step-{}epoch.mp4".format(step, epoch), fps=24)
+            print("Generated video for {} step/{} epoch".format(step, epoch))
+            accelerator.wait_for_everyone()
 
     # gather the stats from all processes
     metric_logger.synchronize_between_processes()

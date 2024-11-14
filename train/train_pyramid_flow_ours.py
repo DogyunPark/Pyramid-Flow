@@ -581,6 +581,8 @@ def main(args):
             iters_per_epoch=num_training_steps_per_epoch,
             ema_decay=args.ema_decay,
             use_temporal_pyramid=args.use_temporal_pyramid,
+            validation_prompt=validation_prompt,
+            validation_image=validation_image,
         )
 
         if args.output_dir:
@@ -599,18 +601,6 @@ def main(args):
         if args.output_dir and accelerator.is_main_process:
             with open(os.path.join(args.output_dir, "log.txt"), mode="a", encoding="utf-8") as f:
                 f.write(json.dumps(log_stats) + "\n")
-        
-    if accelerator.is_main_process:
-        image = runner.generate_video(
-            prompt=validation_prompt,
-            input_image=validation_image,
-            num_inference_steps=[20, 20, 20],
-            output_type="pil",
-            save_memory=True, 
-        )
-        export_to_video(image, "./output/text_to_video_sample-{}.mp4".format(epoch), fps=24)
-        print("Generated video for {} epoch".format(epoch))
-    accelerator.wait_for_everyone()
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
