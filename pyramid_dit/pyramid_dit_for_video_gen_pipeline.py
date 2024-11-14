@@ -1486,6 +1486,8 @@ class PyramidDiTForVideoGeneration:
             latents[:, :, :1] = (latents[:, :, :1] / self.vae_scale_factor) + self.vae_shift_factor
             latents[:, :, 1:] = (latents[:, :, 1:] / self.vae_video_scale_factor) + self.vae_video_shift_factor
 
+        print(latents.shape)
+        
         if save_memory:
             # reducing the tile size and temporal chunk window size
             image = self.vae.decode(latents, temporal_chunk=True, window_size=4, tile_sample_min_size=256).sample

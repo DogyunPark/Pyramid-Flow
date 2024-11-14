@@ -130,8 +130,8 @@ class CausalConv3d(nn.Module):
                 if self.temporal_stride == 1 and self.time_kernel_size == 3:
                     x = torch.cat([video_front_context, x], dim=2)
                 elif self.temporal_stride == 2 and self.time_kernel_size == 3:
-                    #x = torch.cat([video_front_context[:,:,-1:], x], dim=2)
-                    x = torch.cat([video_front_context, x], dim=2)
+                    x = torch.cat([video_front_context[:,:,-1:], x], dim=2)
+                    #x = torch.cat([video_front_context, x], dim=2)
 
                 self.cache_front_feat.append(x[:, :, -2:].clone().detach())
         

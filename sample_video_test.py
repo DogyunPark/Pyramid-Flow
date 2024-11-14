@@ -65,7 +65,7 @@ with torch.no_grad(), torch.cuda.amp.autocast(enabled=True if model_dtype != 'fp
         guidance_scale=7.0,         # The guidance for the first frame, set it to 7 for 384p variant
         video_guidance_scale=5.0,   # The guidance for the other video latent
         output_type="pil",
-        save_memory=True,           # If you have enough GPU memory, set it to `False` to improve vae decoding speed
+        save_memory=False,           # If you have enough GPU memory, set it to `False` to improve vae decoding speed
     )
 
 #frames[0].save("./output/output.png")
