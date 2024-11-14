@@ -352,6 +352,7 @@ class PyramidDiTForVideoGeneration:
     def add_pyramid_noise_with_temporal_downsample(
         self, 
         latents_list,
+        next_vae_latent_list,
         sample_ratios=[1, 1, 1],
     ):
         """
@@ -365,6 +366,7 @@ class PyramidDiTForVideoGeneration:
             latent_list: [low_res, mid_res, high_res] The vae latents of all stages
             sample_ratios: The proportion of each stage in the training batch
         """
+        
         noise = torch.randn_like(latents_list[-1])
         device = noise.device
         dtype = latents_list[-1].dtype
@@ -717,6 +719,24 @@ class PyramidDiTForVideoGeneration:
 
         vae_latent_list = list(reversed(vae_latent_list))
         return vae_latent_list
+    
+    @torch.no_grad()
+    def get_pyramid_latent_upsample(self, vae_latent_list):
+        # x is the origin vae latent
+        next_vae_latent_list = []
+        stage_num = len(vae_latent_list)
+
+        for idx in range(stage_num):
+            next_idx = idx + 1
+            temp_next = vae_latent_list[next_idx].shape[2]
+            height_next = vae_latent_list[next_idx].shape[3]
+            width_next = vae_latent_list[next_idx].shape[4]
+
+            current_vae_latent = vae_latent_list[idx]
+            x = torch.nn.functional.interpolate(current_vae_latent, size=(temp_next, height_next, width_next), mode='trilinear')
+            next_vae_latent_list.append(x)
+
+        return next_vae_latent_list
 
     @torch.no_grad()
     def get_vae_latent(self, video, use_temporal_pyramid=False, use_temporal_downsample=True):
@@ -742,6 +762,8 @@ class PyramidDiTForVideoGeneration:
                     video[:, :, 1:] =  (video[:, :, 1:] - self.vae_video_shift_factor) * self.vae_video_scale_factor
 
                 vae_latent_list.append(video)
+            
+            next_vae_latent_list = self.get_pyramid_latent_upsample(vae_latent_list)
 
         # Get the pyramidal stages
         # if use_temporal_downsample:
@@ -756,7 +778,7 @@ class PyramidDiTForVideoGeneration:
         else:
             # Only use the spatial pyramidal (without temporal ar)
             if use_temporal_downsample:
-                noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_with_temporal_downsample(vae_latent_list, self.sample_ratios)
+                noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_with_temporal_downsample(vae_latent_list, self.sample_ratios, next_vae_latent_list=next_vae_latent_list)
             else:
                 noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise(vae_latent_list, self.sample_ratios)
         
