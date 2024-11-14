@@ -825,7 +825,9 @@ class PyramidDiTForVideoGeneration:
 
         timesteps = torch.cat([timestep.unsqueeze(-1) for timestep in timesteps_list], dim=-1)
         timesteps = timesteps.reshape(-1)
-
+        
+        import pdb; pdb.set_trace()
+        
         assert timesteps.shape[0] == prompt_embeds.shape[0]
 
         # DiT forward
