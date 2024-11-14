@@ -5,7 +5,9 @@ from typing import Iterable
 import torch
 import torch.nn as nn
 import accelerate
+from einops import rearrange
 from .utils import MetricLogger, SmoothedValue
+from diffusers.utils import export_to_video
 
 
 def update_ema_for_dit(model, model_ema, accelerator, decay):
@@ -85,6 +87,12 @@ def train_one_epoch_with_fsdp(
                 import pdb; pdb.set_trace()
                 video =  samples['video'].to(accelerator.device)
                 text = samples['text']
+
+                image = video.mul(127.5).add(127.5).clamp(0, 255).byte()
+                image = rearrange(image, "B C T H W -> (B T) H W C")
+                image = image.cpu().numpy()
+                image = runner.numpy_to_pil(image)
+                export_to_video(image, "./GT.mp4", fps=24)
                 #identifier = samples['identifier']
 
                 # Perform the forward using the accerlate

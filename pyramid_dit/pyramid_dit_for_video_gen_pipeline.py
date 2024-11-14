@@ -8,6 +8,7 @@ import torch.nn.functional as F
 from collections import OrderedDict
 from einops import rearrange
 from diffusers.utils.torch_utils import randn_tensor
+from diffusers.utils import export_to_video
 import numpy as np
 import math
 import random
@@ -599,6 +600,11 @@ class PyramidDiTForVideoGeneration:
             # is video
             video[:, :, :1] = (video[:, :, :1] - self.vae_shift_factor) * self.vae_scale_factor
             video[:, :, 1:] =  (video[:, :, 1:] - self.vae_video_shift_factor) * self.vae_video_scale_factor
+
+        # Just to debug the temporal downsample
+        image = self.decode_latent(video, save_memory=False)
+        export_to_video(image, "./vae_latent_sample.mp4", fps=24)
+        import pdb; pdb.set_trace()
 
         # Get the pyramidal stages
         if use_temporal_downsample:

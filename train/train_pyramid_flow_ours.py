@@ -16,6 +16,7 @@ import transformers
 from pathlib import Path
 from packaging import version
 from copy import deepcopy
+from diffusers.utils import export_to_video
 
 from openviddata.datasets import DatasetFromCSV, get_transforms_video
 
