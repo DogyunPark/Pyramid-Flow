@@ -602,7 +602,7 @@ class PyramidDiTForVideoGeneration:
             video[:, :, 1:] =  (video[:, :, 1:] - self.vae_video_shift_factor) * self.vae_video_scale_factor
 
         # Just to debug the temporal downsample
-        image = self.decode_latent(video, save_memory=False)
+        image = self.decode_latent(video, save_memory=True)
         export_to_video(image, "./vae_latent_sample.mp4", fps=24)
         import pdb; pdb.set_trace()
 
