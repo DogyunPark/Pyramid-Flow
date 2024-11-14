@@ -189,6 +189,11 @@ class PyramidDiTForVideoGeneration:
             shift=timestep_shift, stages=len(self.stages), 
             stage_range=stage_range, gamma=scheduler_gamma,
         )
+
+        self.validation_scheduler = PyramidFlowMatchEulerDiscreteScheduler(
+            shift=timestep_shift, stages=len(self.stages), 
+            stage_range=stage_range, gamma=scheduler_gamma,
+        )
         print(f"The start sigmas and end sigmas of each stage is Start: {self.scheduler.start_sigmas}, End: {self.scheduler.end_sigmas}, Ori_start: {self.scheduler.ori_start_sigmas}")
         
         self.cfg_rate = 0.1
@@ -1409,6 +1414,7 @@ class PyramidDiTForVideoGeneration:
         cpu_offloading: bool = False, # If true, reload device will be cuda.
         inference_multigpu: bool = False,
         callback: Optional[Callable[[int, int, Dict], None]] = None,
+        sampling_scheduler: PyramidFlowMatchEulerDiscreteScheduler = None,
     ):
         if self.sequential_offload_enabled and not cpu_offloading:
             print("Warning: overriding cpu_offloading set to false, as it's needed for sequential cpu offload")
@@ -1510,8 +1516,8 @@ class PyramidDiTForVideoGeneration:
         height, width = latents.shape[-2:]
         # prepare the condition latents
         for i_s in range(len(stages)):
-            self.scheduler.set_timesteps(num_inference_steps[i_s], device=device)
-            timesteps = self.scheduler.timesteps
+            self.validation_scheduler.set_timesteps(num_inference_steps[i_s], device=device)
+            timesteps = self.validation_scheduler.timesteps
             temp_next = temp_upsample_list[i_s]
             height = height * 2
             width = width * 2
@@ -1549,7 +1555,7 @@ class PyramidDiTForVideoGeneration:
                     noise_pred = noise_pred_uncond + self.guidance_scale * (noise_pred_text - noise_pred_uncond)
                 
                 # compute the previous noisy sample x_t -> x_t-1
-                latents = self.scheduler.step(
+                latents = self.validation_scheduler.step(
                     model_output=noise_pred,
                     timestep=timestep,
                     sample=latents,
