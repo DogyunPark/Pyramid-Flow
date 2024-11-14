@@ -540,6 +540,7 @@ def main(args):
     accelerator.wait_for_everyone()
 
     if 1:
+        #with accelerator.au
         runner.generate_video(
             prompt=validation_prompt,
             input_image=validation_image,
