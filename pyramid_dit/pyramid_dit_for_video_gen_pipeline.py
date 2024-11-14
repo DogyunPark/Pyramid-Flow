@@ -1476,9 +1476,6 @@ class PyramidDiTForVideoGeneration:
             torch.distributed.broadcast(pooled_prompt_embeds, global_src_rank, group=get_sequence_parallel_group())
             torch.distributed.broadcast(prompt_attention_mask, global_src_rank, group=get_sequence_parallel_group())
 
-
-        import pdb; pdb.set_trace()
-
         # Create the initial random noise
         stages = self.stages
         # encode the image latents
@@ -1490,18 +1487,13 @@ class PyramidDiTForVideoGeneration:
             global_src_rank = sp_group_rank * get_sequence_parallel_world_size()
             torch.distributed.broadcast(latents, global_src_rank, group=get_sequence_parallel_group())
 
-        import pdb; pdb.set_trace()
-
         latent_height, latent_width = latents.shape[-2:]
         for idx in range(4): #TODO: make this dynamic
-            print(idx)
             latent_height //= 2
             latent_width //= 2
             latents = rearrange(latents, 'b c t h w -> (b t) c h w')
             latents = torch.nn.functional.interpolate(latents, size=(latent_height, latent_width), mode='bilinear')
             latents = rearrange(latents, '(b t) c h w -> b c t h w', t=1)
-
-        import pdb; pdb.set_trace()
         
         generated_latents_list = [latents.clone()]    # The generated results
 
@@ -1538,6 +1530,8 @@ class PyramidDiTForVideoGeneration:
                     global_src_rank = sp_group_rank * get_sequence_parallel_world_size()
                     torch.distributed.broadcast(latent_model_input, global_src_rank, group=get_sequence_parallel_group())
 
+                import pdb; pdb.set_trace()
+
                 noise_pred = self.dit(
                     sample=[latent_model_input],
                     timestep_ratio=timestep,
@@ -1561,7 +1555,7 @@ class PyramidDiTForVideoGeneration:
                     generator=generator,
                 ).prev_sample
 
-            generated_latents_list.append(latents)
+            generated_latents_list.append(latents.detach().clone())
 
         generated_latents = torch.cat(generated_latents_list, dim=2)
 
