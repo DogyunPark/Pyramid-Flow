@@ -515,8 +515,15 @@ def main(args):
         filename_list, data_list, validation_prompts = load_data_prompts(args.promptdir, video_size=args.image_size, video_frames=args.num_frames)
         validation_prompt = validation_prompts[0]
         validation_image = data_list[0][:,0].to(accelerator.device)
-        #validation_image = rearrange(validation_image, "C H W -> T C H W", T=1)
-        validation_image = validation_image.unsqueeze(0).unsqueeze(2)
+        x = validation_image.unsqueeze(0)
+        height, width = validation_image.shape[-2], validation_image.shape[-1]
+        for idx in range(3):
+            height //= 2
+            width //= 2
+            x = torch.nn.functional.interpolate(x, size=(height, width), mode='bilinear')
+        validation_image = x.unsqueeze(0)
+
+        import pdb; pdb.set_trace()
 
     # if accelerator.is_main_process:
     #     accelerator.init_trackers(os.path.basename(args.output_dir), config=vars(args))
