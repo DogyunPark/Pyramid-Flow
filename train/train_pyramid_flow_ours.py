@@ -521,7 +521,7 @@ def main(args):
             height //= 2
             width //= 2
             x = torch.nn.functional.interpolate(x, size=(height, width), mode='bilinear')
-        validation_image = x.unsqueeze(0)
+        validation_image = x.unsqueeze(2)
 
         import pdb; pdb.set_trace()
 

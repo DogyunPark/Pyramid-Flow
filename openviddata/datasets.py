@@ -203,7 +203,7 @@ def load_prompts(prompt_file):
 
 def load_data_prompts(data_dir, video_size=(256,256), video_frames=16, interp=False):
     transform = transforms.Compose([
-        transforms.Resize(min(video_size)),
+        transforms.Resize(max(video_size)),
         transforms.CenterCrop(video_size),
         transforms.ToTensor(),
         transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))])
