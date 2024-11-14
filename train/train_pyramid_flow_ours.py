@@ -220,7 +220,7 @@ def get_args():
     # Added by us
     parser.add_argument('--num_frames', default=32, type=int, help='number of frames in a video')
     parser.add_argument('--frame_interval', default=1, type=int, help='frame interval')
-    parser.add_argument('--image_size', default=(192, 320), type=tuple, help='image size')
+    parser.add_argument('--image_size', default=(128, 128), type=tuple, help='image size')
     parser.add_argument('--data_root', default='./train_data/data/train/OpenVidHD.csv', type=str, help='The data root')
     parser.add_argument('--root', default='./train_data/video', type=str, help='The root')
 
