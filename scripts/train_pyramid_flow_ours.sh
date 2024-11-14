@@ -24,8 +24,6 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 accelerate launch --multi_gpu --num_process
     train/train_pyramid_flow_ours.py \
     --num_workers 8 \
     --task t2v \
-    #--use_fsdp \
-    #--fsdp_shard_strategy $SHARD_STRATEGY \
     --use_temporal_causal \
     --interp_condition_pos \
     --load_text_encoder \
