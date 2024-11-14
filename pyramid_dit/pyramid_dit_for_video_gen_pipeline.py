@@ -830,8 +830,6 @@ class PyramidDiTForVideoGeneration:
 
         timesteps = torch.cat([timestep.unsqueeze(-1) for timestep in timesteps_list], dim=-1)
         timesteps = timesteps.reshape(-1)
-        
-        import pdb; pdb.set_trace()
 
         assert timesteps.shape[0] == prompt_embeds.shape[0]
 
@@ -1566,7 +1564,6 @@ class PyramidDiTForVideoGeneration:
 
         #generated_latents = torch.cat(generated_latents_list, dim=2)
         latents = latents.to(torch.bfloat16)
-        import pdb; pdb.set_trace()
 
         if output_type == "latent":
             image = latents
@@ -1594,8 +1591,6 @@ class PyramidDiTForVideoGeneration:
         else:
             latents[:, :, :1] = (latents[:, :, :1] / self.vae_scale_factor) + self.vae_shift_factor
             latents[:, :, 1:] = (latents[:, :, 1:] / self.vae_video_scale_factor) + self.vae_video_shift_factor
-
-        print(latents.shape)
         
         if save_memory:
             # reducing the tile size and temporal chunk window size
