@@ -5,7 +5,7 @@
 # make sure to set, NUM_FRAMES % VIDEO_SYNC_GROUP == 0; GPUS % VIDEO_SYNC_GROUP == 0
 
 GPUS=8  # The gpu number
-SHARD_STRATEGY=zero2   # zero2 or zero3
+SHARD_STRATEGY=zero3   # zero2 or zero3
 #VIDEO_SYNC_GROUP=8     # values in [4, 8, 16] The number of process that accepts the same input video, used for temporal pyramid AR training.
 MODEL_NAME=pyramid_flux     # The model name, `pyramid_flux` or `pyramid_mmdit`
 MODEL_PATH=/data/cvpr25/Pyramid-Flow/output/pyramid-flow-miniflux  # The downloaded ckpt dir. IMPORTANT: It should match with model_name, flux or mmdit (sd3)
