@@ -1494,6 +1494,7 @@ class PyramidDiTForVideoGeneration:
         image = image.mul(127.5).add(127.5).clamp(0, 255).byte()
         image = rearrange(image, "B C T H W -> (B T) H W C")
         image = image.cpu().numpy()
+        import pdb; pdb.set_trace()
         image = self.numpy_to_pil(image)
         
         return image
