@@ -17,8 +17,7 @@ from pathlib import Path
 from packaging import version
 from copy import deepcopy
 
-from openviddata.datasets import DatasetFromCSV, get_transforms_video
-from tools.inference import load_data_prompts
+from openviddata.datasets import DatasetFromCSV, get_transforms_video, load_data_prompts
 
 from dataset import (
     ImageTextDataset,
