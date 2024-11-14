@@ -352,7 +352,7 @@ class PyramidDiTForVideoGeneration:
     def add_pyramid_noise_with_temporal_downsample(
         self, 
         latents_list,
-        next_vae_latent_list,
+        upsample_vae_latent_list,
         sample_ratios=[1, 1, 1],
     ):
         """
@@ -366,32 +366,21 @@ class PyramidDiTForVideoGeneration:
             latent_list: [low_res, mid_res, high_res] The vae latents of all stages
             sample_ratios: The proportion of each stage in the training batch
         """
-        
-        noise = torch.randn_like(latents_list[-1])
-        device = noise.device
-        dtype = latents_list[-1].dtype
-        t = noise.shape[2]
+        tot_samples = upsample_vae_latent_list[0].shape[0]
+        t = upsample_vae_latent_list[0].shape[2]
+        device = upsample_vae_latent_list[0].device
+        dtype = upsample_vae_latent_list[0].dtype
 
+        batch_size = tot_samples // int(sum(sample_ratios))
+        column_size = int(sum(sample_ratios))    
         stages = len(self.stages)
-        tot_samples = noise.shape[0]
+
         assert tot_samples % (int(sum(sample_ratios))) == 0
         assert stages == len(sample_ratios)
         
-        height, width = noise.shape[-2], noise.shape[-1]
-        noise_list = [noise]
-        cur_noise = noise
-        for i_s in range(stages-1):
-            height //= 2;width //= 2
-            cur_noise = rearrange(cur_noise, 'b c t h w -> (b t) c h w')
-            cur_noise = F.interpolate(cur_noise, size=(height, width), mode='bilinear') * 2
-            cur_noise = rearrange(cur_noise, '(b t) c h w -> b c t h w', t=t)
-            noise_list.append(cur_noise)
-
-        noise_list = list(reversed(noise_list))   # make sure from low res to high res
+        #height, width = noise.shape[-2], noise.shape[-1]
         
         # To calculate the padding batchsize and column size
-        batch_size = tot_samples // int(sum(sample_ratios))
-        column_size = int(sum(sample_ratios))
         
         column_to_stage = {}
         i_sum = 0
@@ -406,27 +395,14 @@ class PyramidDiTForVideoGeneration:
         timesteps_list = []
         training_steps = self.scheduler.config.num_train_timesteps
 
+
         # from low resolution to high resolution
         for index in range(column_size):
             i_s = column_to_stage[index]
-            clean_latent = latents_list[i_s][index::column_size]   # [bs, c, t, h, w]
-            last_clean_latent = None if i_s == 0 else latents_list[i_s-1][index::column_size]
-            start_sigma = self.scheduler.start_sigmas[i_s]
-            end_sigma = self.scheduler.end_sigmas[i_s]
             
-            if i_s == 0:
-                start_point = noise_list[i_s][index::column_size]
-            else:
-                # Get the upsampled latent
-                last_clean_latent = rearrange(last_clean_latent, 'b c t h w -> (b t) c h w')
-                last_clean_latent = F.interpolate(last_clean_latent, size=(last_clean_latent.shape[-2] * 2, last_clean_latent.shape[-1] * 2), mode='nearest')
-                last_clean_latent = rearrange(last_clean_latent, '(b t) c h w -> b c t h w', t=t)
-                start_point = start_sigma * noise_list[i_s][index::column_size] + (1 - start_sigma) * last_clean_latent
-            
-            if i_s == stages - 1:
-                end_point = clean_latent
-            else:
-                end_point = end_sigma * noise_list[i_s][index::column_size] + (1 - end_sigma) * clean_latent
+            start_point = upsample_vae_latent_list[i_s][index::column_size]
+            end_point = latents_list[i_s+1][index::column_size]
+
 
             # To sample a timestep
             u = compute_density_for_timestep_sampling(
@@ -436,6 +412,8 @@ class PyramidDiTForVideoGeneration:
                 logit_std=1.0,
                 mode_scale=1.29,
             )
+
+            import pdb; pdb.set_trace()
 
             indices = (u * training_steps).long()   # Totally 1000 training steps per stage
             indices = indices.clamp(0, training_steps-1)
@@ -723,7 +701,7 @@ class PyramidDiTForVideoGeneration:
     @torch.no_grad()
     def get_pyramid_latent_upsample(self, vae_latent_list):
         # x is the origin vae latent
-        next_vae_latent_list = []
+        upsample_vae_latent_list = []
         stage_num = len(vae_latent_list)-1
 
         for idx in range(stage_num):
@@ -734,9 +712,9 @@ class PyramidDiTForVideoGeneration:
 
             current_vae_latent = vae_latent_list[idx]
             x = torch.nn.functional.interpolate(current_vae_latent, size=(temp_next, height_next, width_next), mode='trilinear')
-            next_vae_latent_list.append(x)
+            upsample_vae_latent_list.append(x)
 
-        return next_vae_latent_list
+        return upsample_vae_latent_list
 
     @torch.no_grad()
     def get_vae_latent(self, video, use_temporal_pyramid=False, use_temporal_downsample=True):
@@ -763,7 +741,7 @@ class PyramidDiTForVideoGeneration:
 
                 vae_latent_list.append(video)
             
-            next_vae_latent_list = self.get_pyramid_latent_upsample(vae_latent_list)
+            upsample_vae_latent_list = self.get_pyramid_latent_upsample(vae_latent_list)
 
         # Get the pyramidal stages
         # if use_temporal_downsample:
@@ -778,7 +756,7 @@ class PyramidDiTForVideoGeneration:
         else:
             # Only use the spatial pyramidal (without temporal ar)
             if use_temporal_downsample:
-                noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_with_temporal_downsample(vae_latent_list, self.sample_ratios, next_vae_latent_list=next_vae_latent_list)
+                noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_with_temporal_downsample(vae_latent_list, self.sample_ratios, upsample_vae_latent_list=upsample_vae_latent_list)
             else:
                 noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise(vae_latent_list, self.sample_ratios)
         
