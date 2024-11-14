@@ -1427,12 +1427,12 @@ class PyramidDiTForVideoGeneration:
                 self.vae.to("cpu")
                 torch.cuda.empty_cache()
 
-
-        assert (temp - 1) % self.frame_per_unit == 0, "The frames should be divided by frame_per unit"
+        width = input_image.width
+        height = input_image.height
 
         if isinstance(prompt, str):
             batch_size = 1
-            prompt = prompt + ", hyper quality, Ultra HD, 8K"        # adding this prompt to improve aesthetics
+            prompt = prompt + ", hyper quality, Ultra HD, 8K"   # adding this prompt to improve aesthetics
         else:
             assert isinstance(prompt, list)
             batch_size = len(prompt)
@@ -1440,27 +1440,24 @@ class PyramidDiTForVideoGeneration:
 
         if isinstance(num_inference_steps, int):
             num_inference_steps = [num_inference_steps] * len(self.stages)
-
-        if isinstance(video_num_inference_steps, int):
-            video_num_inference_steps = [video_num_inference_steps] * len(self.stages)
-
+        
         negative_prompt = negative_prompt or ""
 
         # Get the text embeddings
         if cpu_offloading and not self.sequential_offload_enabled:
-            self.text_encoder.to("cuda")
+            self.text_encoder.to("cuda") 
         prompt_embeds, prompt_attention_mask, pooled_prompt_embeds = self.text_encoder(prompt, device)
         negative_prompt_embeds, negative_prompt_attention_mask, negative_pooled_prompt_embeds = self.text_encoder(negative_prompt, device)
+        
         if cpu_offloading:
             if not self.sequential_offload_enabled:
                 self.text_encoder.to("cpu")
-                self.dit.to("cuda")
+            self.vae.to("cuda")
             torch.cuda.empty_cache()
 
         if use_linear_guidance:
             max_guidance_scale = guidance_scale
-            # guidance_scale_list = torch.linspace(max_guidance_scale, min_guidance_scale, temp).tolist()
-            guidance_scale_list = [max(max_guidance_scale - alpha * t_, min_guidance_scale) for t_ in range(temp)]
+            guidance_scale_list = [max(max_guidance_scale - alpha * t_, min_guidance_scale) for t_ in range(temp+1)]
             print(guidance_scale_list)
 
         self._guidance_scale = guidance_scale
@@ -1479,6 +1476,9 @@ class PyramidDiTForVideoGeneration:
             torch.distributed.broadcast(pooled_prompt_embeds, global_src_rank, group=get_sequence_parallel_group())
             torch.distributed.broadcast(prompt_attention_mask, global_src_rank, group=get_sequence_parallel_group())
 
+
+        import pdb; pdb.set_trace()
+        
         # Create the initial random noise
         num_channels_latents = (self.dit.config.in_channels // 4) if self.model_name == "pyramid_flux" else  self.dit.config.in_channels
         latents = self.prepare_latents(
@@ -1495,54 +1495,56 @@ class PyramidDiTForVideoGeneration:
         temp, height, width = latents.shape[-3], latents.shape[-2], latents.shape[-1]
 
         latents = rearrange(latents, 'b c t h w -> (b t) c h w')
-        # by default, we needs to start from the block noise
+        # by defalut, we needs to start from the block noise
         for _ in range(len(self.stages)-1):
             height //= 2;width //= 2
             latents = F.interpolate(latents, size=(height, width), mode='bilinear') * 2
         
         latents = rearrange(latents, '(b t) c h w -> b c t h w', t=temp)
 
-        num_units = 1 + (temp - 1) // self.frame_per_unit
+        num_units = temp // self.frame_per_unit
         stages = self.stages
 
-        generated_latents_list = []    # The generated results
-        last_generated_latents = None
+        # encode the image latents
+        image_transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)),
+        ])
+        input_image_tensor = image_transform(input_image).unsqueeze(0).unsqueeze(2)   # [b c 1 h w]
+        input_image_latent = (self.vae.encode(input_image_tensor.to(self.vae.device, dtype=self.vae.dtype)).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c 1 h w]
 
-        #for unit_index in tqdm(range(num_units)):
-        gc.collect()
-        torch.cuda.empty_cache()
+        if is_sequence_parallel_initialized():
+            # sync the image latent across multiple GPUs
+            sp_group_rank = get_sequence_parallel_group_rank()
+            global_src_rank = sp_group_rank * get_sequence_parallel_world_size()
+            torch.distributed.broadcast(input_image_latent, global_src_rank, group=get_sequence_parallel_group())
 
-        unit_index = 0
-    
-        if use_linear_guidance:
-            self._guidance_scale = guidance_scale_list[unit_index]
-            self._video_guidance_scale = guidance_scale_list[unit_index]
+        generated_latents_list = [input_image_latent]    # The generated results
+        last_generated_latents = input_image_latent
 
-        if unit_index == 0:
-            past_condition_latents = [[] for _ in range(len(stages))]
-            intermed_latents = self.generate_one_unit(
-                #latents[:,:,:1],
-                latents,
-                past_condition_latents,
-                prompt_embeds,
-                prompt_attention_mask,
-                pooled_prompt_embeds,
-                num_inference_steps,
-                height,
-                width,
-                temp,
-                device,
-                dtype,
-                generator,
-                is_first_frame=True,
-            )
-        else:
+        if cpu_offloading:
+            self.vae.to("cpu")
+            if not self.sequential_offload_enabled:
+                self.dit.to("cuda")
+            torch.cuda.empty_cache()
+        
+        for unit_index in tqdm(range(1, num_units)):
+            gc.collect()
+            torch.cuda.empty_cache()
+            
+            if callback:
+                callback(unit_index, num_units)
+        
+            if use_linear_guidance:
+                self._guidance_scale = guidance_scale_list[unit_index]
+                self._video_guidance_scale = guidance_scale_list[unit_index]
+
             # prepare the condition latents
             past_condition_latents = []
             clean_latents_list = self.get_pyramid_latent(torch.cat(generated_latents_list, dim=2), len(stages) - 1)
             
             for i_s in range(len(stages)):
-                last_cond_latent = clean_latents_list[i_s][:,:,-(self.frame_per_unit):]
+                last_cond_latent = clean_latents_list[i_s][:,:,-self.frame_per_unit:]
 
                 stage_input = [torch.cat([last_cond_latent] * 2) if self.do_classifier_free_guidance else last_cond_latent]
         
@@ -1567,12 +1569,12 @@ class PyramidDiTForVideoGeneration:
                 past_condition_latents.append(stage_input)
 
             intermed_latents = self.generate_one_unit(
-                latents[:,:, 1 + (unit_index - 1) * self.frame_per_unit:1 + unit_index * self.frame_per_unit],
+                latents[:,:,(unit_index - 1) * self.frame_per_unit:unit_index * self.frame_per_unit],
                 past_condition_latents,
                 prompt_embeds,
                 prompt_attention_mask,
                 pooled_prompt_embeds,
-                video_num_inference_steps,
+                num_inference_steps,
                 height,
                 width,
                 self.frame_per_unit,
@@ -1581,12 +1583,11 @@ class PyramidDiTForVideoGeneration:
                 generator,
                 is_first_frame=False,
             )
-
+    
             generated_latents_list.append(intermed_latents[-1])
             last_generated_latents = intermed_latents
 
-        #generated_latents = torch.cat(generated_latents_list, dim=2)
-        generated_latents = intermed_latents[-1]
+        generated_latents = torch.cat(generated_latents_list, dim=2)
 
         if output_type == "latent":
             image = generated_latents
