@@ -409,8 +409,6 @@ def main(args):
     train_dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
     accelerator.wait_for_everyone()
 
-    import pdb; pdb.set_trace()
-
     logger.info("Building dataset finished")
 
 
