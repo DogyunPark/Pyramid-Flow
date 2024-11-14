@@ -348,7 +348,8 @@ class CausalVideoVAE(ModelMixin, ConfigMixin):
     @torch.no_grad()
     def chunk_decode(self, z: torch.FloatTensor, window_size=2):
         num_frames = z.shape[2]
-        init_window_size = window_size + 1
+        #init_window_size = window_size + 1
+        init_window_size = window_size
         frame_list = [z[:,:,:init_window_size]]
 
         # To chunk the long video 
