@@ -1478,29 +1478,12 @@ class PyramidDiTForVideoGeneration:
 
 
         import pdb; pdb.set_trace()
-        
+
         # Create the initial random noise
         num_channels_latents = (self.dit.config.in_channels // 4) if self.model_name == "pyramid_flux" else  self.dit.config.in_channels
-        latents = self.prepare_latents(
-            batch_size * num_images_per_prompt,
-            num_channels_latents,
-            temp,
-            height,
-            width,
-            prompt_embeds.dtype,
-            device,
-            generator,
-        )
+        latents = input_image
 
         temp, height, width = latents.shape[-3], latents.shape[-2], latents.shape[-1]
-
-        latents = rearrange(latents, 'b c t h w -> (b t) c h w')
-        # by defalut, we needs to start from the block noise
-        for _ in range(len(self.stages)-1):
-            height //= 2;width //= 2
-            latents = F.interpolate(latents, size=(height, width), mode='bilinear') * 2
-        
-        latents = rearrange(latents, '(b t) c h w -> b c t h w', t=temp)
 
         num_units = temp // self.frame_per_unit
         stages = self.stages

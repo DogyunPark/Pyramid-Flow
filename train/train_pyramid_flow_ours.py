@@ -513,10 +513,10 @@ def main(args):
     
     if 1:
         filename_list, data_list, validation_prompts = load_data_prompts(args.promptdir, video_size=args.image_size, video_frames=args.num_frames)
-        #validation_prompt = validation_prompts[0].to(accelerator.device)
+        validation_prompt = validation_prompts[0]
         validation_image = data_list[0][:,0].to(accelerator.device)
-        validation_image = rearrange(validation_image, "C H W -> T C H W", T=1)
-        validation_image = validation_image.unsqueeze(0)
+        #validation_image = rearrange(validation_image, "C H W -> T C H W", T=1)
+        validation_image = validation_image.unsqueeze(0).unsqueeze(1)
 
     # if accelerator.is_main_process:
     #     accelerator.init_trackers(os.path.basename(args.output_dir), config=vars(args))
