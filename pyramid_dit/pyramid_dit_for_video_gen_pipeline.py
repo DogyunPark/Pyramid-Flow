@@ -827,17 +827,18 @@ class PyramidDiTForVideoGeneration:
         timesteps = timesteps.reshape(-1)
         
         import pdb; pdb.set_trace()
-        
+
         assert timesteps.shape[0] == prompt_embeds.shape[0]
 
         # DiT forward
-        model_preds_list = self.dit(
-            sample=noisy_latents_list,
-            timestep_ratio=timesteps,
-            encoder_hidden_states=prompt_embeds,
-            encoder_attention_mask=prompt_attention_mask,
-            pooled_projections=pooled_prompt_embeds,
-        )
+        with accelerator.autocast():
+            model_preds_list = self.dit(
+                sample=noisy_latents_list,
+                timestep_ratio=timesteps,
+                encoder_hidden_states=prompt_embeds,
+                encoder_attention_mask=prompt_attention_mask,
+                pooled_projections=pooled_prompt_embeds,
+            )
 
         # calculate the loss
         return self.calculate_loss(model_preds_list, targets_list)
