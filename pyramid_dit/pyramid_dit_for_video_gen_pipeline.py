@@ -578,13 +578,14 @@ class PyramidDiTForVideoGeneration:
 
         temp, height, width = x.shape[-3], x.shape[-2], x.shape[-1]
         pad_size = (0, 0, 0, 0, 1, 0)
+        scale_factor = (2, 2, 2)
         for _ in range(stage_num):
-            height //= 2
-            width //= 2
-            temp //= 2
+            #height //= scale_factor
+            #width //= 2
+            #temp //= 2
             
             x = torch.nn.functional.pad(x, pad_size, mode='constant')
-            x = torch.nn.functional.interpolate(x, size=(temp, height, width), mode='trilinear')
+            x = torch.nn.functional.interpolate(x, scale_factor=scale_factor, mode='trilinear')
             vae_latent_list.append(x)
 
         vae_latent_list = list(reversed(vae_latent_list))
