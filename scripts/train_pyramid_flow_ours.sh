@@ -52,4 +52,5 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 accelerate launch --multi_gpu --num_process
     --report_to tensorboard \
     --print_freq 40 \
     --save_ckpt_freq 1 \
-    --load_vae
+    --load_vae \
+    --use_flash_attn
