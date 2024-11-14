@@ -1512,13 +1512,12 @@ class PyramidDiTForVideoGeneration:
         for i_s in range(len(stages)):
             #self.scheduler.set_timesteps(num_inference_steps[i_s], i_s, device=device)
             timesteps = self.scheduler.timesteps
-
+            temp_next = temp_upsample_list[i_s]
+            height = height * 2
+            width = width * 2
+            latents = torch.nn.functional.interpolate(latents, size=(temp_next, height, width), mode='trilinear')
+            
             for idx, t in enumerate(timesteps):
-                temp_next = temp_upsample_list[i_s]
-                height = height * 2
-                width = width * 2
-                latents = torch.nn.functional.interpolate(latents, size=(temp_next, height, width), mode='trilinear')
-
                 latent_model_input = torch.cat([latents] * 2) if self.do_classifier_free_guidance else latents
             
                 # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
