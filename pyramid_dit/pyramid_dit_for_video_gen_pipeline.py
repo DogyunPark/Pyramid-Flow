@@ -1530,8 +1530,9 @@ class PyramidDiTForVideoGeneration:
                     global_src_rank = sp_group_rank * get_sequence_parallel_world_size()
                     torch.distributed.broadcast(latent_model_input, global_src_rank, group=get_sequence_parallel_group())
 
-                prompt_embeds = prompt_embeds.to(latent_model_input.dtype)
-                pooled_prompt_embeds = pooled_prompt_embeds.to(latent_model_input.dtype)
+                #prompt_embeds = prompt_embeds.to(latent_model_input.dtype)
+                #pooled_prompt_embeds = pooled_prompt_embeds.to(latent_model_input.dtype)
+                import pdb; pdb.set_trace()
                 noise_pred = self.dit(
                     sample=[latent_model_input],
                     timestep_ratio=timestep,
