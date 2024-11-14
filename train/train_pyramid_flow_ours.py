@@ -540,6 +540,7 @@ def main(args):
     accelerator.wait_for_everyone()
 
     if accelerator.is_main_process:
+        print("Generating video for 0 epoch")
         image = runner.generate_video(
             prompt=validation_prompt,
             input_image=validation_image,
@@ -597,6 +598,7 @@ def main(args):
             save_memory=True, 
         )
         export_to_video(image, "./output/text_to_video_sample-{}.mp4".format(epoch), fps=24)
+        print("Generated video for {} epoch".format(epoch))
     accelerator.wait_for_everyone()
 
     total_time = time.time() - start_time
