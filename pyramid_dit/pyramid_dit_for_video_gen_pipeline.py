@@ -1523,6 +1523,7 @@ class PyramidDiTForVideoGeneration:
             
                 # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
                 timestep = t.expand(latent_model_input.shape[0]).to(latent_model_input.dtype)
+                timestep = timestep.to(device)
 
                 if is_sequence_parallel_initialized():
                     # sync the input latent
