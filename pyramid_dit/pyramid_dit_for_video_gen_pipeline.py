@@ -1488,8 +1488,16 @@ class PyramidDiTForVideoGeneration:
             # sync the image latent across multiple GPUs
             sp_group_rank = get_sequence_parallel_group_rank()
             global_src_rank = sp_group_rank * get_sequence_parallel_world_size()
-            torch.distributed.broadcast(input_image_latent, global_src_rank, group=get_sequence_parallel_group())
+            torch.distributed.broadcast(latents, global_src_rank, group=get_sequence_parallel_group())
 
+        latent_height, latent_width = latents.shape[-2:]
+        for idx in range(4): #TODO: make this dynamic
+            latent_height //= 2
+            latent_width //= 2
+            latents = torch.nn.functional.interpolate(latents, size=(latent_height, latent_width), mode='bilinear')
+
+        import pdb; pdb.set_trace()
+        
         generated_latents_list = [latents.clone()]    # The generated results
 
         if cpu_offloading:
