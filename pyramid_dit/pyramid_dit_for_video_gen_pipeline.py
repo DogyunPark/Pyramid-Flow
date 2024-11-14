@@ -349,6 +349,113 @@ class PyramidDiTForVideoGeneration:
 
         return noisy_latents_list, ratios_list, timesteps_list, targets_list
 
+    def add_pyramid_noise_with_temporal_downsample(
+        self, 
+        latents_list,
+        sample_ratios=[1, 1, 1],
+    ):
+        """
+        add the noise for each pyramidal stage
+            noting that, this method is a general strategy for pyramid-flow, it 
+            can be used for both image and video training.
+            You can also use this method to train pyramid-flow with full-sequence 
+            diffusion in video generation (without using temporal pyramid and autoregressive modeling)
+
+        Params:
+            latent_list: [low_res, mid_res, high_res] The vae latents of all stages
+            sample_ratios: The proportion of each stage in the training batch
+        """
+        noise = torch.randn_like(latents_list[-1])
+        device = noise.device
+        dtype = latents_list[-1].dtype
+        t = noise.shape[2]
+
+        stages = len(self.stages)
+        tot_samples = noise.shape[0]
+        assert tot_samples % (int(sum(sample_ratios))) == 0
+        assert stages == len(sample_ratios)
+        
+        height, width = noise.shape[-2], noise.shape[-1]
+        noise_list = [noise]
+        cur_noise = noise
+        for i_s in range(stages-1):
+            height //= 2;width //= 2
+            cur_noise = rearrange(cur_noise, 'b c t h w -> (b t) c h w')
+            cur_noise = F.interpolate(cur_noise, size=(height, width), mode='bilinear') * 2
+            cur_noise = rearrange(cur_noise, '(b t) c h w -> b c t h w', t=t)
+            noise_list.append(cur_noise)
+
+        noise_list = list(reversed(noise_list))   # make sure from low res to high res
+        
+        # To calculate the padding batchsize and column size
+        batch_size = tot_samples // int(sum(sample_ratios))
+        column_size = int(sum(sample_ratios))
+        
+        column_to_stage = {}
+        i_sum = 0
+        for i_s, column_num in enumerate(sample_ratios):
+            for index in range(i_sum, i_sum + column_num):
+                column_to_stage[index] = i_s
+            i_sum += column_num
+
+        noisy_latents_list = []
+        ratios_list = []
+        targets_list = []
+        timesteps_list = []
+        training_steps = self.scheduler.config.num_train_timesteps
+
+        # from low resolution to high resolution
+        for index in range(column_size):
+            i_s = column_to_stage[index]
+            clean_latent = latents_list[i_s][index::column_size]   # [bs, c, t, h, w]
+            last_clean_latent = None if i_s == 0 else latents_list[i_s-1][index::column_size]
+            start_sigma = self.scheduler.start_sigmas[i_s]
+            end_sigma = self.scheduler.end_sigmas[i_s]
+            
+            if i_s == 0:
+                start_point = noise_list[i_s][index::column_size]
+            else:
+                # Get the upsampled latent
+                last_clean_latent = rearrange(last_clean_latent, 'b c t h w -> (b t) c h w')
+                last_clean_latent = F.interpolate(last_clean_latent, size=(last_clean_latent.shape[-2] * 2, last_clean_latent.shape[-1] * 2), mode='nearest')
+                last_clean_latent = rearrange(last_clean_latent, '(b t) c h w -> b c t h w', t=t)
+                start_point = start_sigma * noise_list[i_s][index::column_size] + (1 - start_sigma) * last_clean_latent
+            
+            if i_s == stages - 1:
+                end_point = clean_latent
+            else:
+                end_point = end_sigma * noise_list[i_s][index::column_size] + (1 - end_sigma) * clean_latent
+
+            # To sample a timestep
+            u = compute_density_for_timestep_sampling(
+                weighting_scheme='random',
+                batch_size=batch_size,
+                logit_mean=0.0,
+                logit_std=1.0,
+                mode_scale=1.29,
+            )
+
+            indices = (u * training_steps).long()   # Totally 1000 training steps per stage
+            indices = indices.clamp(0, training_steps-1)
+            timesteps = self.scheduler.timesteps_per_stage[i_s][indices].to(device=device)
+            ratios = self.scheduler.sigmas_per_stage[i_s][indices].to(device=device)
+
+            while len(ratios.shape) < start_point.ndim:
+                ratios = ratios.unsqueeze(-1)
+
+            # interpolate the latent
+            noisy_latents = ratios * start_point + (1 - ratios) * end_point
+
+            last_cond_noisy_sigma = torch.rand(size=(batch_size,), device=device) * self.corrupt_ratio
+
+            # [stage1_latent, stage2_latent, ..., stagen_latent], which will be concat after patching
+            noisy_latents_list.append([noisy_latents.to(dtype)])
+            ratios_list.append(ratios.to(dtype))
+            timesteps_list.append(timesteps.to(dtype))
+            targets_list.append(start_point - end_point)     # The standard rectified flow matching objective
+
+        return noisy_latents_list, ratios_list, timesteps_list, targets_list
+
     def sample_stage_length(self, num_stages, max_units=None):
         max_units_in_training = 1 + ((self.max_temporal_length - 1) // self.frame_per_unit)
         cur_rank = get_rank()
@@ -578,12 +685,11 @@ class PyramidDiTForVideoGeneration:
 
         temp, height, width = x.shape[-3], x.shape[-2], x.shape[-1]
         pad_size = (0, 0, 0, 0, 1, 0)
-        scale_factor = (2, 2, 2)
+        scale_factor = (0.5, 0.5, 0.5)
         for _ in range(stage_num):
             #height //= scale_factor
             #width //= 2
             #temp //= 2
-            
             x = torch.nn.functional.pad(x, pad_size, mode='constant')
             x = torch.nn.functional.interpolate(x, scale_factor=scale_factor, mode='trilinear')
             vae_latent_list.append(x)
