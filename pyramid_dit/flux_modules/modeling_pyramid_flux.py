@@ -124,8 +124,8 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
         self.out_channels = in_channels
         self.inner_dim = self.config.num_attention_heads * self.config.attention_head_dim
 
-        #self.pos_embed = EmbedND(dim=self.inner_dim, theta=10000, axes_dim=axes_dims_rope)
-        self.pos_embed = EmbedNDwithVisionRotary(dim=self.inner_dim, theta=10000, axes_dim=axes_dims_rope)
+        self.pos_embed = EmbedND(dim=self.inner_dim, theta=10000, axes_dim=axes_dims_rope)
+        #self.pos_embed = EmbedNDwithVisionRotary(dim=self.inner_dim, theta=10000, axes_dim=axes_dims_rope)
         #self.pos_embed = VisionRotaryEmbedding(head_dim=self.inner_dim, custom_freqs='normal', theta=10000, online_rope=True)
         self.time_text_embed = CombinedTimestepTextProjEmbeddings(
             embedding_dim=self.inner_dim, pooled_projection_dim=self.config.pooled_projection_dim

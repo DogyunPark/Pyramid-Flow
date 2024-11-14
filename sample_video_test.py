@@ -44,8 +44,8 @@ prompt = 'a woman is walking'
 #prompt = "A movie trailer featuring the adventures of the 30 year old space man wearing a red wool knitted motorcycle helmet, blue sky, salt desert, cinematic style, shot on 35mm film, vivid colors"
 
 # used for 384p model variant
-width = 640
-height = 640
+width = 320
+height = 320
 
 # used for 768p model variant
 # width = 1280
