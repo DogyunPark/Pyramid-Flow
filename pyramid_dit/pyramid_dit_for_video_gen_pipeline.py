@@ -729,8 +729,12 @@ class PyramidDiTForVideoGeneration:
 
         if self.load_vae:
             assert video_list[0].shape[1] == 3, "The vae is loaded, the input should be raw pixels"
-            for video in video_list:
-                video = self.vae.encode(video, temporal_chunk=True, window_size=8, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
+            for idx, video in enumerate(video_list):
+                if idx == 0:
+                    # The first stage is not temporal chunked
+                    video = self.vae.encode(video, temporal_chunk=False, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
+                else:
+                    video = self.vae.encode(video, temporal_chunk=True, window_size=8, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
                 #video = self.vae.encode(video, temporal_chunk=False, window_size=8, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
 
                 if video.shape[2] == 1:
