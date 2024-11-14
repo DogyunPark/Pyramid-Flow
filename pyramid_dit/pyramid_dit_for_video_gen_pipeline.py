@@ -1490,6 +1490,8 @@ class PyramidDiTForVideoGeneration:
             global_src_rank = sp_group_rank * get_sequence_parallel_world_size()
             torch.distributed.broadcast(latents, global_src_rank, group=get_sequence_parallel_group())
 
+        import pdb; pdb.set_trace()
+        
         latent_height, latent_width = latents.shape[-2:]
         for idx in range(4): #TODO: make this dynamic
             latent_height //= 2
