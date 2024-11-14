@@ -16,7 +16,6 @@ import transformers
 from pathlib import Path
 from packaging import version
 from copy import deepcopy
-from diffusers.utils import export_to_video
 
 from openviddata.datasets import DatasetFromCSV, get_transforms_video
 
@@ -219,7 +218,7 @@ def get_args():
 
 
     # Added by us
-    parser.add_argument('--num_frames', default=64, type=int, help='number of frames in a video')
+    parser.add_argument('--num_frames', default=32, type=int, help='number of frames in a video')
     parser.add_argument('--frame_interval', default=1, type=int, help='frame interval')
     parser.add_argument('--image_size', default=(384, 640), type=tuple, help='image size')
     parser.add_argument('--data_root', default='./train_data/data/train/OpenVidHD.csv', type=str, help='The data root')
