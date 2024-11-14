@@ -823,12 +823,8 @@ class PyramidDiTForVideoGeneration:
             prompt_embeds, prompt_attention_mask, pooled_prompt_embeds = self.get_text_embeddings(text, rand_idx, device)
             noisy_latents_list, ratios_list, timesteps_list, targets_list = self.get_vae_latent(video, use_temporal_pyramid=use_temporal_pyramid)
 
-        import pdb; pdb.set_trace()
-
         timesteps = torch.cat([timestep.unsqueeze(-1) for timestep in timesteps_list], dim=-1)
         timesteps = timesteps.reshape(-1)
-
-        import pdb; pdb.set_trace()
 
         assert timesteps.shape[0] == prompt_embeds.shape[0]
 
@@ -1371,7 +1367,6 @@ class PyramidDiTForVideoGeneration:
             generated_latents_list.append(intermed_latents[-1])
             last_generated_latents = intermed_latents
 
-        import pdb; pdb.set_trace()
         generated_latents = torch.cat(generated_latents_list, dim=2)
 
         if output_type == "latent":
@@ -1518,7 +1513,6 @@ class PyramidDiTForVideoGeneration:
         torch.cuda.empty_cache()
 
         unit_index = 0
-        import pdb; pdb.set_trace()
     
         if use_linear_guidance:
             self._guidance_scale = guidance_scale_list[unit_index]
@@ -1594,8 +1588,6 @@ class PyramidDiTForVideoGeneration:
         #generated_latents = torch.cat(generated_latents_list, dim=2)
         generated_latents = intermed_latents[-1]
 
-        import pdb; pdb.set_trace()
-
         if output_type == "latent":
             image = generated_latents
         else:
@@ -1635,7 +1627,6 @@ class PyramidDiTForVideoGeneration:
         image = image.mul(127.5).add(127.5).clamp(0, 255).byte()
         image = rearrange(image, "B C T H W -> (B T) H W C")
         image = image.cpu().numpy()
-        import pdb; pdb.set_trace()
         image = self.numpy_to_pil(image)
         
         return image
