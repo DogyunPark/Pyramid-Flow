@@ -749,14 +749,12 @@ class PyramidDiTForVideoGeneration:
         # else:
         #     vae_latent_list = self.get_pyramid_latent(video, len(self.stages) - 1)
 
-        import pdb; pdb.set_trace()
-
         if use_temporal_pyramid:
             noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_with_temporal_pyramid(vae_latent_list, self.sample_ratios)
         else:
             # Only use the spatial pyramidal (without temporal ar)
             if use_temporal_downsample:
-                noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_with_temporal_downsample(vae_latent_list, self.sample_ratios, upsample_vae_latent_list=upsample_vae_latent_list)
+                noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_with_temporal_downsample(vae_latent_list, upsample_vae_latent_list, self.sample_ratios)
             else:
                 noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise(vae_latent_list, self.sample_ratios)
         
