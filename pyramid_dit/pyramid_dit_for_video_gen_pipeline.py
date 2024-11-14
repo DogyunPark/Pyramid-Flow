@@ -1427,8 +1427,8 @@ class PyramidDiTForVideoGeneration:
                 self.vae.to("cpu")
                 torch.cuda.empty_cache()
 
-        width = input_image.width
-        height = input_image.height
+        width = input_image.shape[-1]
+        height = input_image.shape[-2]
 
         if isinstance(prompt, str):
             batch_size = 1

@@ -516,7 +516,7 @@ def main(args):
         validation_prompt = validation_prompts[0]
         validation_image = data_list[0][:,0].to(accelerator.device)
         #validation_image = rearrange(validation_image, "C H W -> T C H W", T=1)
-        validation_image = validation_image.unsqueeze(0).unsqueeze(1)
+        validation_image = validation_image.unsqueeze(0).unsqueeze(2)
 
     # if accelerator.is_main_process:
     #     accelerator.init_trackers(os.path.basename(args.output_dir), config=vars(args))
