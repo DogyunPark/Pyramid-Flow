@@ -1510,7 +1510,7 @@ class PyramidDiTForVideoGeneration:
         height, width = latents.shape[-2:]
         # prepare the condition latents
         for i_s in range(len(stages)):
-            self.scheduler.set_timesteps(num_inference_steps[i_s], i_s, device=device)
+            self.scheduler.set_timesteps(num_inference_steps[i_s], device=device)
             timesteps = self.scheduler.timesteps
             temp_next = temp_upsample_list[i_s]
             height = height * 2
