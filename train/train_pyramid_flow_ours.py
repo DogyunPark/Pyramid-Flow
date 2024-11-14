@@ -224,7 +224,7 @@ def get_args():
     parser.add_argument('--image_size', default=(480, 480), type=tuple, help='image size')
     parser.add_argument('--data_root', default='./train_data/data/train/OpenVidHD.csv', type=str, help='The data root')
     parser.add_argument('--root', default='./train_data/video', type=str, help='The root')
-    parser.add_argument('--promptdir', default='./train_data/prompt', type=str, help='The prompt directory')
+    parser.add_argument('--promptdir', default='./data/cvpr25/prompts/1024', type=str, help='The prompt directory')
 
     return parser.parse_args()
 
@@ -571,8 +571,6 @@ def main(args):
         if args.output_dir and accelerator.is_main_process:
             with open(os.path.join(args.output_dir, "log.txt"), mode="a", encoding="utf-8") as f:
                 f.write(json.dumps(log_stats) + "\n")
-    
-        if 1:
             
 
     total_time = time.time() - start_time
