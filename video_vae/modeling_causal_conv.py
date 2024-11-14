@@ -133,6 +133,8 @@ class CausalConv3d(nn.Module):
                     print('hi')
                     #x = torch.cat([video_front_context[:,:,-1:], x], dim=2)
                     x = torch.cat([video_front_context, x], dim=2)
+                else:
+                    print('hi2')
 
                 self.cache_front_feat.append(x[:, :, -2:].clone().detach())
         
