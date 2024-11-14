@@ -539,19 +539,20 @@ def main(args):
     start_time = time.time()
     accelerator.wait_for_everyone()
 
-    if accelerator.is_main_process:
-        print("Generating video for 0 epoch")
-        image = runner.generate_video(
-            prompt=validation_prompt,
-            input_image=validation_image,
-            num_inference_steps=[20, 20, 20],
-            output_type="pil",
-            save_memory=True, 
-        )
-        export_to_video(image, "./output/text_to_video_sample.mp4", fps=24)
+    #if accelerator.is_main_process:
+    print("Generating video for 0 epoch")
+    image = runner.generate_video(
+        prompt=validation_prompt,
+        input_image=validation_image,
+        num_inference_steps=[20, 20, 20],
+        output_type="pil",
+        save_memory=True, 
+    )
+    export_to_video(image, "./output/text_to_video_sample.mp4", fps=24)
     
     accelerator.wait_for_everyone()
 
+    print("Start training...")
     for epoch in range(first_epoch, args.epochs):
         train_stats = train_one_epoch_with_fsdp(
             runner, 
