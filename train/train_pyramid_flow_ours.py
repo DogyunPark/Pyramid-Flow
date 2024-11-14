@@ -223,7 +223,7 @@ def get_args():
     parser.add_argument('--image_size', default=(480, 480), type=tuple, help='image size')
     parser.add_argument('--data_root', default='./train_data/data/train/OpenVidHD.csv', type=str, help='The data root')
     parser.add_argument('--root', default='./train_data/video', type=str, help='The root')
-    parser.add_argument('--promptdir', default='./data/cvpr25/prompts/1024', type=str, help='The prompt directory')
+    parser.add_argument('--promptdir', default='/data/cvpr25/prompts/1024/', type=str, help='The prompt directory')
 
     return parser.parse_args()
 
