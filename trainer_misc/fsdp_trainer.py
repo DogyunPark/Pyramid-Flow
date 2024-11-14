@@ -158,7 +158,7 @@ def train_one_epoch_with_fsdp(
                 metric_logger.update(grad_norm=grad_norm)
 
         # Generate the video for validation
-        if step % 10 == 0:
+        if step % 20 == 0:
             assert validation_prompt is not None and validation_image is not None
             image = runner.generate_video(
                 prompt=validation_prompt,
