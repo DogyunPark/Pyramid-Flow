@@ -1485,7 +1485,7 @@ class PyramidDiTForVideoGeneration:
         stages = self.stages
         # encode the image latents
         latents = (self.vae.encode(input_image.to(self.vae.device, dtype=self.vae.dtype)).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c 1 h w]
-        image = self.decode_latent(latents, save_memory=False, inference_multigpu=False)
+        image = self.decode_latent(latents, save_memory=True, inference_multigpu=False)
         import pdb; pdb.set_trace()
 
         if is_sequence_parallel_initialized():
