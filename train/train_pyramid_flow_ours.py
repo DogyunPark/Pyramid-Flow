@@ -521,8 +521,8 @@ def main(args):
     
     if 1:
         validation_height, validation_width = args.image_size
-        validation_height = validation_height // (2**3)
-        validation_width = validation_width // (2**3)
+        #validation_height = validation_height // (2**3)
+        #validation_width = validation_width // (2**3)
         filename_list, data_list, validation_prompts = load_data_prompts(args.promptdir, video_size=(validation_height, validation_width), video_frames=args.num_frames)
         validation_prompt = validation_prompts[0]
         validation_image = data_list[0][:,0].to(accelerator.device)
