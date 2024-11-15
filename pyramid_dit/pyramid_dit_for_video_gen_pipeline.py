@@ -1535,7 +1535,7 @@ class PyramidDiTForVideoGeneration:
             temp_next = temp_upsample_list[i_s]
             height = height * 2
             width = width * 2
-            latents = torch.nn.functional.interpolate(latents, size=(temp_next, height, width), mode='trilinear', align_corners=False)
+            latents = torch.nn.functional.interpolate(latents, size=(temp_next, height, width), mode='nearest')
             
             for idx, t in enumerate(timesteps):
                 latent_model_input = torch.cat([latents] * 2) if self.do_classifier_free_guidance else latents
