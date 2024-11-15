@@ -770,7 +770,7 @@ class PyramidDiTForVideoGeneration:
     def get_vae_latent(self, video, use_temporal_pyramid=False, use_temporal_downsample=True):
         if self.load_vae:
             if 1:
-                assert video_list[0].shape[1] == 3, "The vae is loaded, the input should be raw pixels"
+                assert video.shape[1] == 3, "The vae is loaded, the input should be raw pixels"
                 vae_latent_list = []
                 if video.shape[2] == 1:
                     video_list = self.get_pyramid_input_with_spatial_downsample(video, len(self.stages))

@@ -551,7 +551,7 @@ def main(args):
     #if accelerator.is_main_process:
     if 1:
         print("Generating video for 0 epoch")
-        image = runner.generate_video(
+        image = runner.generate_image(
             prompt=validation_prompt,
             input_image=validation_image,
             num_inference_steps=[20, 20, 20],
