@@ -92,8 +92,10 @@ def train_one_epoch_with_fsdp(
                 #identifier = samples['identifier']
 
                 # Perform the forward using the accerlate
-                loss, log_loss = runner(video, text, identifier=None, 
-                    use_temporal_pyramid=use_temporal_pyramid, accelerator=accelerator)
+                # loss, log_loss = runner(video, text, identifier=None, 
+                #     use_temporal_pyramid=use_temporal_pyramid, accelerator=accelerator)
+
+                loss, log_loss = runner(video, text, identifier=None, accelerator=accelerator)
 
                 # Check if the loss is nan
                 loss_value = loss.item()

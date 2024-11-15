@@ -688,7 +688,7 @@ class PyramidDiTForVideoGeneration:
     def get_pyramid_latent_with_temporal_downsample(self, x, stage_num):
         # x is the origin vae latent
         vae_latent_list = []
-        vae_latent_list.append(x)
+        vae_latent_list.append(x.detach().clone())
 
         temp, height, width = x.shape[-3], x.shape[-2], x.shape[-1]
         #pad_size = (0, 0, 0, 0, 1, 0)
@@ -701,7 +701,7 @@ class PyramidDiTForVideoGeneration:
             temp = temp_list[_]
             #x = torch.nn.functional.pad(x, pad_size, mode='constant')
             x = torch.nn.functional.interpolate(x, size=(temp, height, width), mode='trilinear', align_corners=False)
-            vae_latent_list.append(x)
+            vae_latent_list.append(x.detach().clone())
 
         vae_latent_list = list(reversed(vae_latent_list))
         return vae_latent_list
@@ -825,7 +825,7 @@ class PyramidDiTForVideoGeneration:
         else:
             return diffusion_loss, {}
 
-    def __call__(self, video, text, identifier, use_temporal_pyramid=True, accelerator: Accelerator=None):
+    def __call__(self, video, text, identifier, use_temporal_pyramid=False, accelerator: Accelerator=None):
         xdim = video.ndim
         device = video.device
 
