@@ -514,7 +514,7 @@ def main(args):
         #runner.text_encoder.to(device)
 
     logger.info(f'after accelerator.prepare')
-    logger.info(f'{runner.dit}')
+    #logger.info(f'{runner.dit}')
 
     if model_ema and (not args.load_model_ema_to_cpu):
         model_ema.to(device)
@@ -565,12 +565,13 @@ def main(args):
     gc.collect()
     torch.cuda.empty_cache() 
 
-    if args.output_dir:    
+    if args.output_dir:
+        #if accelerator.sync_gradients:
         global_step = 0
         save_path = os.path.join(args.output_dir, f"checkpoint-{global_step}")
-        #accelerator.save_state(save_path, safe_serialization=False)
-        torch.save(model_ema.state_dict(), save_path)
-        logger.info(f"Saved state to {save_path}") 
+        accelerator.save_state(save_path, safe_serialization=False)
+        #torch.save(model_ema.state_dict(), save_path)
+        logger.info(f"Saved state to {save_path}")
 
     print("Start training...")
     for epoch in range(first_epoch, args.epochs):
@@ -600,8 +601,8 @@ def main(args):
                 if accelerator.sync_gradients:
                     global_step = num_training_steps_per_epoch * (epoch + 1)
                     save_path = os.path.join(args.output_dir, f"checkpoint-{global_step}")
-                    #accelerator.save_state(save_path, safe_serialization=False)
-                    torch.save(model_ema.state_dict(), save_path)
+                    accelerator.save_state(save_path, safe_serialization=False)
+                    #torch.save(model_ema.state_dict(), save_path)
                     logger.info(f"Saved state to {save_path}")
 
         log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
