@@ -315,7 +315,7 @@ def build_fsdp_plugin(args):
         backward_prefetch=BackwardPrefetch.BACKWARD_PRE,
         auto_wrap_policy=ModuleWrapPolicy([FluxSingleTransformerBlock, FluxTransformerBlock, JointTransformerBlock, T5Block, CLIPEncoderLayer, CausalVaeDecoder, CausalVaeEncoder, CausalConv3d]),
         cpu_offload=CPUOffload(offload_params=False),
-        state_dict_type=StateDictType.SHARDED_STATE_DICT,
+        state_dict_type=StateDictType.FULL_STATE_DICT,
         state_dict_config=FullStateDictConfig(offload_to_cpu=True, rank0_only=True),
         optim_state_dict_config=FullOptimStateDictConfig(offload_to_cpu=True, rank0_only=True),
     )
@@ -565,15 +565,15 @@ def main(args):
     gc.collect()
     torch.cuda.empty_cache() 
 
-    if args.output_dir:
-        #if accelerator.sync_gradients:
-        #if accelerator.is_main_process:
-        if 1:
-            global_step = 0
-            save_path = os.path.join(args.output_dir, f"checkpoint-{global_step}")
-            accelerator.save_state(save_path, safe_serialization=False)
-            #torch.save(model_ema.state_dict(), save_path)
-            logger.info(f"Saved state to {save_path}")
+    # if args.output_dir:
+    #     #if accelerator.sync_gradients:
+    #     #if accelerator.is_main_process:
+    #     if 1:
+    #         global_step = 0
+    #         save_path = os.path.join(args.output_dir, f"checkpoint-{global_step}.pth")
+    #         #accelerator.save_state(save_path, safe_serialization=False)
+    #         torch.save(model_ema.state_dict(), save_path)
+    #         logger.info(f"Saved state to {save_path}")
 
     print("Start training...")
     for epoch in range(first_epoch, args.epochs):
@@ -598,14 +598,14 @@ def main(args):
             validation_image=validation_image,
         )
 
-        if args.output_dir:
-            if (epoch + 1) % args.save_ckpt_freq == 0 or epoch + 1 == args.epochs:
-                if accelerator.sync_gradients:
-                    global_step = num_training_steps_per_epoch * (epoch + 1)
-                    save_path = os.path.join(args.output_dir, f"checkpoint-{global_step}")
-                    accelerator.save_state(save_path, safe_serialization=False)
-                    #torch.save(model_ema.state_dict(), save_path)
-                    logger.info(f"Saved state to {save_path}")
+        # if args.output_dir:
+        #     if (epoch + 1) % args.save_ckpt_freq == 0 or epoch + 1 == args.epochs:
+        #         if accelerator.sync_gradients:
+        #             global_step = num_training_steps_per_epoch * (epoch + 1)
+        #             save_path = os.path.join(args.output_dir, f"checkpoint-{global_step}")
+        #             accelerator.save_state(save_path, safe_serialization=False)
+        #             #torch.save(model_ema.state_dict(), save_path)
+        #             logger.info(f"Saved state to {save_path}")
 
         log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
                     'epoch': epoch, 'n_parameters': n_learnable_parameters}
