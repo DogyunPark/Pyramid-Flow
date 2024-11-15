@@ -558,8 +558,7 @@ def main(args):
             save_memory=True, 
         )
         export_to_video(image, "./output/text_to_video_sample.mp4", fps=24)
-    
-    import pdb; pdb.set_trace()
+        
     accelerator.wait_for_everyone()
 
     gc.collect()

@@ -1499,7 +1499,6 @@ class PyramidDiTForVideoGeneration:
         #     latents = rearrange(latents, '(b t) c h w -> b c t h w', t=1)
         
         generated_latents_list = [latents.clone()]    # The generated results
-        import pdb; pdb.set_trace()
 
         if cpu_offloading:
             self.vae.to("cpu")
