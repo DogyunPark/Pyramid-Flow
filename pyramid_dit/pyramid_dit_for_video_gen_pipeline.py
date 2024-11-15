@@ -1515,7 +1515,6 @@ class PyramidDiTForVideoGeneration:
         # prepare the condition latents
         for i_s in range(len(stages)):
             self.validation_scheduler.set_timesteps(num_inference_steps[i_s], device=device)
-            import pdb; pdb.set_trace()
             timesteps = self.validation_scheduler.timesteps
             temp_next = temp_upsample_list[i_s]
             height = height * 2
