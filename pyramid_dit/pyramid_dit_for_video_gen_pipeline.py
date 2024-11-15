@@ -728,8 +728,8 @@ class PyramidDiTForVideoGeneration:
     @torch.no_grad()
     def get_vae_latent(self, video, use_temporal_pyramid=False, use_temporal_downsample=True):
         if self.load_vae:
-            assert video_list[0].shape[1] == 3, "The vae is loaded, the input should be raw pixels"
             if 0:
+                assert video_list[0].shape[1] == 3, "The vae is loaded, the input should be raw pixels"
                 vae_latent_list = []
                 video_list = self.get_pyramid_input(video, len(self.stages))
                 for idx, video in enumerate(video_list):
@@ -751,6 +751,7 @@ class PyramidDiTForVideoGeneration:
                     vae_latent_list.append(video)
             
             else:
+                assert video.shape[1] == 3, "The vae is loaded, the input should be raw pixels"
                 video = self.vae.encode(video, temporal_chunk=False, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
 
                 if video.shape[2] == 1:
