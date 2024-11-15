@@ -167,7 +167,7 @@ def train_one_epoch_with_fsdp(
                 output_type="pil",
                 save_memory=True, 
             )
-            export_to_video(image, "./output/text_to_video_sample-{}step-{}epoch.mp4".format(step, epoch), fps=24)
+            export_to_video(image, "./output/text_to_video_sample-{}epoch.mp4".format(epoch), fps=24)
             print("Generated video for {} step/{} epoch".format(step, epoch))
             accelerator.wait_for_everyone()
 

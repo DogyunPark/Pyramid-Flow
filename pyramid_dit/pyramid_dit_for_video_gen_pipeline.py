@@ -666,7 +666,8 @@ class PyramidDiTForVideoGeneration:
     def get_pyramid_input(self, x, stage_num):
         # x is the origin vae latent
         video_list = []
-        video_list.append(x)
+        original_x = x.detach().clone()
+        video_list.append(original_x)
         temp_list = [33, 17, 1] # Hard code the temporal length of each stage
 
         temp, height, width = x.shape[-3], x.shape[-2], x.shape[-1]
@@ -674,9 +675,9 @@ class PyramidDiTForVideoGeneration:
             height //= 2
             width //= 2
             temp = temp_list[idx]
-            x = x[:, :, :temp]
+            x = original_x[:, :, :temp]
             x = rearrange(x, 'b c t h w -> (b t) c h w')
-            x = torch.nn.functional.interpolate(x, size=(height, width), mode='bilinear')
+            x = torch.nn.functional.interpolate(x, size=(height, width), mode='bilinear', align_corners=False)
             x = rearrange(x, '(b t) c h w -> b c t h w', t=temp)
             video_list.append(x)
 
@@ -716,7 +717,7 @@ class PyramidDiTForVideoGeneration:
             width_next = vae_latent_list[next_idx].shape[4]
 
             current_vae_latent = vae_latent_list[idx]
-            x = torch.nn.functional.interpolate(current_vae_latent, size=(temp_next, height_next, width_next), mode='trilinear')
+            x = torch.nn.functional.interpolate(current_vae_latent, size=(temp_next, height_next, width_next), mode='trilinear', align_corners=False)
             upsample_vae_latent_list.append(x)
 
         return upsample_vae_latent_list
