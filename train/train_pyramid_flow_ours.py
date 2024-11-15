@@ -567,11 +567,12 @@ def main(args):
 
     if args.output_dir:
         #if accelerator.sync_gradients:
-        global_step = 0
-        save_path = os.path.join(args.output_dir, f"checkpoint-{global_step}")
-        accelerator.save_state(save_path, safe_serialization=False)
-        #torch.save(model_ema.state_dict(), save_path)
-        logger.info(f"Saved state to {save_path}")
+        if accelerator.is_main_process:
+            global_step = 0
+            save_path = os.path.join(args.output_dir, f"checkpoint-{global_step}")
+            accelerator.save_state(save_path, safe_serialization=False)
+            #torch.save(model_ema.state_dict(), save_path)
+            logger.info(f"Saved state to {save_path}")
 
     print("Start training...")
     for epoch in range(first_epoch, args.epochs):
