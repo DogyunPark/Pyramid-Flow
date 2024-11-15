@@ -93,7 +93,7 @@ def train_one_epoch_with_fsdp(
                 image = rearrange(image, "B C T H W -> (B T) H W C")
                 image = image.cpu().numpy()
                 image = runner.numpy_to_pil(image)
-                export_to_video(image, "./GT.mp4", fps=24)
+                export_to_video(image, "./GT2.mp4", fps=24)
 
                 import pdb; pdb.set_trace()
                 #identifier = samples['identifier']
