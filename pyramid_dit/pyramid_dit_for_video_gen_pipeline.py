@@ -1515,11 +1515,12 @@ class PyramidDiTForVideoGeneration:
         # prepare the condition latents
         for i_s in range(len(stages)):
             self.validation_scheduler.set_timesteps(num_inference_steps[i_s], device=device)
+            import pdb; pdb.set_trace()
             timesteps = self.validation_scheduler.timesteps
             temp_next = temp_upsample_list[i_s]
             height = height * 2
             width = width * 2
-            latents = torch.nn.functional.interpolate(latents, size=(temp_next, height, width), mode='trilinear')
+            latents = torch.nn.functional.interpolate(latents, size=(temp_next, height, width), mode='trilinear', align_corners=False)
             
             for idx, t in enumerate(timesteps):
                 latent_model_input = torch.cat([latents] * 2) if self.do_classifier_free_guidance else latents

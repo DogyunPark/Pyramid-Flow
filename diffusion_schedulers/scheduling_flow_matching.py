@@ -212,20 +212,32 @@ class PyramidFlowMatchEulerDiscreteScheduler(SchedulerMixin, ConfigMixin):
         device: Union[str, torch.device] = None,
     ):
         """
-        Sets the discrete timesteps used for the diffusion chain. Supporting function to be run before inference.
-
-        Args:
-            num_inference_steps (`Dict[float, int]`):
-                the number of diffusion steps used when generating samples with a pre-trained model. If passed, then
-                `timesteps` must be `None`.
-            device (`str` or `torch.device`, optional):
-                the device to which the timesteps are moved to. {2 / 3: 20, 0.0: 10}
+            Setting the timesteps and sigmas for each stage 
         """
-        if timesteps is None:
-            timesteps = torch.linspace(1.0, 0.0, num_inference_steps + 1, device=device)
-        if not isinstance(timesteps, torch.Tensor):
-            timesteps = torch.Tensor(timesteps).to(device)
-        self.timesteps = timesteps
+        self.num_inference_steps = num_inference_steps
+        training_steps = self.config.num_train_timesteps     
+        self.init_sigmas()
+
+        stage_timesteps = self.timesteps
+        timestep_max = stage_timesteps[0].item()
+        timestep_min = stage_timesteps[-1].item()
+
+        timesteps = np.linspace(
+            timestep_max, timestep_min, num_inference_steps,
+        )
+        self.timesteps = torch.from_numpy(timesteps).to(device=device)
+        self.sigmas = self.timesteps / self.config.num_train_timesteps
+
+        # stage_sigmas = self.sigmas
+        # sigma_max = stage_sigmas[0].item()
+        # sigma_min = stage_sigmas[-1].item()
+
+        # ratios = np.linspace(
+        #     sigma_max, sigma_min, num_inference_steps
+        # )
+        # sigmas = torch.from_numpy(ratios).to(device=device)
+        # self.sigmas = torch.cat([sigmas, torch.zeros(1, device=sigmas.device)])
+
 
     def index_for_timestep(self, timestep, schedule_timesteps=None):
         if schedule_timesteps is None:
