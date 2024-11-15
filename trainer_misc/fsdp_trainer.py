@@ -89,13 +89,6 @@ def train_one_epoch_with_fsdp(
                 video =  samples['video'].to(accelerator.device)
                 text = samples['text']
 
-                image = video.mul(127.5).add(127.5).clamp(0, 255).byte()
-                image = rearrange(image, "B C T H W -> (B T) H W C")
-                image = image.cpu().numpy()
-                image = runner.numpy_to_pil(image)
-                export_to_video(image, "./GT2.mp4", fps=24)
-
-                import pdb; pdb.set_trace()
                 #identifier = samples['identifier']
 
                 # Perform the forward using the accerlate

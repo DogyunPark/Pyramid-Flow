@@ -691,14 +691,16 @@ class PyramidDiTForVideoGeneration:
         vae_latent_list.append(x)
 
         temp, height, width = x.shape[-3], x.shape[-2], x.shape[-1]
-        pad_size = (0, 0, 0, 0, 1, 0)
-        scale_factor = (0.5, 0.5, 0.5)
+        #pad_size = (0, 0, 0, 0, 1, 0)
+        #scale_factor = (0.5, 0.5, 0.5)
+        
+        temp_list = [5, 3, 1] # TODO: Make it dynamic
         for _ in range(stage_num):
-            #height //= scale_factor
-            #width //= 2
-            #temp //= 2
-            x = torch.nn.functional.pad(x, pad_size, mode='constant')
-            x = torch.nn.functional.interpolate(x, scale_factor=scale_factor, mode='trilinear')
+            height //= 2
+            width //= 2
+            temp = temp_list[_]
+            #x = torch.nn.functional.pad(x, pad_size, mode='constant')
+            x = torch.nn.functional.interpolate(x, size=(temp, height, width), mode='trilinear', align_corners=False)
             vae_latent_list.append(x)
 
         vae_latent_list = list(reversed(vae_latent_list))
@@ -717,35 +719,49 @@ class PyramidDiTForVideoGeneration:
             width_next = vae_latent_list[next_idx].shape[4]
 
             current_vae_latent = vae_latent_list[idx]
-            x = torch.nn.functional.interpolate(current_vae_latent, size=(temp_next, height_next, width_next), mode='trilinear', align_corners=False)
+            #x = torch.nn.functional.interpolate(current_vae_latent, size=(temp_next, height_next, width_next), mode='trilinear', align_corners=False)
+            x = torch.nn.functional.interpolate(current_vae_latent, size=(temp_next, height_next, width_next), mode='nearest')
             upsample_vae_latent_list.append(x)
 
         return upsample_vae_latent_list
 
     @torch.no_grad()
     def get_vae_latent(self, video, use_temporal_pyramid=False, use_temporal_downsample=True):
-        video_list = self.get_pyramid_input(video, len(self.stages))
-        vae_latent_list = []
-
         if self.load_vae:
             assert video_list[0].shape[1] == 3, "The vae is loaded, the input should be raw pixels"
-            for idx, video in enumerate(video_list):
-                if idx == 0:
-                    # The first stage is not temporal chunked
-                    video = self.vae.encode(video, temporal_chunk=False, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
-                else:
-                    video = self.vae.encode(video, temporal_chunk=True, window_size=8, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
-                #video = self.vae.encode(video, temporal_chunk=False, window_size=8, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
+            if 0:
+                vae_latent_list = []
+                video_list = self.get_pyramid_input(video, len(self.stages))
+                for idx, video in enumerate(video_list):
+                    if idx == 0:
+                        # The first stage is not temporal chunked
+                        video = self.vae.encode(video, temporal_chunk=False, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
+                    else:
+                        video = self.vae.encode(video, temporal_chunk=True, window_size=8, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
+                    #video = self.vae.encode(video, temporal_chunk=False, window_size=8, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
+
+                    if video.shape[2] == 1:
+                        # is image
+                        video = (video - self.vae_shift_factor) * self.vae_scale_factor
+                    else:
+                        # is video
+                        video[:, :, :1] = (video[:, :, :1] - self.vae_shift_factor) * self.vae_scale_factor
+                        video[:, :, 1:] =  (video[:, :, 1:] - self.vae_video_shift_factor) * self.vae_video_scale_factor
+
+                    vae_latent_list.append(video)
+            
+            else:
+                video = self.vae.encode(video, temporal_chunk=False, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
 
                 if video.shape[2] == 1:
-                    # is image
+                        # is image
                     video = (video - self.vae_shift_factor) * self.vae_scale_factor
                 else:
                     # is video
                     video[:, :, :1] = (video[:, :, :1] - self.vae_shift_factor) * self.vae_scale_factor
                     video[:, :, 1:] =  (video[:, :, 1:] - self.vae_video_shift_factor) * self.vae_video_scale_factor
 
-                vae_latent_list.append(video)
+                vae_latent_list = self.get_pyramid_latent_with_temporal_downsample(video, len(self.stages))
             
             upsample_vae_latent_list = self.get_pyramid_latent_upsample(vae_latent_list)
 
