@@ -4,7 +4,7 @@
 # It enables the autoregressive video generative training with temporal pyramid
 # make sure to set, NUM_FRAMES % VIDEO_SYNC_GROUP == 0; GPUS % VIDEO_SYNC_GROUP == 0
 
-GPUS=8  # The gpu number
+GPUS=7  # The gpu number
 SHARD_STRATEGY=zero2   # zero2 or zero3
 #VIDEO_SYNC_GROUP=8     # values in [4, 8, 16] The number of process that accepts the same input video, used for temporal pyramid AR training.
 MODEL_NAME=pyramid_flux     # The model name, `pyramid_flux` or `pyramid_mmdit`
@@ -21,7 +21,7 @@ NUM_FRAMES=16         # e.g., 16 for 5s, 32 for 10s
 # For the 768p version, make sure to add the args:  --gradient_checkpointing
 
 #CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 python \
-CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 accelerate launch --multi_gpu --num_processes $GPUS \
+CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6 accelerate launch --multi_gpu --num_processes $GPUS \
     train/train_pyramid_flow_ours.py \
     --num_workers 8 \
     --task t2v \
