@@ -354,7 +354,7 @@ class PyramidDiTForVideoGeneration:
 
         return noisy_latents_list, ratios_list, timesteps_list, targets_list
 
-    def add_pyramid_noise_with_temporal_downsample(
+    def add_pyramid_noise_ours(
         self, 
         latents_list,
         upsample_vae_latent_list,
@@ -645,7 +645,7 @@ class PyramidDiTForVideoGeneration:
         return noisy_latents_list, ratios_list, timesteps_list, targets_list
     
     @torch.no_grad()
-    def get_pyramid_latent(self, x, stage_num):
+    def get_pyramid_latent_with_spatial_downsample(self, x, stage_num):
         # x is the origin vae latent
         vae_latent_list = []
         vae_latent_list.append(x)
@@ -655,7 +655,7 @@ class PyramidDiTForVideoGeneration:
             height //= 2
             width //= 2
             x = rearrange(x, 'b c t h w -> (b t) c h w')
-            x = torch.nn.functional.interpolate(x, size=(height, width), mode='bilinear')
+            x = torch.nn.functional.interpolate(x, size=(height, width), mode='bilinear', align_corners=False)
             x = rearrange(x, '(b t) c h w -> b c t h w', t=temp)
             vae_latent_list.append(x)
 
@@ -663,7 +663,29 @@ class PyramidDiTForVideoGeneration:
         return vae_latent_list
 
     @torch.no_grad()
-    def get_pyramid_input(self, x, stage_num):
+    def get_pyramid_input_with_spatial_downsample(self, x, stage_num):
+        # x is the origin vae latent
+        video_list = []
+        original_x = x.detach().clone()
+        video_list.append(original_x)
+        #temp_list = [33, 17, 1] # Hard code the temporal length of each stage
+
+        temp, height, width = x.shape[-3], x.shape[-2], x.shape[-1]
+        for idx in range(stage_num):
+            height //= 2
+            width //= 2
+            #temp = temp_list[idx]
+            #x = original_x[:, :, :temp]
+            x = rearrange(original_x, 'b c t h w -> (b t) c h w')
+            x = torch.nn.functional.interpolate(x, size=(height, width), mode='bilinear', align_corners=False)
+            x = rearrange(x, '(b t) c h w -> b c t h w', t=temp)
+            video_list.append(x)
+
+        video_list = list(reversed(video_list))
+        return video_list
+    
+    @torch.no_grad()
+    def get_pyramid_input_with_temporal_downsample(self, x, stage_num):
         # x is the origin vae latent
         video_list = []
         original_x = x.detach().clone()
@@ -707,7 +729,7 @@ class PyramidDiTForVideoGeneration:
         return vae_latent_list
     
     @torch.no_grad()
-    def get_pyramid_latent_upsample(self, vae_latent_list):
+    def get_pyramid_latent_with_temporal_upsample(self, vae_latent_list):
         # x is the origin vae latent
         upsample_vae_latent_list = []
         stage_num = len(vae_latent_list)-1
@@ -726,60 +748,80 @@ class PyramidDiTForVideoGeneration:
         return upsample_vae_latent_list
 
     @torch.no_grad()
+    def get_pyramid_latent_with_spatial_upsample(self, vae_latent_list):
+        # x is the origin vae latent
+        upsample_vae_latent_list = []
+        stage_num = len(vae_latent_list)-1
+
+        for idx in range(stage_num):
+            next_idx = idx + 1
+            height_next = vae_latent_list[next_idx].shape[3]
+            width_next = vae_latent_list[next_idx].shape[4]
+
+            current_vae_latent = vae_latent_list[idx]
+            x = rearrange(current_vae_latent, 'b c t h w -> (b t) c h w')
+            x = torch.nn.functional.interpolate(x, size=(height_next, width_next), mode='nearest')
+            x = rearrange(x, '(b t) c h w -> b c t h w', t=1)
+            upsample_vae_latent_list.append(x)
+
+        return upsample_vae_latent_list
+
+    @torch.no_grad()
     def get_vae_latent(self, video, use_temporal_pyramid=False, use_temporal_downsample=True):
         if self.load_vae:
-            if 0:
+            if 1:
                 assert video_list[0].shape[1] == 3, "The vae is loaded, the input should be raw pixels"
                 vae_latent_list = []
-                video_list = self.get_pyramid_input(video, len(self.stages))
-                for idx, video in enumerate(video_list):
-                    if idx == 0:
-                        # The first stage is not temporal chunked
+                if video.shape[2] == 1:
+                    video_list = self.get_pyramid_input_with_spatial_downsample(video, len(self.stages))
+                    for idx, video in enumerate(video_list):
                         video = self.vae.encode(video, temporal_chunk=False, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
-                    else:
-                        video = self.vae.encode(video, temporal_chunk=True, window_size=8, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
-                    #video = self.vae.encode(video, temporal_chunk=False, window_size=8, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
+                        vae_latent_list.append(video)
+                    
+                    upsample_vae_latent_list = self.get_pyramid_latent_with_spatial_upsample(vae_latent_list)
+                else:
+                    video_list = self.get_pyramid_input_with_temporal_downsample(video, len(self.stages))
+                    for idx, video in enumerate(video_list):
+                        if idx == 0:
+                            # The first stage is not temporal chunked
+                            video = self.vae.encode(video, temporal_chunk=False, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
+                        else:
+                            video = self.vae.encode(video, temporal_chunk=True, window_size=8, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
+                        #video = self.vae.encode(video, temporal_chunk=False, window_size=8, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
 
-                    if video.shape[2] == 1:
-                        # is image
-                        video = (video - self.vae_shift_factor) * self.vae_scale_factor
-                    else:
-                        # is video
-                        video[:, :, :1] = (video[:, :, :1] - self.vae_shift_factor) * self.vae_scale_factor
-                        video[:, :, 1:] =  (video[:, :, 1:] - self.vae_video_shift_factor) * self.vae_video_scale_factor
+                        if video.shape[2] == 1:
+                            # is image
+                            video = (video - self.vae_shift_factor) * self.vae_scale_factor
+                        else:
+                            # is video
+                            video[:, :, :1] = (video[:, :, :1] - self.vae_shift_factor) * self.vae_scale_factor
+                            video[:, :, 1:] =  (video[:, :, 1:] - self.vae_video_shift_factor) * self.vae_video_scale_factor
 
-                    vae_latent_list.append(video)
+                        vae_latent_list.append(video)
+                    upsample_vae_latent_list = self.get_pyramid_latent_with_temporal_upsample(vae_latent_list)
             
             else:
                 assert video.shape[1] == 3, "The vae is loaded, the input should be raw pixels"
-                video = self.vae.encode(video, temporal_chunk=True, window_size=8, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
-
                 if video.shape[2] == 1:
-                    # is image
+                    video = self.vae.encode(video, temporal_chunk=False, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
                     video = (video - self.vae_shift_factor) * self.vae_scale_factor
+                    vae_latent_list = self.get_pyramid_latent_with_spatial_downsample(video, len(self.stages))
+                    upsample_vae_latent_list = self.get_pyramid_latent_with_spatial_upsample(vae_latent_list)
                 else:
-                    # is video
+                    video = self.vae.encode(video, temporal_chunk=True, window_size=8, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
                     video[:, :, :1] = (video[:, :, :1] - self.vae_shift_factor) * self.vae_scale_factor
                     video[:, :, 1:] =  (video[:, :, 1:] - self.vae_video_shift_factor) * self.vae_video_scale_factor
-
-                vae_latent_list = self.get_pyramid_latent_with_temporal_downsample(video, len(self.stages))
+                    vae_latent_list = self.get_pyramid_latent_with_temporal_downsample(video, len(self.stages))
+                    upsample_vae_latent_list = self.get_pyramid_latent_with_temporal_upsample(vae_latent_list)
             
-            upsample_vae_latent_list = self.get_pyramid_latent_upsample(vae_latent_list)
-        # Get the pyramidal stages
-        # if use_temporal_downsample:
-        #     vae_latent_list = self.get_pyramid_latent_with_temporal_downsample(video, len(self.stages))
-        # else:
-        #     vae_latent_list = self.get_pyramid_latent(video, len(self.stages) - 1)
-
-
         if use_temporal_pyramid:
             noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_with_temporal_pyramid(vae_latent_list, self.sample_ratios)
         else:
             # Only use the spatial pyramidal (without temporal ar)
             if use_temporal_downsample:
-                noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_with_temporal_downsample(vae_latent_list, upsample_vae_latent_list, self.sample_ratios)
+                noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_ours(vae_latent_list, upsample_vae_latent_list, self.sample_ratios)
             else:
-                noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise(vae_latent_list, self.sample_ratios)
+                noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_with_spatial_downsample(vae_latent_list, upsample_vae_latent_list, self.sample_ratios)
         
         return noisy_latents_list, ratios_list, timesteps_list, targets_list
 
@@ -1537,6 +1579,197 @@ class PyramidDiTForVideoGeneration:
             height = height * 2
             width = width * 2
             latents = torch.nn.functional.interpolate(latents, size=(temp_next, height, width), mode='nearest')
+            
+            for idx, t in enumerate(timesteps):
+                latent_model_input = torch.cat([latents] * 2) if self.do_classifier_free_guidance else latents
+            
+                # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
+                timestep = t.expand(latent_model_input.shape[0]).to(latent_model_input.dtype)
+                timestep = timestep.to(device)
+
+                if is_sequence_parallel_initialized():
+                    # sync the input latent
+                    sp_group_rank = get_sequence_parallel_group_rank()
+                    global_src_rank = sp_group_rank * get_sequence_parallel_world_size()
+                    torch.distributed.broadcast(latent_model_input, global_src_rank, group=get_sequence_parallel_group())
+
+                #prompt_embeds = prompt_embeds.to(latent_model_input.dtype)
+                #pooled_prompt_embeds = pooled_prompt_embeds.to(latent_model_input.dtype)
+                #import pdb; pdb.set_trace()
+                noise_pred = self.dit(
+                    sample=[[latent_model_input]],
+                    timestep_ratio=timestep,
+                    encoder_hidden_states=prompt_embeds,
+                    encoder_attention_mask=prompt_attention_mask,
+                    pooled_projections=pooled_prompt_embeds,
+                )
+
+                noise_pred = noise_pred[0]
+                
+                # perform guidance
+                if self.do_classifier_free_guidance:
+                    noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
+                    noise_pred = noise_pred_uncond + self.guidance_scale * (noise_pred_text - noise_pred_uncond)
+                
+                # compute the previous noisy sample x_t -> x_t-1
+                latents = self.validation_scheduler.step(
+                    model_output=noise_pred,
+                    timestep=timestep,
+                    sample=latents,
+                    generator=generator,
+                ).prev_sample
+
+            generated_latents_list.append(latents.detach().clone())
+
+        #generated_latents = torch.cat(generated_latents_list, dim=2)
+        latents = latents.to(torch.bfloat16)
+
+        if output_type == "latent":
+            image = latents
+        else:
+            if cpu_offloading:
+                if not self.sequential_offload_enabled:
+                    self.dit.to("cpu")
+                self.vae.to("cuda")
+                torch.cuda.empty_cache()
+            image = self.decode_latent(latents, save_memory=save_memory, inference_multigpu=inference_multigpu)
+            if cpu_offloading:
+                self.vae.to("cpu")
+                torch.cuda.empty_cache()
+                # not technically necessary, but returns the pipeline to its original state
+
+        return image
+    
+    @torch.no_grad()
+    def generate_image(
+        self,
+        prompt: Union[str, List[str]] = '',
+        input_image: PIL.Image = None,
+        temp: int = 1,
+        num_inference_steps: Optional[Union[int, List[int]]] = 28,
+        guidance_scale: float = 7.0,
+        video_guidance_scale: float = 4.0,
+        min_guidance_scale: float = 2.0,
+        use_linear_guidance: bool = False,
+        alpha: float = 0.5,
+        negative_prompt: Optional[Union[str, List[str]]]="cartoon style, worst quality, low quality, blurry, absolute black, absolute white, low res, extra limbs, extra digits, misplaced objects, mutated anatomy, monochrome, horror",
+        num_images_per_prompt: Optional[int] = 1,
+        generator: Optional[Union[torch.Generator, List[torch.Generator]]] = None,
+        output_type: Optional[str] = "pil",
+        save_memory: bool = True,
+        cpu_offloading: bool = False, # If true, reload device will be cuda.
+        inference_multigpu: bool = False,
+        callback: Optional[Callable[[int, int, Dict], None]] = None,
+        sampling_scheduler: PyramidFlowMatchEulerDiscreteScheduler = None,
+    ):
+        if self.sequential_offload_enabled and not cpu_offloading:
+            print("Warning: overriding cpu_offloading set to false, as it's needed for sequential cpu offload")
+            cpu_offloading=True
+        device = self.device if not cpu_offloading else torch.device("cuda")
+        dtype = self.dtype
+        if cpu_offloading:
+            # skip caring about the text encoder here as its about to be used anyways.
+            if not self.sequential_offload_enabled:
+                if str(self.dit.device) != "cpu":
+                    print("(dit) Warning: Do not preload pipeline components (i.e. to cuda) with cpu offloading enabled! Otherwise, a second transfer will occur needlessly taking up time.")
+                    self.dit.to("cpu")
+                    torch.cuda.empty_cache()
+            if str(self.vae.device) != "cpu":
+                print("(vae) Warning: Do not preload pipeline components (i.e. to cuda) with cpu offloading enabled! Otherwise, a second transfer will occur needlessly taking up time.")
+                self.vae.to("cpu")
+                torch.cuda.empty_cache()
+
+        width = input_image.shape[-1]
+        height = input_image.shape[-2]
+
+        if isinstance(prompt, str):
+            batch_size = 1
+            prompt = prompt + ", hyper quality, Ultra HD, 8K"   # adding this prompt to improve aesthetics
+        else:
+            assert isinstance(prompt, list)
+            batch_size = len(prompt)
+            prompt = [_ + ", hyper quality, Ultra HD, 8K" for _ in prompt]
+
+        if isinstance(num_inference_steps, int):
+            num_inference_steps = [num_inference_steps] * len(self.stages)
+        
+        negative_prompt = negative_prompt or ""
+
+        # Get the text embeddings
+        if cpu_offloading and not self.sequential_offload_enabled:
+            self.text_encoder.to("cuda") 
+        prompt_embeds, prompt_attention_mask, pooled_prompt_embeds = self.text_encoder(prompt, device)
+        negative_prompt_embeds, negative_prompt_attention_mask, negative_pooled_prompt_embeds = self.text_encoder(negative_prompt, device)
+        
+        if cpu_offloading:
+            if not self.sequential_offload_enabled:
+                self.text_encoder.to("cpu")
+            self.vae.to("cuda")
+            torch.cuda.empty_cache()
+
+        if use_linear_guidance:
+            max_guidance_scale = guidance_scale
+            guidance_scale_list = [max(max_guidance_scale - alpha * t_, min_guidance_scale) for t_ in range(temp+1)]
+            print(guidance_scale_list)
+
+        self._guidance_scale = guidance_scale
+        self._video_guidance_scale = video_guidance_scale
+
+        if self.do_classifier_free_guidance:
+            prompt_embeds = torch.cat([negative_prompt_embeds, prompt_embeds], dim=0)
+            pooled_prompt_embeds = torch.cat([negative_pooled_prompt_embeds, pooled_prompt_embeds], dim=0)
+            prompt_attention_mask = torch.cat([negative_prompt_attention_mask, prompt_attention_mask], dim=0)
+
+        if is_sequence_parallel_initialized():
+            # sync the prompt embedding across multiple GPUs
+            sp_group_rank = get_sequence_parallel_group_rank()
+            global_src_rank = sp_group_rank * get_sequence_parallel_world_size()
+            torch.distributed.broadcast(prompt_embeds, global_src_rank, group=get_sequence_parallel_group())
+            torch.distributed.broadcast(pooled_prompt_embeds, global_src_rank, group=get_sequence_parallel_group())
+            torch.distributed.broadcast(prompt_attention_mask, global_src_rank, group=get_sequence_parallel_group())
+
+        # Create the initial random noise
+        stages = self.stages
+        # encode the image latents
+        latents = (self.vae.encode(input_image.to(self.vae.device, dtype=self.vae.dtype)).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c 1 h w]
+
+        if is_sequence_parallel_initialized():
+            # sync the image latent across multiple GPUs
+            sp_group_rank = get_sequence_parallel_group_rank()
+            global_src_rank = sp_group_rank * get_sequence_parallel_world_size()
+            torch.distributed.broadcast(latents, global_src_rank, group=get_sequence_parallel_group())
+
+        latent_height, latent_width = latents.shape[-2:]
+        # for idx in range(3): #TODO: make this dynamic
+        #     latent_height //= 2
+        #     latent_width //= 2
+        #     latents = rearrange(latents, 'b c t h w -> (b t) c h w')
+        #     latents = torch.nn.functional.interpolate(latents, size=(latent_height, latent_width), mode='bilinear', align_corners=False)
+        #     latents = rearrange(latents, '(b t) c h w -> b c t h w', t=1)
+        
+        generated_latents_list = [latents.clone()]    # The generated results
+
+        if cpu_offloading:
+            self.vae.to("cpu")
+            if not self.sequential_offload_enabled:
+                self.dit.to("cuda")
+            torch.cuda.empty_cache()
+       
+        gc.collect()
+        torch.cuda.empty_cache()  
+
+        #temp_upsample_list = [3, 5, 9] #TODO: make this dynamic
+        height, width = latents.shape[-2:]
+        # prepare the condition latents
+        for i_s in range(len(stages)):
+            self.validation_scheduler.set_timesteps(num_inference_steps[i_s], device=device)
+            timesteps = self.validation_scheduler.timesteps
+            #temp_next = temp_upsample_list[i_s]
+            height = height * 2
+            width = width * 2
+            latents = rearrange(latents, 'b c t h w -> (b t) c h w')
+            latents = torch.nn.functional.interpolate(latents, size=(height, width), mode='nearest')
+            latents = rearrange(latents, '(b t) c h w -> b c t h w', t=1)
             
             for idx, t in enumerate(timesteps):
                 latent_model_input = torch.cat([latents] * 2) if self.do_classifier_free_guidance else latents
