@@ -1491,15 +1491,15 @@ class PyramidDiTForVideoGeneration:
             global_src_rank = sp_group_rank * get_sequence_parallel_world_size()
             torch.distributed.broadcast(latents, global_src_rank, group=get_sequence_parallel_group())
 
-        latent_height, latent_width = latents.shape[-2:]
-        for idx in range(4): #TODO: make this dynamic
-            latent_height //= 2
-            latent_width //= 2
-            latents = rearrange(latents, 'b c t h w -> (b t) c h w')
-            latents = torch.nn.functional.interpolate(latents, size=(latent_height, latent_width), mode='bilinear')
-            latents = rearrange(latents, '(b t) c h w -> b c t h w', t=1)
+        # for idx in range(4): #TODO: make this dynamic
+        #     latent_height //= 2
+        #     latent_width //= 2
+        #     latents = rearrange(latents, 'b c t h w -> (b t) c h w')
+        #     latents = torch.nn.functional.interpolate(latents, size=(latent_height, latent_width), mode='bilinear')
+        #     latents = rearrange(latents, '(b t) c h w -> b c t h w', t=1)
         
         generated_latents_list = [latents.clone()]    # The generated results
+        import pdb; pdb.set_trace()
 
         if cpu_offloading:
             self.vae.to("cpu")

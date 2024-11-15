@@ -520,11 +520,13 @@ def main(args):
         model_ema.to(device)
     
     if 1:
-        filename_list, data_list, validation_prompts = load_data_prompts(args.promptdir, video_size=args.image_size, video_frames=args.num_frames)
+        validation_height, validation_width = args.image_size
+        validation_height = validation_height // (2**3)
+        validation_width = validation_width // (2**3)
+        filename_list, data_list, validation_prompts = load_data_prompts(args.promptdir, video_size=(validation_height, validation_width), video_frames=args.num_frames)
         validation_prompt = validation_prompts[0]
         validation_image = data_list[0][:,0].to(accelerator.device)
         validation_image = validation_image.unsqueeze(0).unsqueeze(2)
-
     # if accelerator.is_main_process:
     #     accelerator.init_trackers(os.path.basename(args.output_dir), config=vars(args))
 
@@ -546,17 +548,18 @@ def main(args):
     start_time = time.time()
     accelerator.wait_for_everyone()
 
-    #if accelerator.is_main_process:
-    print("Generating video for 0 epoch")
-    image = runner.generate_video(
-        prompt=validation_prompt,
-        input_image=validation_image,
-        num_inference_steps=[20, 20, 20],
-        output_type="pil",
-        save_memory=True, 
-    )
-    export_to_video(image, "./output/text_to_video_sample.mp4", fps=24)
+    if accelerator.is_main_process:
+        print("Generating video for 0 epoch")
+        image = runner.generate_video(
+            prompt=validation_prompt,
+            input_image=validation_image,
+            num_inference_steps=[20, 20, 20],
+            output_type="pil",
+            save_memory=True, 
+        )
+        export_to_video(image, "./output/text_to_video_sample.mp4", fps=24)
     
+    import pdb; pdb.set_trace()
     accelerator.wait_for_everyone()
 
     gc.collect()
