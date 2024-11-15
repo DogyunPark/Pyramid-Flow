@@ -1501,8 +1501,6 @@ class PyramidDiTForVideoGeneration:
         stages = self.stages
         # encode the image latents
         latents = (self.vae.encode(input_image.to(self.vae.device, dtype=self.vae.dtype)).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c 1 h w]
-        image = self.decode_latent(latents, save_memory=True, inference_multigpu=False)
-        import pdb; pdb.set_trace()
 
         if is_sequence_parallel_initialized():
             # sync the image latent across multiple GPUs
@@ -1510,12 +1508,12 @@ class PyramidDiTForVideoGeneration:
             global_src_rank = sp_group_rank * get_sequence_parallel_world_size()
             torch.distributed.broadcast(latents, global_src_rank, group=get_sequence_parallel_group())
 
-        # for idx in range(4): #TODO: make this dynamic
-        #     latent_height //= 2
-        #     latent_width //= 2
-        #     latents = rearrange(latents, 'b c t h w -> (b t) c h w')
-        #     latents = torch.nn.functional.interpolate(latents, size=(latent_height, latent_width), mode='bilinear')
-        #     latents = rearrange(latents, '(b t) c h w -> b c t h w', t=1)
+        for idx in range(3): #TODO: make this dynamic
+            latent_height //= 2
+            latent_width //= 2
+            latents = rearrange(latents, 'b c t h w -> (b t) c h w')
+            latents = torch.nn.functional.interpolate(latents, size=(latent_height, latent_width), mode='bilinear', align_corners=False)
+            latents = rearrange(latents, '(b t) c h w -> b c t h w', t=1)
         
         generated_latents_list = [latents.clone()]    # The generated results
 
