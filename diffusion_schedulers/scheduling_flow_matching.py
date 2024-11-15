@@ -226,16 +226,16 @@ class PyramidFlowMatchEulerDiscreteScheduler(SchedulerMixin, ConfigMixin):
             timestep_max, timestep_min, num_inference_steps,
         )
         self.timesteps = torch.from_numpy(timesteps).to(device=device)
-        #self.sigmas = self.timesteps / self.config.num_train_timesteps
+        sigmas = self.timesteps / self.config.num_train_timesteps
 
-        stage_sigmas = self.sigmas
-        sigma_max = stage_sigmas[0].item()
-        sigma_min = stage_sigmas[-1].item()
+        # stage_sigmas = self.sigmas
+        # sigma_max = stage_sigmas[0].item()
+        # sigma_min = stage_sigmas[-1].item()
 
-        ratios = np.linspace(
-            sigma_max, sigma_min, num_inference_steps
-        )
-        sigmas = torch.from_numpy(ratios).to(device=device)
+        # ratios = np.linspace(
+        #     sigma_max, sigma_min, num_inference_steps
+        # )
+        # sigmas = torch.from_numpy(ratios).to(device=device)
         self.sigmas = torch.cat([sigmas, torch.zeros(1, device=sigmas.device)])
 
 

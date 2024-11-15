@@ -359,12 +359,12 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
             for i_p, length in enumerate(hidden_length):
                 image_ids_list.append(image_ids[i_p::num_stages][:, :length])
 
-            if is_sequence_parallel_initialized():
-                sp_group = get_sequence_parallel_group()
-                sp_group_size = get_sequence_parallel_world_size()
-                concat_output = True if self.training else False
-                text_ids = all_to_all(text_ids.unsqueeze(2).repeat(1, 1, sp_group_size), sp_group, sp_group_size, scatter_dim=2, gather_dim=0, concat_output=concat_output).squeeze(2)
-                image_ids_list = [all_to_all(image_ids_.unsqueeze(2).repeat(1, 1, sp_group_size), sp_group, sp_group_size, scatter_dim=2, gather_dim=0, concat_output=concat_output).squeeze(2) for image_ids_ in image_ids_list]
+            # if is_sequence_parallel_initialized():
+            #     sp_group = get_sequence_parallel_group()
+            #     sp_group_size = get_sequence_parallel_world_size()
+            #     concat_output = True if self.training else False
+            #     text_ids = all_to_all(text_ids.unsqueeze(2).repeat(1, 1, sp_group_size), sp_group, sp_group_size, scatter_dim=2, gather_dim=0, concat_output=concat_output).squeeze(2)
+            #     image_ids_list = [all_to_all(image_ids_.unsqueeze(2).repeat(1, 1, sp_group_size), sp_group, sp_group_size, scatter_dim=2, gather_dim=0, concat_output=concat_output).squeeze(2) for image_ids_ in image_ids_list]
             
             attention_mask = []
             for i_p in range(len(hidden_length)):
@@ -385,24 +385,24 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
         output_hidden_list = []
         batch_hidden_states = torch.split(batch_hidden_states, hidden_length, dim=1)
 
-        if is_sequence_parallel_initialized():
-            sp_group_size = get_sequence_parallel_world_size()
-            if self.training:
-                batch_size = batch_size // sp_group_size
+        # if is_sequence_parallel_initialized():
+        #     sp_group_size = get_sequence_parallel_world_size()
+        #     if self.training:
+        #         batch_size = batch_size // sp_group_size
 
         for i_p, length in enumerate(hidden_length):
             width, height, temp = widths[i_p], heights[i_p], temps[i_p]
             trainable_token_num = trainable_token_list[i_p]
             hidden_states = batch_hidden_states[i_p]
 
-            if is_sequence_parallel_initialized():
-                sp_group = get_sequence_parallel_group()
-                sp_group_size = get_sequence_parallel_world_size()
+            # if is_sequence_parallel_initialized():
+            #     sp_group = get_sequence_parallel_group()
+            #     sp_group_size = get_sequence_parallel_world_size()
 
-                if not self.training:
-                    hidden_states = hidden_states.repeat(sp_group_size, 1, 1)
+            #     if not self.training:
+            #         hidden_states = hidden_states.repeat(sp_group_size, 1, 1)
 
-                hidden_states = all_to_all(hidden_states, sp_group, sp_group_size, scatter_dim=0, gather_dim=1)
+            #     hidden_states = all_to_all(hidden_states, sp_group, sp_group_size, scatter_dim=0, gather_dim=1)
 
             # only the trainable token are taking part in loss computation
             hidden_states = hidden_states[:, -trainable_token_num:]
@@ -434,26 +434,27 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
                 image_rotary_emb = self.merge_input(sample, encoder_hidden_length, encoder_attention_mask)
         
         # split the long latents if necessary
-        if is_sequence_parallel_initialized():
-            sp_group = get_sequence_parallel_group()
-            sp_group_size = get_sequence_parallel_world_size()
-            concat_output = True if self.training else False
+        # if is_sequence_parallel_initialized():
+        #     sp_group = get_sequence_parallel_group()
+        #     sp_group_size = get_sequence_parallel_world_size()
+        #     concat_output = True if self.training else False
             
-            # sync the input hidden states
-            batch_hidden_states = []
-            for i_p, hidden_states_ in enumerate(hidden_states):
-                assert hidden_states_.shape[1] % sp_group_size == 0, "The sequence length should be divided by sequence parallel size"
-                hidden_states_ = all_to_all(hidden_states_, sp_group, sp_group_size, scatter_dim=1, gather_dim=0, concat_output=concat_output)
-                hidden_length[i_p] = hidden_length[i_p] // sp_group_size
-                batch_hidden_states.append(hidden_states_)
+        #     # sync the input hidden states
+        #     batch_hidden_states = []
+        #     for i_p, hidden_states_ in enumerate(hidden_states):
+        #         assert hidden_states_.shape[1] % sp_group_size == 0, "The sequence length should be divided by sequence parallel size"
+        #         hidden_states_ = all_to_all(hidden_states_, sp_group, sp_group_size, scatter_dim=1, gather_dim=0, concat_output=concat_output)
+        #         hidden_length[i_p] = hidden_length[i_p] // sp_group_size
+        #         batch_hidden_states.append(hidden_states_)
 
-            # sync the encoder hidden states
-            hidden_states = torch.cat(batch_hidden_states, dim=1)
-            encoder_hidden_states = all_to_all(encoder_hidden_states, sp_group, sp_group_size, scatter_dim=1, gather_dim=0, concat_output=concat_output)
-            temb = all_to_all(temb.unsqueeze(1).repeat(1, sp_group_size, 1), sp_group, sp_group_size, scatter_dim=1, gather_dim=0, concat_output=concat_output)
-            temb = temb.squeeze(1)
-        else:
-            hidden_states = torch.cat(hidden_states, dim=1)
+        #     # sync the encoder hidden states
+        #     hidden_states = torch.cat(batch_hidden_states, dim=1)
+        #     encoder_hidden_states = all_to_all(encoder_hidden_states, sp_group, sp_group_size, scatter_dim=1, gather_dim=0, concat_output=concat_output)
+        #     temb = all_to_all(temb.unsqueeze(1).repeat(1, sp_group_size, 1), sp_group, sp_group_size, scatter_dim=1, gather_dim=0, concat_output=concat_output)
+        #     temb = temb.squeeze(1)
+        # else:
+        
+        hidden_states = torch.cat(hidden_states, dim=1)
 
         for index_block, block in enumerate(self.transformer_blocks):
             if self.training and self.gradient_checkpointing and (index_block <= int(len(self.transformer_blocks) * self.gradient_checkpointing_ratio)):
@@ -550,17 +551,17 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
         batch_hidden_states = list(torch.split(hidden_states, concat_hidden_length, dim=1))
 
         for i_p in range(len(concat_hidden_length)):
-            if is_sequence_parallel_initialized():
-                sp_group = get_sequence_parallel_group()
-                sp_group_size = get_sequence_parallel_world_size()
-                batch_hidden_states[i_p] = all_to_all(batch_hidden_states[i_p], sp_group, sp_group_size, scatter_dim=0, gather_dim=1)
+            # if is_sequence_parallel_initialized():
+            #     sp_group = get_sequence_parallel_group()
+            #     sp_group_size = get_sequence_parallel_world_size()
+            #     batch_hidden_states[i_p] = all_to_all(batch_hidden_states[i_p], sp_group, sp_group_size, scatter_dim=0, gather_dim=1)
             
             batch_hidden_states[i_p] = batch_hidden_states[i_p][:, encoder_hidden_length :, ...]
 
-            if is_sequence_parallel_initialized():
-                sp_group = get_sequence_parallel_group()
-                sp_group_size = get_sequence_parallel_world_size()
-                batch_hidden_states[i_p] = all_to_all(batch_hidden_states[i_p], sp_group, sp_group_size, scatter_dim=1, gather_dim=0)
+            # if is_sequence_parallel_initialized():
+            #     sp_group = get_sequence_parallel_group()
+            #     sp_group_size = get_sequence_parallel_world_size()
+            #     batch_hidden_states[i_p] = all_to_all(batch_hidden_states[i_p], sp_group, sp_group_size, scatter_dim=1, gather_dim=0)
             
         hidden_states = torch.cat(batch_hidden_states, dim=1)
         hidden_states = self.norm_out(hidden_states, temb, hidden_length=hidden_length)
