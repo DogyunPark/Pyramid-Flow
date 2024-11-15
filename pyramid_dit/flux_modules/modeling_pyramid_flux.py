@@ -173,6 +173,8 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
             print("Using Flash attention")
 
         self.patch_size = 2   # hard-code for now
+        self.train_height = 64 // self.patch_size
+        self.train_width = 64 // self.patch_size   
 
         # init weights
         self.initialize_weights()
@@ -268,8 +270,10 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
     def _prepare_pyramid_image_ids_ours(self, sample, batch_size, device):
         image_ids_list = []
 
-        train_height = sample[-1][0].shape[-2] // self.patch_size
-        train_width = sample[-1][0].shape[-1] // self.patch_size
+        #train_height = sample[-1][0].shape[-2] // self.patch_size
+        train_height = self.train_height
+        #train_width = sample[-1][0].shape[-1] // self.patch_size
+        train_width = self.train_width
         
         for i_b, sample_ in enumerate(sample):
             if not isinstance(sample_, list):
