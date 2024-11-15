@@ -268,8 +268,8 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
     def _prepare_pyramid_image_ids_ours(self, sample, batch_size, device):
         image_ids_list = []
 
-        train_height = sample[-1].shape[-2] // self.patch_size
-        train_width = sample[-1].shape[-1] // self.patch_size
+        train_height = sample[-1][0].shape[-2] // self.patch_size
+        train_width = sample[-1][0].shape[-1] // self.patch_size
         
         for i_b, sample_ in enumerate(sample):
             if not isinstance(sample_, list):
