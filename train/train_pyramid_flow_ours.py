@@ -245,7 +245,7 @@ def build_model_runner(args):
     model_variant = args.model_variant
 
     print(f"Load the {model_name} model checkpoint from path: {model_path}, using dtype {model_dtype}")
-    sample_ratios = [1, 1, 1]  # The sample_ratios of each stage
+    sample_ratios = [1, 2, 1]  # The sample_ratios of each stage
     corrupt_ratio = [1/6, 1/3, 1/3]
     #sample_ratios = [1]  # The sample_ratios of each stage
     assert args.batch_size % int(sum(sample_ratios)) == 0, "The batchsize should be diivided by sum(sample_ratios)"
@@ -555,7 +555,8 @@ def main(args):
     #if accelerator.is_main_process:
     if 1:
         print("Generating video for 0 epoch")
-        image = runner.generate_image(
+        #image = runner.generate_image(
+        image = runner.generate_video(
             prompt=validation_prompt,
             input_image=validation_image,
             num_inference_steps=[20, 20, 20],
