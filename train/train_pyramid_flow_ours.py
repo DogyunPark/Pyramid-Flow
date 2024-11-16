@@ -228,9 +228,9 @@ def get_args():
 
 
     # Added by us
-    parser.add_argument('--num_frames', default=1, type=int, help='number of frames in a video')
+    parser.add_argument('--num_frames', default=65, type=int, help='number of frames in a video')
     parser.add_argument('--frame_interval', default=1, type=int, help='frame interval')
-    parser.add_argument('--image_size', default=(384, 640), type=tuple, help='image size')
+    parser.add_argument('--image_size', default=(320, 512), type=tuple, help='image size')
     parser.add_argument('--data_root', default='./train_data/data/train/OpenVid-1M.csv', type=str, help='The data root')
     parser.add_argument('--root', default='./train_data/video', type=str, help='The root')
     parser.add_argument('--promptdir', default='/data/cvpr25/prompts/1024/', type=str, help='The prompt directory')
@@ -556,8 +556,8 @@ def main(args):
     #if accelerator.is_main_process:
     if 1:
         print("Generating video for 0 epoch")
-        image = runner.generate_image(
-        #image = runner.generate_video(
+        #image = runner.generate_image(
+        image = runner.generate_video(
             prompt=validation_prompt,
             input_image=validation_image,
             num_inference_steps=[20, 20, 20],
