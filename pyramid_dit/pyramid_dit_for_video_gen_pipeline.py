@@ -407,7 +407,7 @@ class PyramidDiTForVideoGeneration:
             
             start_point = upsample_vae_latent_list[i_s][index::column_size]
             # Noise augmentation
-            start_point = start_point + torch.randn_like(start_point) * self.corrupt_ratio
+            start_point = start_point + torch.randn_like(start_point) * self.corrupt_ratio[i_s]
             end_point = latents_list[i_s+1][index::column_size]
 
 
@@ -433,7 +433,7 @@ class PyramidDiTForVideoGeneration:
             # interpolate the latent
             noisy_latents = ratios * start_point + (1 - ratios) * end_point
 
-            last_cond_noisy_sigma = torch.rand(size=(batch_size,), device=device) * self.corrupt_ratio
+            #last_cond_noisy_sigma = torch.rand(size=(batch_size,), device=device) * self.corrupt_ratio
 
             # [stage1_latent, stage2_latent, ..., stagen_latent], which will be concat after patching
             noisy_latents_list.append([noisy_latents.to(dtype)])
@@ -1774,7 +1774,7 @@ class PyramidDiTForVideoGeneration:
             latents = torch.nn.functional.interpolate(latents, size=(height, width), mode='nearest')
             latents = rearrange(latents, '(b t) c h w -> b c t h w', t=1)
             # Noise augmentation
-            latents = latents + torch.randn_like(latents) * self.corrupt_ratio
+            latents = latents + torch.randn_like(latents) * self.corrupt_ratio[i_s]
             
             for idx, t in enumerate(timesteps):
                 latent_model_input = torch.cat([latents] * 2) if self.do_classifier_free_guidance else latents
