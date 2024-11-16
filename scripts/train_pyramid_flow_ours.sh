@@ -56,3 +56,4 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6 accelerate launch --multi_gpu --num_processes
     --print_freq 40 \
     --save_ckpt_freq 1 \
     --load_vae \
+    --gradient_checkpointing
