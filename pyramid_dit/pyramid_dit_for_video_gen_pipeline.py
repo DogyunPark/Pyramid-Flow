@@ -792,14 +792,14 @@ class PyramidDiTForVideoGeneration:
                             video = self.vae.encode(video, temporal_chunk=True, window_size=8, tile_sample_min_size=512).latent_dist.sample() # [b c t h w]
                         #video = self.vae.encode(video, temporal_chunk=False, window_size=8, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
 
-                        if video.shape[2] == 1:
-                            # is image
-                            video = (video - self.vae_shift_factor) * self.vae_scale_factor
-                        else:
+                        # if video.shape[2] == 1:
+                        #     # is image
+                        #     video = (video - self.vae_shift_factor) * self.vae_scale_factor
+                        # else:
                             # is video
                             # video[:, :, :1] = (video[:, :, :1] - self.vae_shift_factor) * self.vae_scale_factor
                             # video[:, :, 1:] =  (video[:, :, 1:] - self.vae_video_shift_factor) * self.vae_video_scale_factor
-                            video = video / self.vae_video_scale_factor + self.vae_video_shift_factor
+                        video = video / self.vae_video_scale_factor + self.vae_video_shift_factor
 
                         vae_latent_list.append(video)
                     upsample_vae_latent_list = self.get_pyramid_latent_with_temporal_upsample(vae_latent_list)
