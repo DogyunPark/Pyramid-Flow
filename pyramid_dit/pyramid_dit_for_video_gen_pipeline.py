@@ -1851,7 +1851,7 @@ class PyramidDiTForVideoGeneration:
         
         if save_memory:
             # reducing the tile size and temporal chunk window size
-            image = self.vae.decode(latents, temporal_chunk=True, window_size=4, tile_sample_min_size=256).sample
+            image = self.vae.decode(latents, temporal_chunk=True, window_size=2, tile_sample_min_size=256).sample
         else:
             #image = self.vae.decode(latents, temporal_chunk=True, window_size=2, tile_sample_min_size=512).sample
             image = self.vae.decode(latents, temporal_chunk=False, window_size=2, tile_sample_min_size=512).sample
