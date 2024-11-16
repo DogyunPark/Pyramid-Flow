@@ -405,8 +405,10 @@ class PyramidDiTForVideoGeneration:
         for index in range(column_size):
             i_s = column_to_stage[index]
             
+            lowest_res_latent = latents_list[0][index::column_size]
             start_point = upsample_vae_latent_list[i_s][index::column_size]
             # Noise augmentation
+            lowest_res_latent = lowest_res_latent + torch.randn_like(lowest_res_latent) * self.corrupt_ratio[i_s]
             start_point = start_point + torch.randn_like(start_point) * self.corrupt_ratio[i_s]
             end_point = latents_list[i_s+1][index::column_size]
 
@@ -436,7 +438,7 @@ class PyramidDiTForVideoGeneration:
             #last_cond_noisy_sigma = torch.rand(size=(batch_size,), device=device) * self.corrupt_ratio
 
             # [stage1_latent, stage2_latent, ..., stagen_latent], which will be concat after patching
-            noisy_latents_list.append([noisy_latents.to(dtype)])
+            noisy_latents_list.append([lowest_res_latent, noisy_latents.to(dtype)])
             ratios_list.append(ratios.to(dtype))
             timesteps_list.append(timesteps.to(dtype))
             targets_list.append(start_point - end_point)     # The standard rectified flow matching objective
@@ -1738,6 +1740,7 @@ class PyramidDiTForVideoGeneration:
         stages = self.stages
         # encode the image latents
         latents = (self.vae.encode(input_image.to(self.vae.device, dtype=self.vae.dtype)).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c 1 h w]
+        lowest_res_latent = latents.clone()
 
         if is_sequence_parallel_initialized():
             # sync the image latent across multiple GPUs
@@ -1778,9 +1781,11 @@ class PyramidDiTForVideoGeneration:
             latents = rearrange(latents, '(b t) c h w -> b c t h w', t=1)
             # Noise augmentation
             latents = latents + torch.randn_like(latents) * self.corrupt_ratio[i_s]
+            lowest_res_latent_input = lowest_res_latent + torch.randn_like(lowest_res_latent) * self.corrupt_ratio[i_s]
             
             for idx, t in enumerate(timesteps):
                 latent_model_input = torch.cat([latents] * 2) if self.do_classifier_free_guidance else latents
+                lowest_res_latent_model_input = torch.cat([lowest_res_latent_input] * 2) if self.do_classifier_free_guidance else lowest_res_latent_input
             
                 # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
                 timestep = t.expand(latent_model_input.shape[0]).to(latent_model_input.dtype)
@@ -1796,7 +1801,7 @@ class PyramidDiTForVideoGeneration:
                 #pooled_prompt_embeds = pooled_prompt_embeds.to(latent_model_input.dtype)
                 #import pdb; pdb.set_trace()
                 noise_pred = self.dit(
-                    sample=[[latent_model_input]],
+                    sample=[[lowest_res_latent_model_input, latent_model_input]],
                     timestep_ratio=timestep,
                     encoder_hidden_states=prompt_embeds,
                     encoder_attention_mask=prompt_attention_mask,
