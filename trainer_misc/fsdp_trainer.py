@@ -157,8 +157,8 @@ def train_one_epoch_with_fsdp(
         # Generate the video for validation
         if step % 20 == 0:
             assert validation_prompt is not None and validation_image is not None
-            #image = runner.generate_image(
-            image = runner.generate_video(
+            image = runner.generate_image(
+            #image = runner.generate_video(
                 prompt=validation_prompt,
                 input_image=validation_image,
                 num_inference_steps=[20, 20, 20],
