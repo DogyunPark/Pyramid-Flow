@@ -1739,7 +1739,9 @@ class PyramidDiTForVideoGeneration:
         # Create the initial random noise
         stages = self.stages
         # encode the image latents
-        lowest_input_image = torch.nn.functional.interpolate(input_image, size=(height//(2**3), width//(2**3)), mode='bicubic')
+        lowest_input_image = rearrange(input_image, 'b c t h w -> (b t) c h w')
+        lowest_input_image = torch.nn.functional.interpolate(lowest_input_image, size=(height//(2**3), width//(2**3)), mode='bicubic')
+        lowest_input_image = rearrange(lowest_input_image, '(b t) c h w -> b c t h w', t=1)
         lowest_res_latent = (self.vae.encode(input_image.to(self.vae.device, dtype=self.vae.dtype)).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c 1 h w] 
         latents = (self.vae.encode(lowest_input_image.to(self.vae.device, dtype=self.vae.dtype)).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c 1 h w]
         #lowest_res_latent = latents.clone()
