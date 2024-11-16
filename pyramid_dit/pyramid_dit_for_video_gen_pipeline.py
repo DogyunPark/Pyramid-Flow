@@ -405,7 +405,7 @@ class PyramidDiTForVideoGeneration:
         for index in range(column_size):
             i_s = column_to_stage[index]
             
-            lowest_res_latent = latents_list[-1][index::column_size]
+            lowest_res_latent = latents_list[1][index::column_size]
             start_point = upsample_vae_latent_list[i_s][index::column_size]
             # Noise augmentation
             lowest_res_latent = lowest_res_latent + torch.randn_like(lowest_res_latent) * self.corrupt_ratio[i_s]
@@ -1558,7 +1558,7 @@ class PyramidDiTForVideoGeneration:
 
         latent_height, latent_width = latents.shape[-2:]
         lowest_input_image = rearrange(input_image, 'b c t h w -> (b t) c h w')
-        lowest_input_image = torch.nn.functional.interpolate(lowest_input_image, size=(height//(2**3), width//(2**3)), mode='bicubic')
+        lowest_input_image = torch.nn.functional.interpolate(lowest_input_image, size=(height//(2**2), width//(2**2)), mode='bicubic')
         lowest_input_image = rearrange(lowest_input_image, '(b t) c h w -> b c t h w', t=1)
         lowest_res_latent = (self.vae.encode(input_image.to(self.vae.device, dtype=self.vae.dtype)).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c 1 h w] 
         latents = (self.vae.encode(lowest_input_image.to(self.vae.device, dtype=self.vae.dtype)).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c 1 h w]
