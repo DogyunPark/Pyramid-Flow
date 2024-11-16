@@ -406,6 +406,8 @@ class PyramidDiTForVideoGeneration:
             i_s = column_to_stage[index]
             
             start_point = upsample_vae_latent_list[i_s][index::column_size]
+            # Noise augmentation
+            start_point = start_point + torch.randn_like(start_point) * self.corrupt_ratio
             end_point = latents_list[i_s+1][index::column_size]
 
 
@@ -1771,6 +1773,8 @@ class PyramidDiTForVideoGeneration:
             latents = rearrange(latents, 'b c t h w -> (b t) c h w')
             latents = torch.nn.functional.interpolate(latents, size=(height, width), mode='nearest')
             latents = rearrange(latents, '(b t) c h w -> b c t h w', t=1)
+            # Noise augmentation
+            latents = latents + torch.randn_like(latents) * self.corrupt_ratio
             
             for idx, t in enumerate(timesteps):
                 latent_model_input = torch.cat([latents] * 2) if self.do_classifier_free_guidance else latents
