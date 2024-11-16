@@ -245,7 +245,8 @@ def build_model_runner(args):
     model_variant = args.model_variant
 
     print(f"Load the {model_name} model checkpoint from path: {model_path}, using dtype {model_dtype}")
-    sample_ratios = [1, 1, 1]  # The sample_ratios of each stage
+    #sample_ratios = [1, 1, 1]  # The sample_ratios of each stage
+    sample_ratios = [1]  # The sample_ratios of each stage
     assert args.batch_size % int(sum(sample_ratios)) == 0, "The batchsize should be diivided by sum(sample_ratios)"
 
     runner = PyramidDiTForVideoGeneration(
@@ -257,7 +258,8 @@ def build_model_runner(args):
         return_log=True,
         model_variant=model_variant,
         timestep_shift=args.schedule_shift,
-        stages=[1, 2, 4],      # using 3 stages
+        #stages=[1, 2, 4],      # using 3 stages
+        stages=[1],      # using 1 stage
         stage_range=[0, 1/3, 2/3, 1],
         sample_ratios=sample_ratios,     # The sample proportion in a training batch
         use_mixed_training=True,
@@ -521,8 +523,8 @@ def main(args):
     
     if 1:
         validation_height, validation_width = args.image_size
-        validation_height = validation_height // (2**3)
-        validation_width = validation_width // (2**3)
+        validation_height = validation_height // (2**1)
+        validation_width = validation_width // (2**1)
         filename_list, data_list, validation_prompts = load_data_prompts(args.promptdir, video_size=(validation_height, validation_width), video_frames=args.num_frames)
         validation_prompt = validation_prompts[0]
         validation_image = data_list[0][:,0].to(accelerator.device)
