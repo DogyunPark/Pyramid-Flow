@@ -644,24 +644,7 @@ class PyramidDiTForVideoGeneration:
         
         return noisy_latents_list, ratios_list, timesteps_list, targets_list
     
-    @torch.no_grad()
-    def get_pyramid_latent_with_spatial_downsample(self, x, stage_num):
-        # x is the origin vae latent
-        vae_latent_list = []
-        vae_latent_list.append(x)
-
-        temp, height, width = x.shape[-3], x.shape[-2], x.shape[-1]
-        for _ in range(stage_num):
-            height //= 2
-            width //= 2
-            x = rearrange(x, 'b c t h w -> (b t) c h w')
-            x = torch.nn.functional.interpolate(x, size=(height, width), mode='bilinear', align_corners=False)
-            x = rearrange(x, '(b t) c h w -> b c t h w', t=temp)
-            vae_latent_list.append(x)
-
-        vae_latent_list = list(reversed(vae_latent_list))
-        return vae_latent_list
-
+    
     @torch.no_grad()
     def get_pyramid_input_with_spatial_downsample(self, x, stage_num):
         # x is the origin vae latent
@@ -677,9 +660,9 @@ class PyramidDiTForVideoGeneration:
             #temp = temp_list[idx]
             #x = original_x[:, :, :temp]
             x = rearrange(original_x, 'b c t h w -> (b t) c h w')
-            x = torch.nn.functional.interpolate(x, size=(height, width), mode='bilinear', align_corners=False)
+            x = torch.nn.functional.interpolate(x, size=(height, width), mode='bicubic')
             x = rearrange(x, '(b t) c h w -> b c t h w', t=temp)
-            video_list.append(x)
+            video_list.append(x.detach().clone())
 
         video_list = list(reversed(video_list))
         return video_list
@@ -701,11 +684,29 @@ class PyramidDiTForVideoGeneration:
             x = rearrange(x, 'b c t h w -> (b t) c h w')
             x = torch.nn.functional.interpolate(x, size=(height, width), mode='bilinear', align_corners=False)
             x = rearrange(x, '(b t) c h w -> b c t h w', t=temp)
-            video_list.append(x)
+            video_list.append(x.detach().clone())
 
         video_list = list(reversed(video_list))
         return video_list
 
+    @torch.no_grad()
+    def get_pyramid_latent_with_spatial_downsample(self, x, stage_num):
+        # x is the origin vae latent
+        vae_latent_list = []
+        vae_latent_list.append(x)
+
+        temp, height, width = x.shape[-3], x.shape[-2], x.shape[-1]
+        for _ in range(stage_num):
+            height //= 2
+            width //= 2
+            x = rearrange(x, 'b c t h w -> (b t) c h w')
+            x = torch.nn.functional.interpolate(x, size=(height, width), mode='bilinear', align_corners=False)
+            x = rearrange(x, '(b t) c h w -> b c t h w', t=temp)
+            vae_latent_list.append(x)
+
+        vae_latent_list = list(reversed(vae_latent_list))
+        return vae_latent_list
+    
     @torch.no_grad()
     def get_pyramid_latent_with_temporal_downsample(self, x, stage_num):
         # x is the origin vae latent
@@ -775,7 +776,7 @@ class PyramidDiTForVideoGeneration:
                 if video.shape[2] == 1:
                     video_list = self.get_pyramid_input_with_spatial_downsample(video, len(self.stages))
                     for idx, video in enumerate(video_list):
-                        video = self.vae.encode(video, temporal_chunk=False, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
+                        video = self.vae.encode(video, temporal_chunk=False, tile_sample_min_size=1024).latent_dist.sample() # [b c t h w]
                         vae_latent_list.append(video)
                     
                     upsample_vae_latent_list = self.get_pyramid_latent_with_spatial_upsample(vae_latent_list)
