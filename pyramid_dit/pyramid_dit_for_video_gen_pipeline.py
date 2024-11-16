@@ -405,7 +405,7 @@ class PyramidDiTForVideoGeneration:
         for index in range(column_size):
             i_s = column_to_stage[index]
             
-            lowest_res_latent = latents_list[0][index::column_size]
+            lowest_res_latent = latents_list[-1][index::column_size]
             start_point = upsample_vae_latent_list[i_s][index::column_size]
             # Noise augmentation
             lowest_res_latent = lowest_res_latent + torch.randn_like(lowest_res_latent) * self.corrupt_ratio[i_s]
@@ -1739,8 +1739,10 @@ class PyramidDiTForVideoGeneration:
         # Create the initial random noise
         stages = self.stages
         # encode the image latents
-        latents = (self.vae.encode(input_image.to(self.vae.device, dtype=self.vae.dtype)).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c 1 h w]
-        lowest_res_latent = latents.clone()
+        lowest_input_image = torch.nn.functional.interpolate(input_image, size=(height//(2**3), width//(2**3)), mode='bicubic')
+        lowest_res_latent = (self.vae.encode(input_image.to(self.vae.device, dtype=self.vae.dtype)).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c 1 h w] 
+        latents = (self.vae.encode(lowest_input_image.to(self.vae.device, dtype=self.vae.dtype)).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c 1 h w]
+        #lowest_res_latent = latents.clone()
 
         if is_sequence_parallel_initialized():
             # sync the image latent across multiple GPUs
