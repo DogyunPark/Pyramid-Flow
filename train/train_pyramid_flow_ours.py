@@ -245,7 +245,7 @@ def build_model_runner(args):
     model_variant = args.model_variant
 
     print(f"Load the {model_name} model checkpoint from path: {model_path}, using dtype {model_dtype}")
-    sample_ratios = [1, 1, 1]  # The sample_ratios of each stage
+    sample_ratios = [1, 2, 1]  # The sample_ratios of each stage
     corrupt_ratio = [1/6, 1/6, 1/6]
     #corrupt_ratio = [1/3, 1/3, 1/2]
     #sample_ratios = [1]  # The sample_ratios of each stage
