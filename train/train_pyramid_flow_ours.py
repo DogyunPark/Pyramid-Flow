@@ -270,7 +270,8 @@ def build_model_runner(args):
         max_temporal_length=args.max_frames,
         frame_per_unit=args.frame_per_unit,
         use_temporal_causal=args.use_temporal_causal,
-        corrupt_ratio=args.corrupt_ratio,
+        #corrupt_ratio=args.corrupt_ratio,
+        corrupt_ratio=corrupt_ratio,
         interp_condition_pos=args.interp_condition_pos,
         video_sync_group=args.video_sync_group,
     )
