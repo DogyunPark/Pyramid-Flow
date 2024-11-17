@@ -322,8 +322,8 @@ def build_fsdp_plugin(args):
         auto_wrap_policy=ModuleWrapPolicy([FluxSingleTransformerBlock, FluxTransformerBlock, JointTransformerBlock, T5Block, CLIPEncoderLayer, CausalVaeDecoder, CausalVaeEncoder, CausalConv3d]),
         cpu_offload=CPUOffload(offload_params=False),
         state_dict_type=StateDictType.SHARDED_STATE_DICT,
-        state_dict_config=FullStateDictConfig(offload_to_cpu=False, rank0_only=False),
-        optim_state_dict_config=FullOptimStateDictConfig(offload_to_cpu=False, rank0_only=False),
+        state_dict_config=ShardedStateDictConfig(offload_to_cpu=False, rank0_only=False),
+        optim_state_dict_config=ShardedOptimStateDictConfig(offload_to_cpu=False, rank0_only=False),
     )
     return fsdp_plugin
 
@@ -555,17 +555,17 @@ def main(args):
     accelerator.wait_for_everyone()
 
     #if accelerator.is_main_process:
-    if 1:
-        print("Generating video for 0 epoch")
-        #image = runner.generate_image(
-        image = runner.generate_video(
-            prompt=validation_prompt,
-            input_image=validation_image,
-            num_inference_steps=[20, 20, 20],
-            output_type="pil",
-            save_memory=True, 
-        )
-        export_to_video(image, "./output/text_to_video_sample.mp4", fps=24)
+    # if 1:
+    #     print("Generating video for 0 epoch")
+    #     #image = runner.generate_image(
+    #     image = runner.generate_video(
+    #         prompt=validation_prompt,
+    #         input_image=validation_image,
+    #         num_inference_steps=[20, 20, 20],
+    #         output_type="pil",
+    #         save_memory=True, 
+    #     )
+    #     export_to_video(image, "./output/text_to_video_sample.mp4", fps=24)
 
     accelerator.wait_for_everyone()
 
