@@ -686,10 +686,10 @@ class PyramidDiTForVideoGeneration:
             width //= 2
             temp = temp_list[idx]
             #x = original_x[:, :, :temp]
-            x = rearrange(x, 'b c t h w -> (b t) c h w')
+            #x = rearrange(x, 'b c t h w -> (b t) c h w')
             #x = torch.nn.functional.interpolate(x, size=(height, width), mode='bicubic')
+            #x = rearrange(x, '(b t) c h w -> b c t h w', t=temp)
             x = torch.nn.functional.interpolate(original_x, size=(temp, height, width), mode='trilinear')
-            x = rearrange(x, '(b t) c h w -> b c t h w', t=temp)
             video_list.append(x.detach().clone())
 
         video_list = list(reversed(video_list))
