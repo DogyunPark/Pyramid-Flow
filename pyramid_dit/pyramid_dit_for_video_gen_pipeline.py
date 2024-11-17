@@ -679,7 +679,7 @@ class PyramidDiTForVideoGeneration:
         original_x = x.detach().clone()
         video_list.append(original_x)
         #temp_list = [33, 17, 1] # Hard code the temporal length of each stage
-        temp_list = [1] # Hard code the temporal length of each stage
+        temp_list = [17] # Hard code the temporal length of each stage
 
         temp, height, width = x.shape[-3], x.shape[-2], x.shape[-1]
         for idx in range(stage_num):
