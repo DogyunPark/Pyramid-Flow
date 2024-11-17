@@ -678,7 +678,8 @@ class PyramidDiTForVideoGeneration:
         video_list = []
         original_x = x.detach().clone()
         video_list.append(original_x)
-        temp_list = [33, 17, 1] # Hard code the temporal length of each stage
+        #temp_list = [33, 17, 1] # Hard code the temporal length of each stage
+        temp_list = [1] # Hard code the temporal length of each stage
 
         temp, height, width = x.shape[-3], x.shape[-2], x.shape[-1]
         for idx in range(stage_num):
@@ -1560,7 +1561,8 @@ class PyramidDiTForVideoGeneration:
 
         latent_height, latent_width = latents.shape[-2:]
         lowest_input_image = rearrange(input_image, 'b c t h w -> (b t) c h w')
-        lowest_input_image = torch.nn.functional.interpolate(lowest_input_image, size=(height//(2**3), width//(2**3)), mode='bicubic')
+        #lowest_input_image = torch.nn.functional.interpolate(lowest_input_image, size=(height//(2**3), width//(2**3)), mode='bicubic')
+        lowest_input_image = torch.nn.functional.interpolate(lowest_input_image, size=(height//(2), width//(2)), mode='bicubic')
         lowest_input_image = rearrange(lowest_input_image, '(b t) c h w -> b c t h w', t=1)
         lowest_res_latent = (self.vae.encode(input_image.to(self.vae.device, dtype=self.vae.dtype)).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c 1 h w] 
         latents = (self.vae.encode(lowest_input_image.to(self.vae.device, dtype=self.vae.dtype)).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c 1 h w]
@@ -1582,7 +1584,8 @@ class PyramidDiTForVideoGeneration:
         gc.collect()
         torch.cuda.empty_cache()  
 
-        temp_upsample_list = [3, 5, 9] #TODO: make this dynamic
+        #temp_upsample_list = [3, 5, 9] #TODO: make this dynamic
+        temp_upsample_list = [1] #TODO: make this dynamic
         height, width = latents.shape[-2:]
         # prepare the condition latents
         for i_s in range(len(stages)):
