@@ -1585,7 +1585,7 @@ class PyramidDiTForVideoGeneration:
         torch.cuda.empty_cache()  
 
         #temp_upsample_list = [3, 5, 9] #TODO: make this dynamic
-        temp_upsample_list = [1] #TODO: make this dynamic
+        temp_upsample_list = [3] #TODO: make this dynamic
         height, width = latents.shape[-2:]
         # prepare the condition latents
         for i_s in range(len(stages)):
