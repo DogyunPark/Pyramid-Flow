@@ -748,8 +748,8 @@ class PyramidDiTForVideoGeneration:
             width_next = vae_latent_list[next_idx].shape[4]
 
             current_vae_latent = vae_latent_list[idx]
-            #x = torch.nn.functional.interpolate(current_vae_latent, size=(temp_next, height_next, width_next), mode='trilinear', align_corners=False)
-            x = torch.nn.functional.interpolate(current_vae_latent, size=(temp_next, height_next, width_next), mode='nearest')
+            x = torch.nn.functional.interpolate(current_vae_latent, size=(temp_next, height_next, width_next), mode='trilinear')
+            #x = torch.nn.functional.interpolate(current_vae_latent, size=(temp_next, height_next, width_next), mode='nearest')
             upsample_vae_latent_list.append(x)
 
         return upsample_vae_latent_list
@@ -1591,7 +1591,8 @@ class PyramidDiTForVideoGeneration:
             temp_next = temp_upsample_list[i_s]
             height = height * 2
             width = width * 2
-            latents = torch.nn.functional.interpolate(latents, size=(temp_next, height, width), mode='nearest')
+            latents = torch.nn.functional.interpolate(latents, size=(temp_next, height, width), mode='trilinear')
+            #latents = torch.nn.functional.interpolate(latents, size=(temp_next, height, width), mode='nearest')
             # Noise augmentation
             latents = latents + torch.randn_like(latents) * self.corrupt_ratio[i_s]
             lowest_res_latent_input = lowest_res_latent + torch.randn_like(lowest_res_latent) * self.corrupt_ratio[i_s]

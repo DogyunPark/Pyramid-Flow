@@ -174,7 +174,8 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
 
         self.patch_size = 2   # hard-code for now
         self.train_height = 64 // self.patch_size
-        self.train_width = 64 // self.patch_size   
+        self.train_width = 64 // self.patch_size
+        self.train_temp = 16 + 1
 
         # init weights
         self.initialize_weights()
@@ -213,11 +214,16 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
         nn.init.constant_(self.proj_out.bias, 0)
 
     @torch.no_grad()
-    def _prepare_image_ids(self, batch_size, temp, height, width, train_height, train_width, device, start_time_stamp=0):
+    def _prepare_image_ids(self, batch_size, temp, height, width, train_height, train_width, train_temp, device, start_time_stamp=0):
         latent_image_ids = torch.zeros(temp, height, width, 3)
 
         # Temporal Rope
-        latent_image_ids[..., 0] = latent_image_ids[..., 0] + torch.arange(start_time_stamp, start_time_stamp + temp)[:, None, None]
+        if temp != train_temp:
+            temp_pos = F.interpolate(torch.arange(start_time_stamp, start_time_stamp + train_temp)[None, None, :].float(), temp, mode='linear').squeeze(0, 1)
+        else:
+            temp_pos = torch.arange(start_time_stamp, start_time_stamp + temp).float()
+        
+        latent_image_ids[..., 0] = latent_image_ids[..., 0] + temp_pos[:, None, None]
 
         # height Rope
         if height != train_height:
@@ -254,11 +260,15 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
             train_height = sample_[-1].shape[-2] // self.patch_size
             train_width = sample_[-1].shape[-1] // self.patch_size
 
-            for clip_ in sample_:
+            for i_sample, clip_ in enumerate(sample_):
                 _, _, temp, height, width = clip_.shape
                 height = height // self.patch_size
                 width = width // self.patch_size
-                cur_image_ids.append(self._prepare_image_ids(batch_size, temp, height, width, train_height, train_width, device, start_time_stamp=start_time_stamp))
+                if i_sample == 0:
+                    train_temp = temp
+                else:
+                    train_temp = self.train_temp
+                cur_image_ids.append(self._prepare_image_ids(batch_size, temp, height, width, train_height, train_width, train_temp, device, start_time_stamp=start_time_stamp))
                 start_time_stamp += temp
 
             cur_image_ids = torch.cat(cur_image_ids, dim=1)
@@ -405,6 +415,7 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
                     input_order_ids = input_ids_list[i_p][:,:,0]
                     temporal_causal_mask = rearrange(input_order_ids, 'b i -> b 1 i 1') >= rearrange(input_order_ids, 'b j -> b 1 1 j')
                     stage_attention_mask = stage_attention_mask & temporal_causal_mask
+
                 attention_mask.append(stage_attention_mask)
 
         return hidden_states, hidden_length, temp_list, height_list, width_list, trainable_token_list, encoder_attention_mask, attention_mask, image_rotary_emb
