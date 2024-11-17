@@ -260,15 +260,11 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
             train_height = sample_[-1].shape[-2] // self.patch_size
             train_width = sample_[-1].shape[-1] // self.patch_size
 
-            for i_sample, clip_ in enumerate(sample_):
+            for clip_ in sample_:
                 _, _, temp, height, width = clip_.shape
                 height = height // self.patch_size
                 width = width // self.patch_size
-                if i_sample == 0:
-                    train_temp = temp
-                else:
-                    train_temp = self.train_temp
-                cur_image_ids.append(self._prepare_image_ids(batch_size, temp, height, width, train_height, train_width, train_temp, device, start_time_stamp=start_time_stamp))
+                cur_image_ids.append(self._prepare_image_ids(batch_size, temp, height, width, train_height, train_width, device, start_time_stamp=start_time_stamp))
                 start_time_stamp += temp
 
             cur_image_ids = torch.cat(cur_image_ids, dim=1)
@@ -292,11 +288,15 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
             cur_image_ids = []
             start_time_stamp = 0
 
-            for clip_ in sample_:
+            for i_sample, clip_ in enumerate(sample_):
                 _, _, temp, height, width = clip_.shape
                 height = height // self.patch_size
                 width = width // self.patch_size
-                cur_image_ids.append(self._prepare_image_ids(batch_size, temp, height, width, train_height, train_width, device, start_time_stamp=start_time_stamp))
+                if i_sample == 0:
+                    train_temp = temp
+                else:
+                    train_temp = self.train_temp
+                cur_image_ids.append(self._prepare_image_ids(batch_size, temp, height, width, train_height, train_width, train_temp, device, start_time_stamp=start_time_stamp))
                 start_time_stamp += temp
 
             cur_image_ids = torch.cat(cur_image_ids, dim=1)
