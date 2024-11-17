@@ -229,7 +229,7 @@ def get_args():
 
     # Added by us
     parser.add_argument('--num_frames', default=17, type=int, help='number of frames in a video')
-    parser.add_argument('--frame_interval', default=1, type=int, help='frame interval')
+    parser.add_argument('--frame_interval', default=2, type=int, help='frame interval')
     parser.add_argument('--image_size', default=(320, 512), type=tuple, help='image size')
     parser.add_argument('--data_root', default='./train_data/data/train/OpenVid-1M.csv', type=str, help='The data root')
     parser.add_argument('--root', default='./train_data/video', type=str, help='The root')
@@ -572,15 +572,15 @@ def main(args):
     gc.collect()
     torch.cuda.empty_cache() 
 
-    # if args.output_dir:
-    #     #if accelerator.sync_gradients:
-    #     #if accelerator.is_main_process:
-    #     if 1:
-    #         global_step = 0
-    #         save_path = os.path.join(args.output_dir, f"checkpoint-{global_step}.pth")
-    #         #accelerator.save_state(save_path, safe_serialization=False)
-    #         torch.save(model_ema.state_dict(), save_path)
-    #         logger.info(f"Saved state to {save_path}")
+    if args.output_dir:
+        #if accelerator.sync_gradients:
+        #if accelerator.is_main_process:
+        if 1:
+            global_step = 0
+            save_path = os.path.join(args.output_dir, f"checkpoint-{global_step}.pth")
+            #accelerator.save_state(save_path, safe_serialization=False)
+            torch.save(model_ema.state_dict(), save_path)
+            logger.info(f"Saved state to {save_path}")
 
     print("Start training...")
     for epoch in range(first_epoch, args.epochs):
