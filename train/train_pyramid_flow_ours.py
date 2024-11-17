@@ -579,7 +579,7 @@ def main(args):
             global_step = 0
             save_path = os.path.join(args.output_dir, f"checkpoint-{global_step}.pth")
             #accelerator.save_state(save_path, safe_serialization=False)
-            torch.save(model_ema.state_dict(), save_path)
+            torch.save(runner.dit.state_dict(), save_path)
             logger.info(f"Saved state to {save_path}")
 
     print("Start training...")
