@@ -27,7 +27,6 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 accelerate launch --multi_gpu --num_process
     --task t2v \
     --use_fsdp \
     --fsdp_shard_strategy $SHARD_STRATEGY \
-    --use_temporal_causal \
     --interp_condition_pos \
     --load_text_encoder \
     --model_name $MODEL_NAME \
@@ -56,4 +55,5 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 accelerate launch --multi_gpu --num_process
     --print_freq 40 \
     --save_ckpt_freq 1 \
     --load_vae \
-    --gradient_checkpointing
+    --gradient_checkpointing \
+    --use_flash_attn
