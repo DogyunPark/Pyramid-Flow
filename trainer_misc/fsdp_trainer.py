@@ -1,6 +1,7 @@
 import math
 import sys
 from typing import Iterable
+import os
 
 import torch
 import torch.nn as nn
@@ -153,6 +154,17 @@ def train_one_epoch_with_fsdp(
                         weight_decay_value = group["weight_decay"]
                 metric_logger.update(weight_decay=weight_decay_value)
                 metric_logger.update(grad_norm=grad_norm)
+
+
+        if step % 5 == 0:
+            accelerator.wait_for_everyone()
+            if args.output_dir:
+                #if accelerator.sync_gradients:
+                global_step = 5
+                save_path = os.path.join(args.output_dir, f"checkpoint-{global_step}")
+                accelerator.save_state(save_path, safe_serialization=False)
+                #torch.save(model_ema.state_dict(), save_path)
+                #logger.info(f"Saved state to {save_path}")
 
         # Generate the video for validation
         if step % 20 == 0:
