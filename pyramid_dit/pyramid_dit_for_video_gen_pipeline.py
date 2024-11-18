@@ -678,8 +678,13 @@ class PyramidDiTForVideoGeneration:
         video_list = []
         original_x = x.detach().clone()
         video_list.append(original_x)
-        #temp_list = [33, 17, 1] # Hard code the temporal length of each stage
-        temp_list = [1] # Hard code the temporal length of each stage
+        
+        if stage_num == 1:
+            temp_list = [1] # Hard code the temporal length of each stage
+        elif stage_num == 3:
+            temp_list = [33, 17, 1] # Hard code the temporal length of each stage
+        else:
+            raise ValueError(f"The stage number {stage_num} is not supported now")
 
         temp, height, width = x.shape[-3], x.shape[-2], x.shape[-1]
         for idx in range(stage_num):
@@ -1550,6 +1555,7 @@ class PyramidDiTForVideoGeneration:
 
         # Create the initial random noise
         stages = self.stages
+        stage_num = len(stages)
         # encode the image latents
         latents = (self.vae.encode(input_image.to(self.vae.device, dtype=self.vae.dtype)).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c 1 h w]
 
@@ -1562,10 +1568,11 @@ class PyramidDiTForVideoGeneration:
         latent_height, latent_width = latents.shape[-2:]
         lowest_input_image = rearrange(input_image, 'b c t h w -> (b t) c h w')
         #lowest_input_image = torch.nn.functional.interpolate(lowest_input_image, size=(height//(2**3), width//(2**3)), mode='bicubic')
-        lowest_input_image = torch.nn.functional.interpolate(lowest_input_image, size=(height//(2), width//(2)), mode='bicubic')
+        lowest_input_image = torch.nn.functional.interpolate(lowest_input_image, size=(height//(2**(stage_num)), width//(2**(stage_num))), mode='bicubic')
         lowest_input_image = rearrange(lowest_input_image, '(b t) c h w -> b c t h w', t=1)
         lowest_res_latent = (self.vae.encode(input_image.to(self.vae.device, dtype=self.vae.dtype)).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c 1 h w] 
         latents = (self.vae.encode(lowest_input_image.to(self.vae.device, dtype=self.vae.dtype)).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c 1 h w]
+
         # for idx in range(3): #TODO: make this dynamic
         #     latent_height //= 2
         #     latent_width //= 2
@@ -1584,11 +1591,16 @@ class PyramidDiTForVideoGeneration:
         gc.collect()
         torch.cuda.empty_cache()  
 
-        #temp_upsample_list = [3, 5, 9] #TODO: make this dynamic
-        temp_upsample_list = [3] #TODO: make this dynamic
+        if stage_num == 1:
+            temp_upsample_list = [3]
+        elif stage_num == 3:
+            temp_upsample_list = [3, 5, 9]
+        else:
+            raise ValueError(f"The stage number {stage_num} is not supported now")
+
         height, width = latents.shape[-2:]
         # prepare the condition latents
-        for i_s in range(len(stages)):
+        for i_s in range(stage_num):
             self.validation_scheduler.set_timesteps(num_inference_steps[i_s], device=device)
             timesteps = self.validation_scheduler.timesteps
             temp_next = temp_upsample_list[i_s]
@@ -1596,6 +1608,7 @@ class PyramidDiTForVideoGeneration:
             width = width * 2
             latents = torch.nn.functional.interpolate(latents, size=(temp_next, height, width), mode='trilinear')
             #latents = torch.nn.functional.interpolate(latents, size=(temp_next, height, width), mode='nearest')
+            
             # Noise augmentation
             latents = latents + torch.randn_like(latents) * self.corrupt_ratio[i_s]
             lowest_res_latent_input = lowest_res_latent + torch.randn_like(lowest_res_latent) * self.corrupt_ratio[i_s]
@@ -1614,9 +1627,6 @@ class PyramidDiTForVideoGeneration:
                     global_src_rank = sp_group_rank * get_sequence_parallel_world_size()
                     torch.distributed.broadcast(latent_model_input, global_src_rank, group=get_sequence_parallel_group())
 
-                #prompt_embeds = prompt_embeds.to(latent_model_input.dtype)
-                #pooled_prompt_embeds = pooled_prompt_embeds.to(latent_model_input.dtype)
-                #import pdb; pdb.set_trace()
                 noise_pred = self.dit(
                     sample=[[lowest_res_latent_model_input, latent_model_input]],
                     timestep_ratio=timestep,
