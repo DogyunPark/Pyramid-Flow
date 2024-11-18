@@ -574,15 +574,15 @@ def main(args):
     gc.collect()
     torch.cuda.empty_cache() 
 
-    # if args.output_dir:
-    #     #if accelerator.sync_gradients:
-    #     #if accelerator.is_main_process:
-    #     if 1:
-    #         global_step = 0
-    #         save_path = os.path.join(args.output_dir, f"checkpoint-{global_step}")
-    #         accelerator.save_state(save_path, safe_serialization=False)
-    #         #torch.save(runner.dit.state_dict(), save_path)
-    #         logger.info(f"Saved state to {save_path}")
+    if args.output_dir:
+        #if accelerator.sync_gradients:
+        #if accelerator.is_main_process:
+        if 1:
+            global_step = 0
+            save_path = os.path.join(args.output_dir, f"checkpoint-{global_step}")
+            accelerator.save_state(save_path, safe_serialization=False)
+            #torch.save(runner.dit.state_dict(), save_path)
+            logger.info(f"Saved state to {save_path}")
 
     print("Start training...")
     for epoch in range(first_epoch, args.epochs):
@@ -608,7 +608,7 @@ def main(args):
         )
 
         accelerator.wait_for_everyone()
-        
+
         if args.output_dir:
             if (epoch + 1) % args.save_ckpt_freq == 0 or epoch + 1 == args.epochs:
                 #if accelerator.sync_gradients:
