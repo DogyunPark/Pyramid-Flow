@@ -161,13 +161,13 @@ def train_one_epoch_with_fsdp(
             if args.output_dir:
                 #if accelerator.sync_gradients:
                 #global_step = 5
-                save_path = os.path.join(args.output_dir, f"checkpoint-{step}-{epoch}")
+                save_path = os.path.join(args.output_dir, f"checkpoint-step1")
                 accelerator.save_state(save_path, safe_serialization=False)
                 #torch.save(model_ema.state_dict(), save_path)
                 #logger.info(f"Saved state to {save_path}")
 
         accelerator.wait_for_everyone()
-        
+
         # Generate the video for validation
         if step % 20 == 0:
             assert validation_prompt is not None and validation_image is not None
