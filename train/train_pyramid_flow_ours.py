@@ -508,8 +508,9 @@ def main(args):
         print('accelerator.state.fsdp_plugin.backward_prefetch', accelerator.state.fsdp_plugin.backward_prefetch)
 
     # Only wrapping the trained dit and huge text encoder
-    runner.dit, optimizer = accelerator.prepare(runner.dit, optimizer)
-    train_dataloader = accelerator.prepare(train_dataloader)
+    #runner.dit, optimizer = accelerator.prepare(runner.dit, optimizer)
+    #train_dataloader = accelerator.prepare(train_dataloader)
+    runner.dit, optimizer, train_dataloader = accelerator.prepare(runner.dit, optimizer, train_dataloader)
     train_dataloader = cycle(train_dataloader)
 
     # Load the VAE and EMAmodel to GPU

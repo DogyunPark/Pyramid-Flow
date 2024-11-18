@@ -13,7 +13,7 @@ VARIANT=diffusion_transformer_image  # The DiT Variant
 OUTPUT_DIR=/data/cvpr25/Pyramid-Flow/result/test    # The checkpoint saving dir
 
 BATCH_SIZE=4    # It should satisfy batch_size % 4 == 0
-GRAD_ACCU_STEPS=1
+GRAD_ACCU_STEPS=2
 RESOLUTION="384p"     # 384p or 768p
 NUM_FRAMES=16         # e.g., 16 for 5s, 32 for 10s
 #ANNO_FILE=annotation/video_text.jsonl   # The video annotation file path
