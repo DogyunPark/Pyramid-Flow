@@ -321,11 +321,11 @@ def build_fsdp_plugin(args):
         backward_prefetch=BackwardPrefetch.BACKWARD_PRE,
         auto_wrap_policy=ModuleWrapPolicy([FluxSingleTransformerBlock, FluxTransformerBlock, JointTransformerBlock, T5Block, CLIPEncoderLayer, CausalVaeDecoder, CausalVaeEncoder, CausalConv3d]),
         cpu_offload=CPUOffload(offload_params=False),
-        state_dict_type=StateDictType.SHARDED_STATE_DICT,
-        #state_dict_config=ShardedStateDictConfig(offload_to_cpu=False, rank0_only=False),
-        state_dict_config=ShardedStateDictConfig(offload_to_cpu=False),
-        #optim_state_dict_config=ShardedOptimStateDictConfig(offload_to_cpu=False, rank0_only=False),
-        optim_state_dict_config=ShardedOptimStateDictConfig(offload_to_cpu=False),
+        state_dict_type=StateDictType.FULL_STATE_DICT,
+        state_dict_config=FullStateDictConfig(offload_to_cpu=True, rank0_only=True),
+        #state_dict_config=ShardedStateDictConfig(offload_to_cpu=False),
+        optim_state_dict_config=FullOptimStateDictConfig(offload_to_cpu=True, rank0_only=True),
+        #optim_state_dict_config=ShardedOptimStateDictConfig(offload_to_cpu=False),
     )
     return fsdp_plugin
 
