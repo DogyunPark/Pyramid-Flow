@@ -175,7 +175,7 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
         self.patch_size = 2   # hard-code for now
         self.train_height = 64 // self.patch_size
         self.train_width = 64 // self.patch_size
-        self.train_temp = 16 + 1
+        self.train_temp = 64 + 1
 
         # init weights
         self.initialize_weights()
