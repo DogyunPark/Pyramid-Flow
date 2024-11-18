@@ -166,6 +166,8 @@ def train_one_epoch_with_fsdp(
                 #torch.save(model_ema.state_dict(), save_path)
                 #logger.info(f"Saved state to {save_path}")
 
+        accelerator.wait_for_everyone()
+        
         # Generate the video for validation
         if step % 20 == 0:
             assert validation_prompt is not None and validation_image is not None
