@@ -412,7 +412,7 @@ class PyramidDiTForVideoGeneration:
             start_point = upsample_vae_latent_list[i_s][index::column_size]
             # Noise augmentation
             lowest_res_latent = lowest_res_latent + torch.randn_like(lowest_res_latent) * self.corrupt_ratio[i_s]
-            start_point = start_point + torch.randn_like(start_point) * self.corrupt_ratio[i_s]
+            start_point = start_point #+ torch.randn_like(start_point) * self.corrupt_ratio[i_s]
             end_point = latents_list[i_s+1][index::column_size]
 
 
