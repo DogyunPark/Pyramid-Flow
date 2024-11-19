@@ -121,7 +121,8 @@ class PyramidDiTForVideoGeneration:
         return_log=True, model_variant="diffusion_transformer_768p", timestep_shift=1.0, stage_range=[0, 1/3, 2/3, 1],
         sample_ratios=[1, 1, 1], scheduler_gamma=1/3, use_mixed_training=False, use_flash_attn=False, 
         load_text_encoder=True, load_vae=True, max_temporal_length=31, frame_per_unit=1, use_temporal_causal=True, 
-        corrupt_ratio=1/3, interp_condition_pos=True, stages=[1, 2, 4], video_sync_group=8, gradient_checkpointing_ratio=0.6, **kwargs,
+        corrupt_ratio=1/3, interp_condition_pos=True, stages=[1, 2, 4], video_sync_group=8, gradient_checkpointing_ratio=0.6, 
+        temporal_autoregressive=False, **kwargs,
     ):
         super().__init__()
 
@@ -203,6 +204,7 @@ class PyramidDiTForVideoGeneration:
         self.sequential_offload_enabled = False
         self.accumulate_steps = 0
         self.video_sync_group = video_sync_group
+        self.temporal_autoregressive = temporal_autoregressive
         
     def _enable_sequential_cpu_offload(self, model):
         self.sequential_offload_enabled = True
@@ -497,15 +499,17 @@ class PyramidDiTForVideoGeneration:
         for index in range(column_size):
             i_s = column_to_stage[index]
             
-            lowest_res_latent = latents_list[-1][index::column_size]
-            lowest_res_latent = lowest_res_latent[:,:,0].unsqueeze(2)
+            lowest_res_latent = latents_list[i_s][index::column_size]
+            #lowest_res_latent = lowest_res_latent[:,:,0].unsqueeze(2)
             # Noise augmentation
             lowest_res_latent = lowest_res_latent + torch.randn_like(lowest_res_latent) * self.corrupt_ratio[i_s]
             #start_point = start_point + torch.randn_like(start_point) * self.corrupt_ratio[i_s]
             end_point = latents_list[i_s+1][index::column_size]
             
-            start_point = end_point[:,:,:1].detach().clone().repeat(1, 1, end_point.shape[2], 1, 1)
-            start_point = start_point + torch.randn_like(start_point) * self.corrupt_ratio[i_s]
+            temp_start_point = upsample_vae_latent_list[i_s][index::column_size]
+
+            start_point = temp_start_point[:,:,:1].detach().clone().repeat(1, 1, end_point.shape[2], 1, 1)
+            start_point = start_point #+ torch.randn_like(start_point) * self.corrupt_ratio[i_s]
 
 
             # To sample a timestep
@@ -937,7 +941,10 @@ class PyramidDiTForVideoGeneration:
         else:
             # Only use the spatial pyramidal (without temporal ar)
             if use_temporal_downsample:
-                noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_ours(vae_latent_list, upsample_vae_latent_list, self.sample_ratios)
+                if not self.temporal_autoregressive:
+                    noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_ours(vae_latent_list, upsample_vae_latent_list, self.sample_ratios)
+                else:
+                    noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_ours2(vae_latent_list, upsample_vae_latent_list, self.sample_ratios)
             else:
                 noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_with_spatial_downsample(vae_latent_list, upsample_vae_latent_list, self.sample_ratios)
         
@@ -1674,9 +1681,11 @@ class PyramidDiTForVideoGeneration:
         #lowest_input_image = torch.nn.functional.interpolate(lowest_input_image, size=(height//(2**3), width//(2**3)), mode='bicubic')
         lowest_input_image = torch.nn.functional.interpolate(lowest_input_image, size=(height//(2**(stage_num)), width//(2**(stage_num))), mode='bicubic')
         lowest_input_image = rearrange(lowest_input_image, '(b t) c h w -> b c t h w', t=1)
-        lowest_res_latent = (self.vae.encode(input_image.to(self.vae.device, dtype=self.vae.dtype)).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c 1 h w] 
         latents = (self.vae.encode(lowest_input_image.to(self.vae.device, dtype=self.vae.dtype)).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c 1 h w]
 
+        if not self.temporal_autoregressive:
+            lowest_res_latent = (self.vae.encode(input_image.to(self.vae.device, dtype=self.vae.dtype)).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c 1 h w] 
+            
         # for idx in range(3): #TODO: make this dynamic
         #     latent_height //= 2
         #     latent_width //= 2
@@ -1712,19 +1721,30 @@ class PyramidDiTForVideoGeneration:
             width = width * 2
             #latents = torch.nn.functional.interpolate(latents, size=(temp_next, height, width), mode='trilinear')
             #latents = torch.nn.functional.interpolate(latents, size=(temp_next, height, width), mode='nearest')
-
-            b, c, temp_current, _, _ = latents.shape
-            ones_tensor = torch.ones(b, c, temp_next, height, width).to(latents.device)
-
-            latents = rearrange(latents, 'b c t h w -> (b t) c h w')
-            latents = torch.nn.functional.interpolate(latents, size=(height, width), mode='nearest')
-            latents = rearrange(latents, '(b t) c h w -> b c t h w', t=temp_current)
-            ones_tensor[:,:,:temp_current] = latents
-            ones_tensor[:,:,temp_current:] = latents[:,:,-1:].repeat(1, 1, temp_next - temp_current, 1, 1)
-            latents = ones_tensor
+            
+            if not self.temporal_autoregressive:
+                b, c, temp_current, _, _ = latents.shape
+                ones_tensor = torch.ones(b, c, temp_next, height, width).to(latents.device)
+                latents = rearrange(latents, 'b c t h w -> (b t) c h w')
+                latents = torch.nn.functional.interpolate(latents, size=(height, width), mode='nearest')
+                latents = rearrange(latents, '(b t) c h w -> b c t h w', t=1)
+                ones_tensor[:,:,:temp_current] = latents
+                ones_tensor[:,:,temp_current:] = latents[:,:,-1:].repeat(1, 1, temp_next - temp_current, 1, 1)
+                latents = ones_tensor
+            else:
+                lowest_res_latent = latents.detach().clone()
+                latents = rearrange(latents, 'b c t h w -> (b t) c h w')
+                latents = torch.nn.functional.interpolate(latents, size=(height, width), mode='nearest')
+                latents = rearrange(latents, '(b t) c h w -> b c t h w', t=1)
+                latents = latents[:,:,:1].detach().clone().repeat(1, 1, temp_next, 1, 1)
             
             # Noise augmentation
-            latents = latents + torch.randn_like(latents) * self.corrupt_ratio[i_s]
+            #latents = latents + torch.randn_like(latents) * self.corrupt_ratio[i_s]
+            if not self.temporal_autoregressive:
+                lowest_res_latent = (self.vae.encode(input_image.to(self.vae.device, dtype=self.vae.dtype)).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c 1 h w] 
+            else:
+                lowest_res_latent = latents.detach().clone()
+
             lowest_res_latent_input = lowest_res_latent + torch.randn_like(lowest_res_latent) * self.corrupt_ratio[i_s]
             
             for idx, t in enumerate(timesteps):
@@ -1896,7 +1916,7 @@ class PyramidDiTForVideoGeneration:
         #     latents = rearrange(latents, 'b c t h w -> (b t) c h w')
         #     latents = torch.nn.functional.interpolate(latents, size=(latent_height, latent_width), mode='bilinear', align_corners=False)
         #     latents = rearrange(latents, '(b t) c h w -> b c t h w', t=1)
-        
+
         generated_latents_list = [latents.clone()]    # The generated results
 
         if cpu_offloading:
@@ -1917,12 +1937,13 @@ class PyramidDiTForVideoGeneration:
             #temp_next = temp_upsample_list[i_s]
             height = height * 2
             width = width * 2
-            latents = rearrange(latents, 'b c t h w -> (b t) c h w')
-            latents = torch.nn.functional.interpolate(latents, size=(height, width), mode='nearest')
-            latents = rearrange(latents, '(b t) c h w -> b c t h w', t=1)
+                
             # Noise augmentation
-            latents = latents + torch.randn_like(latents) * self.corrupt_ratio[i_s]
+            #latents = latents + torch.randn_like(latents) * self.corrupt_ratio[i_s]
+
             lowest_res_latent_input = lowest_res_latent + torch.randn_like(lowest_res_latent) * self.corrupt_ratio[i_s]
+
+            
             
             for idx, t in enumerate(timesteps):
                 latent_model_input = torch.cat([latents] * 2) if self.do_classifier_free_guidance else latents

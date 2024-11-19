@@ -234,6 +234,7 @@ def get_args():
     parser.add_argument('--data_root', default='./train_data/data/train/OpenVid-1M.csv', type=str, help='The data root')
     parser.add_argument('--root', default='./train_data/video', type=str, help='The root')
     parser.add_argument('--promptdir', default='/data/cvpr25/prompts/1024/', type=str, help='The prompt directory')
+    parser.add_argument('--temporal_autoregressive', action='store_true')
 
     return parser.parse_args()
 
@@ -276,6 +277,7 @@ def build_model_runner(args):
         corrupt_ratio=corrupt_ratio,
         interp_condition_pos=args.interp_condition_pos,
         video_sync_group=args.video_sync_group,
+        temporal_autoregressive=args.temporal_autoregressive,
     )
     
     if args.dit_pretrained_weight:
