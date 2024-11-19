@@ -1739,7 +1739,9 @@ class PyramidDiTForVideoGeneration:
                 latents = latents[:,:,:1].detach().clone().repeat(1, 1, temp_next, 1, 1)
             
             # Noise augmentation
-            latents = latents + torch.randn_like(latents) * self.corrupt_ratio[i_s]
+            #noise_aug = torch.randn_like(latents[:,:,:1]).repeat(1, 1, latents.shape[2], 1, 1)
+            noise_aug = torch.randn_like(latents)
+            latents = latents + noise_aug * self.corrupt_ratio[i_s]
 
             lowest_res_latent_input = lowest_res_latent + torch.randn_like(lowest_res_latent) * self.corrupt_ratio[i_s]
             
