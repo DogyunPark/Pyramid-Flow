@@ -411,8 +411,8 @@ class PyramidDiTForVideoGeneration:
             lowest_res_latent = lowest_res_latent[:,:,0].unsqueeze(2)
             start_point = upsample_vae_latent_list[i_s][index::column_size]
             # Noise augmentation
-            lowest_res_latent = lowest_res_latent + torch.randn_like(lowest_res_latent) * self.corrupt_ratio[i_s]
-            start_point = start_point #+ torch.randn_like(start_point) * self.corrupt_ratio[i_s]
+            lowest_res_latent = lowest_res_latent + torch.randn_like(lowest_res_latent) * self.corrupt_ratio[-1]
+            start_point = start_point + torch.randn_like(start_point) * self.corrupt_ratio[i_s]
             end_point = latents_list[i_s+1][index::column_size]
 
 
@@ -509,7 +509,7 @@ class PyramidDiTForVideoGeneration:
             temp_start_point = upsample_vae_latent_list[i_s][index::column_size]
 
             start_point = temp_start_point[:,:,:1].detach().clone().repeat(1, 1, end_point.shape[2], 1, 1)
-            start_point = start_point #+ torch.randn_like(start_point) * self.corrupt_ratio[i_s]
+            start_point = start_point + torch.randn_like(start_point) * self.corrupt_ratio[i_s]
 
 
             # To sample a timestep
@@ -1743,7 +1743,7 @@ class PyramidDiTForVideoGeneration:
             noise_aug = torch.randn_like(latents)
             latents = latents + noise_aug * self.corrupt_ratio[i_s]
 
-            lowest_res_latent_input = lowest_res_latent + torch.randn_like(lowest_res_latent) * self.corrupt_ratio[i_s]
+            lowest_res_latent_input = lowest_res_latent + torch.randn_like(lowest_res_latent) * self.corrupt_ratio[-1]
             
             for idx, t in enumerate(timesteps):
                 latent_model_input = torch.cat([latents] * 2) if self.do_classifier_free_guidance else latents
