@@ -565,7 +565,7 @@ def main(args):
             input_image=validation_image,
             num_inference_steps=[60, 40, 20],
             output_type="pil",
-            guidance_scale=4.0,
+            guidance_scale=1.0,
             save_memory=True, 
         )
         export_to_video(image, "./output/eval_video.mp4", fps=24)
