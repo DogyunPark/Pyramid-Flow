@@ -759,7 +759,7 @@ class PyramidDiTForVideoGeneration:
 
             # Duplicate the temporal dimension
             b, c, temp_current, _, _ = current_vae_latent.shape
-            ones_tensor = torch.ones(b, c, temp_current, height_next, width_next).to(current_vae_latent.device)
+            ones_tensor = torch.ones(b, c, temp_next, height_next, width_next).to(current_vae_latent.device)
             x = rearrange(current_vae_latent, 'b c t h w -> (b t) c h w')
             x = torch.nn.functional.interpolate(x, size=(height_next, width_next), mode='nearest')
             x = rearrange(x, '(b t) c h w -> b c t h w', t=temp_current)
@@ -1620,7 +1620,7 @@ class PyramidDiTForVideoGeneration:
             #latents = torch.nn.functional.interpolate(latents, size=(temp_next, height, width), mode='nearest')
 
             b, c, temp_current, _, _ = latents.shape
-            ones_tensor = torch.ones(b, c, temp_current, height, width).to(latents.device)
+            ones_tensor = torch.ones(b, c, temp_next, height, width).to(latents.device)
 
             latents = rearrange(latents, 'b c t h w -> (b t) c h w')
             latents = torch.nn.functional.interpolate(latents, size=(height, width), mode='nearest')
