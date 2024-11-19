@@ -1739,11 +1739,7 @@ class PyramidDiTForVideoGeneration:
                 latents = latents[:,:,:1].detach().clone().repeat(1, 1, temp_next, 1, 1)
             
             # Noise augmentation
-            #latents = latents + torch.randn_like(latents) * self.corrupt_ratio[i_s]
-            if not self.temporal_autoregressive:
-                lowest_res_latent = (self.vae.encode(input_image.to(self.vae.device, dtype=self.vae.dtype)).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c 1 h w] 
-            else:
-                lowest_res_latent = latents.detach().clone()
+            latents = latents + torch.randn_like(latents) * self.corrupt_ratio[i_s]
 
             lowest_res_latent_input = lowest_res_latent + torch.randn_like(lowest_res_latent) * self.corrupt_ratio[i_s]
             
