@@ -446,6 +446,100 @@ class PyramidDiTForVideoGeneration:
 
         return noisy_latents_list, ratios_list, timesteps_list, targets_list
 
+    def add_pyramid_noise_ours2(
+        self, 
+        latents_list,
+        upsample_vae_latent_list,
+        sample_ratios=[1, 1, 1],
+    ):
+        """
+        add the noise for each pyramidal stage
+            noting that, this method is a general strategy for pyramid-flow, it 
+            can be used for both image and video training.
+            You can also use this method to train pyramid-flow with full-sequence 
+            diffusion in video generation (without using temporal pyramid and autoregressive modeling)
+
+        Params:
+            latent_list: [low_res, mid_res, high_res] The vae latents of all stages
+            sample_ratios: The proportion of each stage in the training batch
+        """
+        tot_samples = upsample_vae_latent_list[0].shape[0]
+        t = upsample_vae_latent_list[0].shape[2]
+        device = upsample_vae_latent_list[0].device
+        dtype = upsample_vae_latent_list[0].dtype
+
+        batch_size = tot_samples // int(sum(sample_ratios))
+        column_size = int(sum(sample_ratios))    
+        stages = len(self.stages)
+
+        assert tot_samples % (int(sum(sample_ratios))) == 0
+        assert stages == len(sample_ratios)
+        
+        #height, width = noise.shape[-2], noise.shape[-1]
+        
+        # To calculate the padding batchsize and column size
+        
+        column_to_stage = {}
+        i_sum = 0
+        for i_s, column_num in enumerate(sample_ratios):
+            for index in range(i_sum, i_sum + column_num):
+                column_to_stage[index] = i_s
+            i_sum += column_num
+
+        noisy_latents_list = []
+        ratios_list = []
+        targets_list = []
+        timesteps_list = []
+        training_steps = self.scheduler.config.num_train_timesteps
+
+
+        # from low resolution to high resolution
+        for index in range(column_size):
+            i_s = column_to_stage[index]
+            
+            lowest_res_latent = latents_list[-1][index::column_size]
+            lowest_res_latent = lowest_res_latent[:,:,0].unsqueeze(2)
+            # Noise augmentation
+            lowest_res_latent = lowest_res_latent + torch.randn_like(lowest_res_latent) * self.corrupt_ratio[i_s]
+            #start_point = start_point + torch.randn_like(start_point) * self.corrupt_ratio[i_s]
+            end_point = latents_list[i_s+1][index::column_size]
+            
+            start_point = end_point[:,:,:1].detach().clone().repeat(1, 1, end_point.shape[2], 1, 1)
+            start_point = start_point + torch.randn_like(start_point) * self.corrupt_ratio[i_s]
+
+
+            # To sample a timestep
+            u = compute_density_for_timestep_sampling(
+                weighting_scheme='random',
+                batch_size=batch_size,
+                logit_mean=0.0,
+                logit_std=1.0,
+                mode_scale=1.29,
+            )
+
+            indices = (u * training_steps).long()   # Totally 1000 training steps per stage
+            indices = indices.clamp(0, training_steps-1)
+            timesteps = self.scheduler.timesteps[indices].to(device=device)
+            #timesteps = self.scheduler.timesteps_per_stage[i_s][indices].to(device=device)
+            ratios = self.scheduler.sigmas[indices].to(device=device)
+            #ratios = self.scheduler.sigmas_per_stage[i_s][indices].to(device=device)
+
+            while len(ratios.shape) < start_point.ndim:
+                ratios = ratios.unsqueeze(-1)
+
+            # interpolate the latent
+            noisy_latents = ratios * start_point + (1 - ratios) * end_point
+
+            #last_cond_noisy_sigma = torch.rand(size=(batch_size,), device=device) * self.corrupt_ratio
+
+            # [stage1_latent, stage2_latent, ..., stagen_latent], which will be concat after patching
+            noisy_latents_list.append([lowest_res_latent, noisy_latents.to(dtype)])
+            ratios_list.append(ratios.to(dtype))
+            timesteps_list.append(timesteps.to(dtype))
+            targets_list.append(start_point - end_point)     # The standard rectified flow matching objective
+
+        return noisy_latents_list, ratios_list, timesteps_list, targets_list
+
     def sample_stage_length(self, num_stages, max_units=None):
         max_units_in_training = 1 + ((self.max_temporal_length - 1) // self.frame_per_unit)
         cur_rank = get_rank()
