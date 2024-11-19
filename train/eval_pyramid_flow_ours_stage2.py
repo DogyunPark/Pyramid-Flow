@@ -563,7 +563,7 @@ def main(args):
         image = runner.generate_video(
             prompt=validation_prompt,
             input_image=validation_image,
-            num_inference_steps=[60, 40, 20],
+            num_inference_steps=[60, 40, 40],
             output_type="pil",
             guidance_scale=1.0,
             save_memory=True, 
