@@ -691,11 +691,11 @@ class PyramidDiTForVideoGeneration:
             height //= 2
             width //= 2
             temp = temp_list[idx]
-            #x = original_x[:, :, :temp]
-            #x = rearrange(x, 'b c t h w -> (b t) c h w')
-            #x = torch.nn.functional.interpolate(x, size=(height, width), mode='bicubic')
-            #x = rearrange(x, '(b t) c h w -> b c t h w', t=temp)
-            x = torch.nn.functional.interpolate(original_x, size=(temp, height, width), mode='trilinear')
+            x = original_x[:, :, :temp]
+            x = rearrange(x, 'b c t h w -> (b t) c h w')
+            x = torch.nn.functional.interpolate(x, size=(height, width), mode='bicubic')
+            x = rearrange(x, '(b t) c h w -> b c t h w', t=temp)
+            #x = torch.nn.functional.interpolate(original_x, size=(temp, height, width), mode='trilinear')
             video_list.append(x.detach().clone())
 
         video_list = list(reversed(video_list))
@@ -754,9 +754,19 @@ class PyramidDiTForVideoGeneration:
             width_next = vae_latent_list[next_idx].shape[4]
 
             current_vae_latent = vae_latent_list[idx]
-            x = torch.nn.functional.interpolate(current_vae_latent, size=(temp_next, height_next, width_next), mode='trilinear')
+            #x = torch.nn.functional.interpolate(current_vae_latent, size=(temp_next, height_next, width_next), mode='trilinear')
             #x = torch.nn.functional.interpolate(current_vae_latent, size=(temp_next, height_next, width_next), mode='nearest')
-            upsample_vae_latent_list.append(x)
+
+            # Duplicate the temporal dimension
+            b, c, temp_current, _, _ = current_vae_latent.shape
+            ones_tensor = torch.ones(b, c, temp_current, height_next, width_next).to(current_vae_latent.device)
+            x = rearrange(current_vae_latent, 'b c t h w -> (b t) c h w')
+            x = torch.nn.functional.interpolate(x, size=(height_next, width_next), mode='nearest')
+            x = rearrange(x, '(b t) c h w -> b c t h w', t=temp_next)
+            ones_tensor[:,:,:temp_current] = x
+            ones_tensor[:,:,temp_current:] = x[:,:,-1:].repeat(1, 1, temp_next - temp_current, 1, 1)
+
+            upsample_vae_latent_list.append(ones_tensor)
 
         return upsample_vae_latent_list
 
@@ -1606,8 +1616,18 @@ class PyramidDiTForVideoGeneration:
             temp_next = temp_upsample_list[i_s]
             height = height * 2
             width = width * 2
-            latents = torch.nn.functional.interpolate(latents, size=(temp_next, height, width), mode='trilinear')
+            #latents = torch.nn.functional.interpolate(latents, size=(temp_next, height, width), mode='trilinear')
             #latents = torch.nn.functional.interpolate(latents, size=(temp_next, height, width), mode='nearest')
+
+            b, c, temp_current, _, _ = latents.shape
+            ones_tensor = torch.ones(b, c, temp_current, height, width).to(latents.device)
+
+            latents = rearrange(latents, 'b c t h w -> (b t) c h w')
+            latents = torch.nn.functional.interpolate(latents, size=(height, width), mode='nearest')
+            latents = rearrange(latents, '(b t) c h w -> b c t h w', t=temp_next)
+            ones_tensor[:,:,:temp_current] = latents
+            ones_tensor[:,:,temp_current:] = latents[:,:,-1:].repeat(1, 1, temp_next - temp_current, 1, 1)
+            latents = ones_tensor
             
             # Noise augmentation
             latents = latents + torch.randn_like(latents) * self.corrupt_ratio[i_s]

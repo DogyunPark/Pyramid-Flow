@@ -218,10 +218,10 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
         latent_image_ids = torch.zeros(temp, height, width, 3)
 
         # Temporal Rope``
-        if temp != train_temp:
-            temp_pos = F.interpolate(torch.arange(start_time_stamp, start_time_stamp + train_temp)[None, None, :].float(), temp, mode='linear').squeeze(0, 1)
-        else:
-            temp_pos = torch.arange(start_time_stamp, start_time_stamp + temp).float()
+        # if temp != train_temp:
+        #     temp_pos = F.interpolate(torch.arange(start_time_stamp, start_time_stamp + train_temp)[None, None, :].float(), temp, mode='linear').squeeze(0, 1)
+        # else:
+        temp_pos = torch.arange(start_time_stamp, start_time_stamp + temp).float()
         
         latent_image_ids[..., 0] = latent_image_ids[..., 0] + temp_pos[:, None, None]
 
