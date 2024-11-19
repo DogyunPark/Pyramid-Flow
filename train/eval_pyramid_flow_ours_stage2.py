@@ -557,9 +557,13 @@ def main(args):
     # Start Train!
     start_time = time.time()
     accelerator.wait_for_everyone()
+    runner.dit.eval()
+    for i in range(len(validation_prompts)):
+        validation_prompt = validation_prompts[i]
+        print('validation_prompt:', validation_prompt)
+        validation_image = data_list[i][:,0].to(accelerator.device)
+        validation_image = validation_image.unsqueeze(0).unsqueeze(2)
 
-    if 1:
-        runner.dit.eval()
         print("Generating video for 0 epoch")
         image = runner.generate_video(
             prompt=validation_prompt,
@@ -569,8 +573,9 @@ def main(args):
             guidance_scale=4.0,
             save_memory=True, 
         )
-        export_to_video(image, "./output/eval_video.mp4", fps=24)
-        runner.dit.train()
+        export_to_video(image, "./output/eval_video_%d.mp4" % i, fps=24)
+
+    runner.dit.train()
     accelerator.end_training()
 
 

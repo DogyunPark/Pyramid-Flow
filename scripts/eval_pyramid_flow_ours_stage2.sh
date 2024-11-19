@@ -43,7 +43,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 python \
     --opt adamw \
     --opt_beta1 0.9 \
     --opt_beta2 0.95 \
-    --seed 42 \
+    --seed 0 \
     --weight_decay 1e-4 \
     --clip_grad 1.0 \
     --lr 5e-5 \
