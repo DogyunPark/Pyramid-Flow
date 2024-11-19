@@ -528,17 +528,8 @@ def main(args):
     if model_ema and (not args.load_model_ema_to_cpu):
         model_ema.to(device)
     
-    if 1:
-        validation_height, validation_width = args.image_size
-        #validation_height = validation_height // (2**3)
-        #validation_width = validation_width // (2**3)
-        filename_list, data_list, validation_prompts = load_data_prompts(args.promptdir, video_size=(validation_height, validation_width), video_frames=args.num_frames)
-        validation_prompt = validation_prompts[3]
-        print('validation_prompt:', validation_prompt)
-        validation_image = data_list[3][:,0].to(accelerator.device)
-        validation_image = validation_image.unsqueeze(0).unsqueeze(2)
-    # if accelerator.is_main_process:
-    #     accelerator.init_trackers(os.path.basename(args.output_dir), config=vars(args))
+    
+    filename_list, data_list, validation_prompts = load_data_prompts(args.promptdir, video_size=args.image_size, video_frames=args.num_frames)
 
     # Report the training info
     total_batch_size = args.batch_size * accelerator.num_processes * args.gradient_accumulation_steps
@@ -564,7 +555,7 @@ def main(args):
         validation_image = data_list[i][:,0].to(accelerator.device)
         validation_image = validation_image.unsqueeze(0).unsqueeze(2)
 
-        print("Generating video for 0 epoch")
+        print("Generating video for %d epoch" % i)
         image = runner.generate_video(
             prompt=validation_prompt,
             input_image=validation_image,
