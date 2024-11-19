@@ -156,7 +156,7 @@ def train_one_epoch_with_fsdp(
                 metric_logger.update(grad_norm=grad_norm)
 
 
-        if step % 1000 == 0:
+        if (step+1) % 1000 == 0:
             accelerator.wait_for_everyone()
             if args.output_dir:
                 save_path = os.path.join(args.output_dir, f"checkpoint-{step}-{epoch}")
