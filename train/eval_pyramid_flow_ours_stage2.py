@@ -533,8 +533,8 @@ def main(args):
         #validation_height = validation_height // (2**3)
         #validation_width = validation_width // (2**3)
         filename_list, data_list, validation_prompts = load_data_prompts(args.promptdir, video_size=(validation_height, validation_width), video_frames=args.num_frames)
-        validation_prompt = validation_prompts[2]
-        validation_image = data_list[2][:,0].to(accelerator.device)
+        validation_prompt = validation_prompts[3]
+        validation_image = data_list[3][:,0].to(accelerator.device)
         validation_image = validation_image.unsqueeze(0).unsqueeze(2)
     # if accelerator.is_main_process:
     #     accelerator.init_trackers(os.path.basename(args.output_dir), config=vars(args))
