@@ -172,7 +172,7 @@ def train_one_epoch_with_fsdp(
                 img = validation_image[num_image][:,0].to(accelerator.device)
                 img = img.unsqueeze(0).unsqueeze(2)
 
-                image = runner.generate_image(
+                image = runner.generate_video(
                     prompt=prompt,
                     input_image=img,
                     num_inference_steps=[20, 20, 20],
