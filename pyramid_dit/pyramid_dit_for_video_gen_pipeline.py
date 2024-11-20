@@ -502,7 +502,9 @@ class PyramidDiTForVideoGeneration:
             lowest_res_latent = latents_list[i_s][index::column_size]
             #lowest_res_latent = lowest_res_latent[:,:,0].unsqueeze(2)
             # Noise augmentation
-            lowest_res_latent = lowest_res_latent + torch.randn_like(lowest_res_latent) * self.corrupt_ratio[i_s]
+            #lowest_res_latent = lowest_res_latent + torch.randn_like(lowest_res_latent) * self.corrupt_ratio[i_s]
+            noise_ratio = torch.rand(size=(batch_size,), device=device) / 3
+            lowest_res_latent = noise_ratio * torch.randn_like(lowest_res_latent) + (1 - noise_ratio) * lowest_res_latent
             #start_point = start_point + torch.randn_like(start_point) * self.corrupt_ratio[i_s]
             end_point = latents_list[i_s+1][index::column_size]
             
@@ -1707,7 +1709,7 @@ class PyramidDiTForVideoGeneration:
         if stage_num == 1:
             temp_upsample_list = [3]
         elif stage_num == 3:
-            temp_upsample_list = [3, 5, 9]
+            temp_upsample_list = [3, 5, 7]
         else:
             raise ValueError(f"The stage number {stage_num} is not supported now")
 
@@ -1743,7 +1745,7 @@ class PyramidDiTForVideoGeneration:
             noise_aug = torch.randn_like(latents)
             latents = latents + noise_aug * self.corrupt_ratio[i_s]
 
-            lowest_res_latent_input = lowest_res_latent + torch.randn_like(lowest_res_latent) * self.corrupt_ratio[-1]
+            lowest_res_latent_input = lowest_res_latent #+ torch.randn_like(lowest_res_latent) * self.corrupt_ratio[-1]
             
             for idx, t in enumerate(timesteps):
                 latent_model_input = torch.cat([latents] * 2) if self.do_classifier_free_guidance else latents

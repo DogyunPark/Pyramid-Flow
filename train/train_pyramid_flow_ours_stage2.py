@@ -228,7 +228,7 @@ def get_args():
 
 
     # Added by us
-    parser.add_argument('--num_frames', default=65, type=int, help='number of frames in a video')
+    parser.add_argument('--num_frames', default=49, type=int, help='number of frames in a video')
     parser.add_argument('--frame_interval', default=1, type=int, help='frame interval')
     parser.add_argument('--image_size', default=(320, 512), type=tuple, help='image size')
     parser.add_argument('--data_root', default='./train_data/data/train/OpenVid-1M.csv', type=str, help='The data root')
@@ -248,7 +248,7 @@ def build_model_runner(args):
     print(f"Load the {model_name} model checkpoint from path: {model_path}, using dtype {model_dtype}")
     sample_ratios = [1, 2, 1]  # The sample_ratios of each stage
     #sample_ratios = [1]  # The sample_ratios of each stage
-    corrupt_ratio = [1/10, 1/5, 1/3]
+    corrupt_ratio = [1/10, 1/5, 1/5]
     #corrupt_ratio = [1/3, 1/3, 1/2]
     #sample_ratios = [1]  # The sample_ratios of each stage
     assert args.batch_size % int(sum(sample_ratios)) == 0, "The batchsize should be diivided by sum(sample_ratios)"
@@ -277,6 +277,7 @@ def build_model_runner(args):
         corrupt_ratio=corrupt_ratio,
         interp_condition_pos=args.interp_condition_pos,
         video_sync_group=args.video_sync_group,
+        temporal_autoregressive=args.temporal_autoregressive,
     )
     
     if args.dit_pretrained_weight:
