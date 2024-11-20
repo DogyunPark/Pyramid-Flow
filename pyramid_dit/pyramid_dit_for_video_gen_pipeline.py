@@ -504,7 +504,7 @@ class PyramidDiTForVideoGeneration:
             # Noise augmentation
             #lowest_res_latent = lowest_res_latent + torch.randn_like(lowest_res_latent) * self.corrupt_ratio[i_s]
             noise_ratio = torch.rand(size=(batch_size,), device=device) / 3
-            noise_ratio = noise_ratio[:, None, None, None]
+            noise_ratio = noise_ratio[:, None, None, None, None]
             lowest_res_latent = noise_ratio * torch.randn_like(lowest_res_latent) + (1 - noise_ratio) * lowest_res_latent
             #start_point = start_point + torch.randn_like(start_point) * self.corrupt_ratio[i_s]
             end_point = latents_list[i_s+1][index::column_size]
@@ -513,6 +513,13 @@ class PyramidDiTForVideoGeneration:
 
             start_point = temp_start_point[:,:,:1].detach().clone().repeat(1, 1, end_point.shape[2], 1, 1)
             start_point = start_point + torch.randn_like(start_point) * self.corrupt_ratio[i_s]
+
+            # Additional injection
+            lowest_res_latent_image = latents_list[-1][index::column_size]
+            lowest_res_latent_image = lowest_res_latent_image[:,:,0].unsqueeze(2)
+            noise_ratio2 = torch.rand(size=(batch_size,), device=device) / 3
+            noise_ratio2 = noise_ratio2[:, None, None, None, None]
+            lowest_res_latent_image = noise_ratio2 * torch.randn_like(lowest_res_latent_image) + (1 - noise_ratio2) * lowest_res_latent_image
 
 
             # To sample a timestep
@@ -540,7 +547,7 @@ class PyramidDiTForVideoGeneration:
             #last_cond_noisy_sigma = torch.rand(size=(batch_size,), device=device) * self.corrupt_ratio
 
             # [stage1_latent, stage2_latent, ..., stagen_latent], which will be concat after patching
-            noisy_latents_list.append([lowest_res_latent, noisy_latents.to(dtype)])
+            noisy_latents_list.append([lowest_res_latent_image, lowest_res_latent, noisy_latents.to(dtype)])
             ratios_list.append(ratios.to(dtype))
             timesteps_list.append(timesteps.to(dtype))
             targets_list.append(start_point - end_point)     # The standard rectified flow matching objective
@@ -1686,8 +1693,8 @@ class PyramidDiTForVideoGeneration:
         lowest_input_image = rearrange(lowest_input_image, '(b t) c h w -> b c t h w', t=1)
         latents = (self.vae.encode(lowest_input_image.to(self.vae.device, dtype=self.vae.dtype)).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c 1 h w]
 
-        if not self.temporal_autoregressive:
-            lowest_res_latent = (self.vae.encode(input_image.to(self.vae.device, dtype=self.vae.dtype)).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c 1 h w] 
+        #if not self.temporal_autoregressive:
+        lowest_res_latent_image = (self.vae.encode(input_image.to(self.vae.device, dtype=self.vae.dtype)).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c 1 h w] 
             
         # for idx in range(3): #TODO: make this dynamic
         #     latent_height //= 2
@@ -1753,6 +1760,7 @@ class PyramidDiTForVideoGeneration:
             for idx, t in enumerate(timesteps):
                 latent_model_input = torch.cat([latents] * 2) if self.do_classifier_free_guidance else latents
                 lowest_res_latent_model_input = torch.cat([lowest_res_latent_input] * 2) if self.do_classifier_free_guidance else lowest_res_latent_input
+                lowest_res_latent_image_model_input = torch.cat([lowest_res_latent_image] * 2) if self.do_classifier_free_guidance else lowest_res_latent_image
             
                 # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
                 timestep = t.expand(latent_model_input.shape[0]).to(latent_model_input.dtype)
@@ -1765,7 +1773,7 @@ class PyramidDiTForVideoGeneration:
                     torch.distributed.broadcast(latent_model_input, global_src_rank, group=get_sequence_parallel_group())
 
                 noise_pred = self.dit(
-                    sample=[[lowest_res_latent_model_input, latent_model_input]],
+                    sample=[[lowest_res_latent_image_model_input, lowest_res_latent_model_input, latent_model_input]],
                     timestep_ratio=timestep,
                     encoder_hidden_states=prompt_embeds,
                     encoder_attention_mask=prompt_attention_mask,
