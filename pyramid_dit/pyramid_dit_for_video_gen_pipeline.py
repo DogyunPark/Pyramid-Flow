@@ -1735,6 +1735,7 @@ class PyramidDiTForVideoGeneration:
                 ones_tensor[:,:,temp_current:] = latents[:,:,-1:].repeat(1, 1, temp_next - temp_current, 1, 1)
                 latents = ones_tensor
             else:
+                b, c, temp_current, _, _ = latents.shape
                 lowest_res_latent = latents.detach().clone()
                 latents = rearrange(latents, 'b c t h w -> (b t) c h w')
                 latents = torch.nn.functional.interpolate(latents, size=(height, width), mode='nearest')
