@@ -504,6 +504,7 @@ class PyramidDiTForVideoGeneration:
             # Noise augmentation
             #lowest_res_latent = lowest_res_latent + torch.randn_like(lowest_res_latent) * self.corrupt_ratio[i_s]
             noise_ratio = torch.rand(size=(batch_size,), device=device) / 3
+            import pdb; pdb.set_trace()
             lowest_res_latent = noise_ratio * torch.randn_like(lowest_res_latent) + (1 - noise_ratio) * lowest_res_latent
             #start_point = start_point + torch.randn_like(start_point) * self.corrupt_ratio[i_s]
             end_point = latents_list[i_s+1][index::column_size]
