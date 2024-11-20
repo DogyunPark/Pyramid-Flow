@@ -559,9 +559,9 @@ def main(args):
         image = runner.generate_video(
             prompt=validation_prompt,
             input_image=validation_image,
-            num_inference_steps=[200, 200, 200],
+            num_inference_steps=[60, 60, 60],
             output_type="pil",
-            guidance_scale=1.0,
+            guidance_scale=2.0,
             save_memory=True, 
         )
         export_to_video(image, "./output/eval_video_%d.mp4" % i, fps=24)
