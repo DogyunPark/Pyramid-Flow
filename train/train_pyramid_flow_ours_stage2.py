@@ -533,10 +533,7 @@ def main(args):
         validation_height, validation_width = args.image_size
         #validation_height = validation_height // (2**3)
         #validation_width = validation_width // (2**3)
-        filename_list, data_list, validation_prompts = load_data_prompts(args.promptdir, video_size=(validation_height, validation_width), video_frames=args.num_frames)
-        validation_prompt = validation_prompts[2]
-        validation_image = data_list[2][:,0].to(accelerator.device)
-        validation_image = validation_image.unsqueeze(0).unsqueeze(2)
+        filename_list, validation_images, validation_prompts = load_data_prompts(args.promptdir, video_size=(validation_height, validation_width), video_frames=args.num_frames)
     # if accelerator.is_main_process:
     #     accelerator.init_trackers(os.path.basename(args.output_dir), config=vars(args))
 
@@ -558,33 +555,8 @@ def main(args):
     start_time = time.time()
     accelerator.wait_for_everyone()
 
-    #if accelerator.is_main_process:
-    # if 1:
-    #     print("Generating video for 0 epoch")
-    #     #image = runner.generate_image(
-    #     image = runner.generate_video(
-    #         prompt=validation_prompt,
-    #         input_image=validation_image,
-    #         num_inference_steps=[20, 20, 20],
-    #         output_type="pil",
-    #         save_memory=True, 
-    #     )
-    #     export_to_video(image, "./output/text_to_video_sample.mp4", fps=24)
-
-    accelerator.wait_for_everyone()
-
     gc.collect()
     torch.cuda.empty_cache() 
-
-    # if args.output_dir:
-    #     #if accelerator.sync_gradients:
-    #     #if accelerator.is_main_process:
-    #     if 1:
-    #         global_step = 0
-    #         save_path = os.path.join(args.output_dir, f"checkpoint-{global_step}")
-    #         accelerator.save_state(save_path, safe_serialization=False)
-    #         #torch.save(runner.dit.state_dict(), save_path)
-    #         logger.info(f"Saved state to {save_path}")
 
     print("Start training...")
     for epoch in range(first_epoch, args.epochs):
@@ -605,20 +577,9 @@ def main(args):
             iters_per_epoch=num_training_steps_per_epoch,
             ema_decay=args.ema_decay,
             use_temporal_pyramid=args.use_temporal_pyramid,
-            validation_prompt=validation_prompt,
-            validation_image=validation_image,
+            validation_prompt=validation_prompts,
+            validation_image=validation_images,
         )
-
-        # accelerator.wait_for_everyone()
-
-        # if args.output_dir:
-        #     if (epoch + 1) % args.save_ckpt_freq == 0 or epoch + 1 == args.epochs:
-        #         #if accelerator.sync_gradients:
-        #         global_step = num_training_steps_per_epoch * (epoch + 1)
-        #         save_path = os.path.join(args.output_dir, f"checkpoint-{global_step}")
-        #         accelerator.save_state(save_path, safe_serialization=False)
-        #         #torch.save(model_ema.state_dict(), save_path)
-        #         logger.info(f"Saved state to {save_path}")
 
         log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
                     'epoch': epoch, 'n_parameters': n_learnable_parameters}

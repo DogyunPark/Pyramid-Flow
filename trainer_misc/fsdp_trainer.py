@@ -167,15 +167,20 @@ def train_one_epoch_with_fsdp(
         # Generate the video for validation
         if step % 20 == 0:
             assert validation_prompt is not None and validation_image is not None
-            #image = runner.generate_image(
-            image = runner.generate_video(
-                prompt=validation_prompt,
-                input_image=validation_image,
-                num_inference_steps=[20, 20, 20],
-                output_type="pil",
-                save_memory=True, 
-            )
-            export_to_video(image, "./output/text_to_video_sample-{}epoch.mp4".format(epoch), fps=24)
+            for num_image in range(3):
+                prompt = validation_prompt[num_image]
+                img = validation_image[num_image][:,0].to(accelerator.device)
+                img = img.unsqueeze(0).unsqueeze(2)
+
+                image = runner.generate_image(
+                    prompt=prompt,
+                    input_image=img,
+                    num_inference_steps=[20, 20, 20],
+                    output_type="pil",
+                    save_memory=True,
+                    guidance_scale=2.0
+                )
+                export_to_video(image, "./output/text_to_video_sample-{}epoch-{}.mp4".format(epoch, num_image), fps=24)
             print("Generated video for {} step/{} epoch".format(step, epoch))
             accelerator.wait_for_everyone()
 
