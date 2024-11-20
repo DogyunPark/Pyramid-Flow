@@ -414,19 +414,6 @@ def main(args):
 
     
     # For video generation training
-    dataset = DatasetFromCSV(
-        args.data_root,
-        # TODO: change transforms
-        transform=(
-            get_transforms_video(args.image_size)
-        ),
-        num_frames=args.num_frames,
-        frame_interval=args.frame_interval,
-        root=args.root,
-    )
-
-    train_dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
-    accelerator.wait_for_everyone()
 
     logger.info("Building dataset finished")
 
@@ -510,8 +497,7 @@ def main(args):
     # Only wrapping the trained dit and huge text encoder
     #runner.dit, optimizer = accelerator.prepare(runner.dit, optimizer)
     #train_dataloader = accelerator.prepare(train_dataloader)
-    runner.dit, optimizer, train_dataloader = accelerator.prepare(runner.dit, optimizer, train_dataloader)
-    train_dataloader = cycle(train_dataloader)
+    runner.dit, optimizer = accelerator.prepare(runner.dit, optimizer)
 
     # Load the VAE and EMAmodel to GPU
     if runner.vae:
