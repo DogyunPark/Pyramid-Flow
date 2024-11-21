@@ -68,6 +68,8 @@ def build_pyramid_dit(
     use_gradient_checkpointing: bool = False,
     use_temporal_causal: bool = True,
     gradient_checkpointing_ratio: float = 0.6,
+    trilinear_interpolation: bool = False,
+    num_frames: int = 49,
 ):
     model_dtype = torch.float32 if use_mixed_training else torch_dtype
     if model_name == "pyramid_flux":
@@ -77,6 +79,8 @@ def build_pyramid_dit(
             gradient_checkpointing_ratio=gradient_checkpointing_ratio,
             use_flash_attn=use_flash_attn, use_temporal_causal=use_temporal_causal,
             interp_condition_pos=interp_condition_pos, axes_dims_rope=[16, 24, 24],
+            trilinear_interpolation=trilinear_interpolation,
+            num_frames=num_frames,
         )
     elif model_name == "pyramid_mmdit":
         dit = PyramidDiffusionMMDiT.from_pretrained(
@@ -145,6 +149,7 @@ class PyramidDiTForVideoGeneration:
             use_flash_attn=use_flash_attn, use_mixed_training=use_mixed_training,
             interp_condition_pos=interp_condition_pos, use_gradient_checkpointing=use_gradient_checkpointing,
             use_temporal_causal=use_temporal_causal, gradient_checkpointing_ratio=gradient_checkpointing_ratio,
+            trilinear_interpolation=trilinear_interpolation, num_frames=num_frames,
         )
 
         # The text encoder

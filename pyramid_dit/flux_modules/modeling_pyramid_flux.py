@@ -119,6 +119,8 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
         interp_condition_pos: bool = True,
         use_gradient_checkpointing: bool = False,
         gradient_checkpointing_ratio: float = 0.6,
+        trilinear_interpolation: bool = False,
+        num_frames: int = 49,
     ):
         super().__init__()
         self.out_channels = in_channels
@@ -175,7 +177,8 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
         self.patch_size = 2   # hard-code for now
         self.train_height = 64 // self.patch_size
         self.train_width = 64 // self.patch_size
-        self.train_temp = 64 + 1
+        self.train_temp = num_frames
+        self.trilinear_interpolation = trilinear_interpolation
 
         # init weights
         self.initialize_weights()
@@ -218,10 +221,10 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
         latent_image_ids = torch.zeros(temp, height, width, 3)
 
         # Temporal Rope``
-        # if temp != train_temp:
-        #     temp_pos = F.interpolate(torch.arange(start_time_stamp, start_time_stamp + train_temp)[None, None, :].float(), temp, mode='linear').squeeze(0, 1)
-        # else:
-        temp_pos = torch.arange(start_time_stamp, start_time_stamp + temp).float()
+        if self.trilinear_interpolation:
+            temp_pos = F.interpolate(torch.arange(start_time_stamp, start_time_stamp + train_temp)[None, None, :].float(), temp, mode='linear').squeeze(0, 1)
+        else:
+            temp_pos = torch.arange(start_time_stamp, start_time_stamp + temp).float()
         
         latent_image_ids[..., 0] = latent_image_ids[..., 0] + temp_pos[:, None, None]
 
