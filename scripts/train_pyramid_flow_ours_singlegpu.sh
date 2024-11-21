@@ -12,7 +12,7 @@ MODEL_PATH=/data/cvpr25/Pyramid-Flow/output/pyramid-flow-miniflux  # The downloa
 VARIANT=diffusion_transformer_image  # The DiT Variant
 OUTPUT_DIR=/data/cvpr25/Pyramid-Flow/result/test    # The checkpoint saving dir
 
-BATCH_SIZE=3    # It should satisfy batch_size % 4 == 0
+BATCH_SIZE=4    # It should satisfy batch_size % 4 == 0
 GRAD_ACCU_STEPS=2
 RESOLUTION="384p"     # 384p or 768p
 NUM_FRAMES=16         # e.g., 16 for 5s, 32 for 10s
@@ -53,3 +53,6 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 python \
     --print_freq 40 \
     --save_ckpt_freq 1 \
     --load_vae \
+    --gradient_checkpointing \
+    --dit_pretrained_weight ./result/stage2-duplicate/checkpoint-1999-2/pytorch_model_fsdp.bin \
+    --temporal_autoregressive
