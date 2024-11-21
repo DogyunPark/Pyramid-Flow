@@ -160,6 +160,7 @@ def train_one_epoch_with_fsdp(
 
         # Generate the video for validation
         if step % 20 == 0:
+            runner.dit.eval()
             print("Generating the video for text: {}".format(text[0]))
             image = runner.generate_video(
                 prompt=text[0],
@@ -188,6 +189,7 @@ def train_one_epoch_with_fsdp(
                 export_to_video(image, "./output/text_to_video_sample-{}epoch-{}.mp4".format(epoch, num_image), fps=12)
             print("Generated video for {} step/{} epoch".format(step, epoch))
             accelerator.wait_for_everyone()
+            runner.dit.train()
 
     # gather the stats from all processes
     metric_logger.synchronize_between_processes()

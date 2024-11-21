@@ -237,6 +237,8 @@ def get_args():
     parser.add_argument('--json_root', default='./train_data/VIDGEN-1M', type=str, help='The json root')
     parser.add_argument('--promptdir', default='/data/cvpr25/prompts/1024/', type=str, help='The prompt directory')
     parser.add_argument('--temporal_autoregressive', action='store_true')
+    parser.add_argument('--deterministic_noise', action='store_true')
+    parser.add_argument('--condition_original_image', action='store_true')
 
     return parser.parse_args()
 
@@ -280,6 +282,8 @@ def build_model_runner(args):
         interp_condition_pos=args.interp_condition_pos,
         video_sync_group=args.video_sync_group,
         temporal_autoregressive=args.temporal_autoregressive,
+        deterministic_noise=args.deterministic_noise,
+        condition_original_image=args.condition_original_image,
     )
     
     if args.dit_pretrained_weight:

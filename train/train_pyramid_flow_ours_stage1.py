@@ -229,12 +229,14 @@ def get_args():
 
     # Added by us
     parser.add_argument('--num_frames', default=17, type=int, help='number of frames in a video')
-    parser.add_argument('--frame_interval', default=4, type=int, help='frame interval')
+    parser.add_argument('--frame_interval', default=2, type=int, help='frame interval')
     parser.add_argument('--image_size', default=(320, 512), type=tuple, help='image size')
     parser.add_argument('--data_root', default='./train_data/data/train/OpenVid-1M.csv', type=str, help='The data root')
     parser.add_argument('--root', default='./train_data/video', type=str, help='The root')
     parser.add_argument('--promptdir', default='/data/cvpr25/prompts/1024/', type=str, help='The prompt directory')
     parser.add_argument('--temporal_autoregressive', action='store_true')
+    parser.add_argument('--deterministic_noise', action='store_true')
+    parser.add_argument('--condition_original_image', action='store_true')
 
     return parser.parse_args()
 
@@ -249,7 +251,7 @@ def build_model_runner(args):
     #sample_ratios = [1, 2, 1]  # The sample_ratios of each stage
     sample_ratios = [1]  # The sample_ratios of each stage
     #corrupt_ratio = [1/10, 1/5, 1/3]
-    corrupt_ratio = [1/5]
+    corrupt_ratio = [1/3]
     #sample_ratios = [1]  # The sample_ratios of each stage
     assert args.batch_size % int(sum(sample_ratios)) == 0, "The batchsize should be diivided by sum(sample_ratios)"
 
@@ -278,6 +280,8 @@ def build_model_runner(args):
         interp_condition_pos=args.interp_condition_pos,
         video_sync_group=args.video_sync_group,
         temporal_autoregressive=args.temporal_autoregressive,
+        deterministic_noise=args.deterministic_noise,
+        condition_original_image=args.condition_original_image,
     )
     
     if args.dit_pretrained_weight:
