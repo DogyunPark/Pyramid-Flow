@@ -20,7 +20,7 @@ import gc
 
 from einops import rearrange
 
-from openviddata.datasets import DatasetFromCSV, get_transforms_video, load_data_prompts
+from openviddata.datasets import DatasetFromCSV, get_transforms_video, load_data_prompts, DatasetFromCSVAndJSON
 from diffusers.utils import export_to_video
 
 from dataset import (

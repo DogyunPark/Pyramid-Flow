@@ -149,6 +149,121 @@ class DatasetFromCSV(torch.utils.data.Dataset):
         return len(self.samples)
 
 
+class DatasetFromCSVAndJSON(torch.utils.data.Dataset):
+    """Load video according to both csv and json files.
+
+    Args:
+        csv_path (str): Path to the CSV file.
+        json_path (str): Path to the JSON file.
+        num_frames (int): Number of video frames to load.
+        frame_interval (int): Interval between frames.
+        transform (callable): Transform to apply to video frames.
+        csv_root (str): Root directory containing video files from CSV.
+        json_root (str): Root directory containing video files from JSON.
+    """
+
+    def __init__(
+        self,
+        csv_path,
+        json_path,
+        num_frames=16,
+        frame_interval=1,
+        transform=None,
+        csv_root=None,
+        json_root=None
+    ):
+        video_samples = []
+
+        # Load from CSV
+        with open(csv_path, "r") as f:
+            reader = csv.reader(f)
+            csv_list = list(reader)
+        for vid in csv_list[1:]:  # no csv head
+            vid_name = vid[0]
+            vid_path = os.path.join(csv_root, vid_name)
+            vid_caption = vid[1]
+            if os.path.exists(vid_path):
+                video_samples.append([vid_path, vid_caption])
+
+        # Load from JSON
+        with open(json_path, 'r') as f:
+            json_data = json.load(f)
+        for entry in json_data:
+            vid_name = entry['vid']
+            vid_path = os.path.join(json_root, f"{vid_name}.mp4")
+            vid_caption = entry['caption']
+            if os.path.exists(vid_path):
+                video_samples.append([vid_path, vid_caption])
+
+        self.samples = video_samples
+        self.is_video = True
+        self.transform = transform
+        self.num_frames = num_frames
+        self.frame_interval = frame_interval
+        self.temporal_sample = video_transforms.TemporalRandomCrop(num_frames * frame_interval)
+
+    def getitem(self, index):
+        sample = self.samples[index]
+        path = sample[0]
+        text = sample[1]
+
+        if self.is_video:
+            is_exit = os.path.exists(path)
+            if is_exit:
+                vframes, aframes, info = torchvision.io.read_video(filename=path, pts_unit="sec", output_format="TCHW")
+                total_frames = len(vframes)
+            else:
+                total_frames = 0
+            
+            loop_index = index
+            while(total_frames < self.num_frames or is_exit == False):
+                loop_index += 1
+                if loop_index >= len(self.samples):
+                    loop_index = 0
+                sample = self.samples[loop_index]
+                path = sample[0]
+                text = sample[1]
+
+                is_exit = os.path.exists(path)
+                if is_exit:
+                    vframes, aframes, info = torchvision.io.read_video(filename=path, pts_unit="sec", output_format="TCHW")
+                    total_frames = len(vframes)
+                else:
+                    total_frames = 0
+            #  video exits and total_frames >= self.num_frames
+            
+            # Sampling video frames
+            start_frame_ind, end_frame_ind = self.temporal_sample(total_frames)
+            assert (
+                end_frame_ind - start_frame_ind >= self.num_frames
+            ), f"{path} with index {index} has not enough frames."
+            frame_indice = np.linspace(start_frame_ind, end_frame_ind - 1, self.num_frames, dtype=int)
+            
+            video = vframes[frame_indice]
+            video = self.transform(video)  # T C H W
+        else:
+            image = pil_loader(path)
+            image = self.transform(image)
+            video = image.unsqueeze(0).repeat(self.num_frames, 1, 1, 1)
+
+        # TCHW -> CTHW
+        video = video.permute(1, 0, 2, 3)
+
+        return {"video": video, "text": text}
+
+    def __getitem__(self, index):
+        for _ in range(10):
+            try:
+                return self.getitem(index)
+            except Exception as e:
+                print(e)
+                index = np.random.randint(len(self))
+        raise RuntimeError("Too many bad data.")
+
+    def __len__(self):
+        return len(self.samples)
+
+
 if __name__ == '__main__':
     data_path = ''
     root=''

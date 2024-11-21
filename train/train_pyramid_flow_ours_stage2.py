@@ -20,7 +20,7 @@ import gc
 
 from einops import rearrange
 
-from openviddata.datasets import DatasetFromCSV, get_transforms_video, load_data_prompts
+from openviddata.datasets import DatasetFromCSV, get_transforms_video, load_data_prompts, DatasetFromCSVAndJSON
 from diffusers.utils import export_to_video
 
 from dataset import (
@@ -232,7 +232,9 @@ def get_args():
     parser.add_argument('--frame_interval', default=1, type=int, help='frame interval')
     parser.add_argument('--image_size', default=(384, 512), type=tuple, help='image size')
     parser.add_argument('--data_root', default='./train_data/data/train/OpenVid-1M.csv', type=str, help='The data root')
+    parser.add_argument('--json_path', default='./train_data/VIDGEN-1M/VidGen_1M_video_caption.json', type=str, help='The json path')
     parser.add_argument('--root', default='./train_data/video', type=str, help='The root')
+    parser.add_argument('--json_root', default='./train_data/VIDGEN-1M', type=str, help='The json root')
     parser.add_argument('--promptdir', default='/data/cvpr25/prompts/1024/', type=str, help='The prompt directory')
     parser.add_argument('--temporal_autoregressive', action='store_true')
 
@@ -416,16 +418,31 @@ def main(args):
 
     
     # For video generation training
-    dataset = DatasetFromCSV(
-        args.data_root,
-        # TODO: change transforms
-        transform=(
-            get_transforms_video(args.image_size)
-        ),
-        num_frames=args.num_frames,
-        frame_interval=args.frame_interval,
-        root=args.root,
-    )
+    if os.path.exists(args.json_path):
+        print('Loading the dataset from both OpenVid-1M and VidGen-1M')
+        dataset = DatasetFromCSVAndJSON(
+            args.data_root,
+            args.json_path,
+            num_frames=args.num_frames,
+            frame_interval=args.frame_interval,
+            transform=(
+                get_transforms_video(args.image_size)
+            ),
+            csv_root=args.root,
+            json_root=args.json_root,
+        )
+    else:
+        print('Loading the dataset only from OpenVid-1M')
+        dataset = DatasetFromCSV(
+            args.data_root,
+            # TODO: change transforms
+            transform=(
+                get_transforms_video(args.image_size)
+            ),
+            num_frames=args.num_frames,
+            frame_interval=args.frame_interval,
+            root=args.root,
+        )   
 
     train_dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
     accelerator.wait_for_everyone()

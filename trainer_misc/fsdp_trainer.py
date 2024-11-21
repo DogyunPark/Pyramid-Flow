@@ -90,21 +90,6 @@ def train_one_epoch_with_fsdp(
                 video =  samples['video'].to(accelerator.device)
                 text = samples['text']
 
-                import pdb; pdb.set_trace()
-                print(text[1])
-                
-                image = runner.generate_video(
-                    prompt=text[1],
-                    input_image=video[1:2, :, :1],
-                    num_inference_steps=[20, 20, 20],
-                    output_type="pil",
-                    save_memory=True,
-                    guidance_scale=6.0
-                )
-                export_to_video(image, "./output/text_to_video_sample-{}epoch-{}.mp4".format(epoch, 0), fps=12)
-
-                import pdb; pdb.set_trace()
-
                 loss, log_loss = runner(video, text, identifier=None, accelerator=accelerator)
 
                 # Check if the loss is nan
