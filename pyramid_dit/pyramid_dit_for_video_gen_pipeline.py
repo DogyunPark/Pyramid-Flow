@@ -122,7 +122,7 @@ class PyramidDiTForVideoGeneration:
         sample_ratios=[1, 1, 1], scheduler_gamma=1/3, use_mixed_training=False, use_flash_attn=False, 
         load_text_encoder=True, load_vae=True, max_temporal_length=31, frame_per_unit=1, use_temporal_causal=True, 
         corrupt_ratio=1/3, interp_condition_pos=True, stages=[1, 2, 4], video_sync_group=8, gradient_checkpointing_ratio=0.6, 
-        temporal_autoregressive=False, deterministic_noise=False, condition_original_image=False, num_frames=49, **kwargs,
+        temporal_autoregressive=False, deterministic_noise=False, condition_original_image=False, num_frames=49, trilinear_interpolation=False, **kwargs,
     ):
         super().__init__()
 
@@ -208,7 +208,8 @@ class PyramidDiTForVideoGeneration:
         self.deterministic_noise = deterministic_noise
         self.condition_original_image = condition_original_image
         self.num_frames = num_frames
-        
+        self.trilinear_interpolation = trilinear_interpolation
+
     def _enable_sequential_cpu_offload(self, model):
         self.sequential_offload_enabled = True
         torch_device = torch.device("cuda")
@@ -837,7 +838,7 @@ class PyramidDiTForVideoGeneration:
             if not self.trilinear_interpolation:
                 x = original_x[:, :, :temp]
                 x = rearrange(x, 'b c t h w -> (b t) c h w')
-                x = torch.nn.functional.interpolate(x, size=(height, width), mode='trilinear')
+                x = torch.nn.functional.interpolate(x, size=(height, width), mode='bicubic')
                 x = rearrange(x, '(b t) c h w -> b c t h w', t=temp)
             else:
                 x = torch.nn.functional.interpolate(original_x, size=(temp, height, width), mode='trilinear')
