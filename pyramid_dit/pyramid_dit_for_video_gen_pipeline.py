@@ -798,14 +798,11 @@ class PyramidDiTForVideoGeneration:
         video_list = []
         original_x = x.detach().clone()
         video_list.append(original_x)
-        #temp_list = [33, 17, 1] # Hard code the temporal length of each stage
 
         temp, height, width = x.shape[-3], x.shape[-2], x.shape[-1]
         for idx in range(stage_num):
             height //= 2
             width //= 2
-            #temp = temp_list[idx]
-            #x = original_x[:, :, :temp]
             x = rearrange(original_x, 'b c t h w -> (b t) c h w')
             x = torch.nn.functional.interpolate(x, size=(height, width), mode='bicubic')
             x = rearrange(x, '(b t) c h w -> b c t h w', t=temp)
@@ -872,15 +869,12 @@ class PyramidDiTForVideoGeneration:
         vae_latent_list.append(x.detach().clone())
 
         temp, height, width = x.shape[-3], x.shape[-2], x.shape[-1]
-        #pad_size = (0, 0, 0, 0, 1, 0)
-        #scale_factor = (0.5, 0.5, 0.5)
-        
+
         temp_list = [5, 3, 1] # TODO: Make it dynamic
         for _ in range(stage_num):
             height //= 2
             width //= 2
             temp = temp_list[_]
-            #x = torch.nn.functional.pad(x, pad_size, mode='constant')
             x = torch.nn.functional.interpolate(x, size=(temp, height, width), mode='trilinear', align_corners=False)
             vae_latent_list.append(x.detach().clone())
 
@@ -1040,14 +1034,6 @@ class PyramidDiTForVideoGeneration:
     def __call__(self, video, text, identifier, use_temporal_pyramid=False, accelerator: Accelerator=None):
         xdim = video.ndim
         device = video.device
-
-        # if 'video' in identifier:
-        #     assert 'image' not in identifier
-        #     is_image = False
-        # else:
-        #     assert 'video' not in identifier
-        #     video = video.unsqueeze(2)  # 'b c h w -> b c 1 h w'
-        #     is_image = True
 
         # TODO: now have 3 stages, firstly get the vae latents
         with torch.no_grad(), accelerator.autocast():
@@ -1737,8 +1723,8 @@ class PyramidDiTForVideoGeneration:
                 cur_noise = F.interpolate(cur_noise, size=(latent_height, latent_width), mode='bilinear') * 2
                 cur_noise = rearrange(cur_noise, '(b t) c h w -> b c t h w', t=temp)
                 noise_list.append(cur_noise)
-            #noise_list = list(reversed(noise_list))
-            noise_list = list(noise_list) 
+            noise_list = list(reversed(noise_list))
+            #noise_list = list(noise_list) 
             
         else:
             latents = stage_latent_condition.detach().clone()
