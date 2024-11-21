@@ -543,7 +543,10 @@ class PyramidDiTForVideoGeneration:
 
             if self.deterministic_noise:
                 temp_start_point = upsample_vae_latent_list[i_s][index::column_size]
-                start_point = temp_start_point[:,:,:1].detach().clone().repeat(1, 1, end_point.shape[2], 1, 1)
+                if self.trilinear_interpolation:
+                    start_point = temp_start_point.detach().clone()
+                else:
+                    start_point = temp_start_point[:,:,:1].detach().clone().repeat(1, 1, end_point.shape[2], 1, 1)
                 start_point = start_point + torch.randn_like(start_point) * self.corrupt_ratio[i_s]
             else:
                 start_point = noise_list[i_s][index::column_size]
@@ -847,7 +850,6 @@ class PyramidDiTForVideoGeneration:
             export_to_video(image, "./output/eval_video_%d.mp4" % idx, fps=12)
             video_list.append(x.detach().clone())
 
-        import pdb;pdb.set_trace()
         video_list = list(reversed(video_list))
         return video_list
 
