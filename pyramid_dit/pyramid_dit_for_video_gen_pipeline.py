@@ -1695,7 +1695,11 @@ class PyramidDiTForVideoGeneration:
             pooled_prompt_embeds = torch.cat([negative_pooled_prompt_embeds, pooled_prompt_embeds], dim=0)
             prompt_attention_mask = torch.cat([negative_prompt_attention_mask, prompt_attention_mask], dim=0)
         
+        # Create the initial random noise
+        stages = self.stages
+        stage_num = len(stages)
         height, width = input_image.shape[-2:]
+        
         # Prepare the condition latents
         stage_latent_condition = rearrange(input_image, 'b c t h w -> (b t) c h w')
         stage_latent_condition = torch.nn.functional.interpolate(stage_latent_condition, size=(height//(2**(stage_num)), width//(2**(stage_num))), mode='bicubic')
@@ -1704,9 +1708,6 @@ class PyramidDiTForVideoGeneration:
         if self.condition_original_image:
             original_latent_condition = (self.vae.encode(input_image.to(self.vae.device, dtype=self.vae.dtype), temporal_chunk=False, tile_sample_min_size=1024).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c t h w] 
 
-        # Create the initial random noise
-        stages = self.stages
-        stage_num = len(stages)
         if not self.deterministic_noise:
             num_channels_latents = (self.dit.config.in_channels // 4) if self.model_name == "pyramid_flux" else  self.dit.config.in_channels
             latents = self.prepare_latents(
