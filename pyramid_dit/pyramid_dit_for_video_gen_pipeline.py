@@ -525,7 +525,7 @@ class PyramidDiTForVideoGeneration:
                 cur_noise = cur_noise[:,:,:temp]
                 cur_noise = rearrange(cur_noise, 'b c t h w -> (b t) c h w')
                 cur_noise = F.interpolate(cur_noise, size=(height, width), mode='bilinear') * 2
-                cur_noise = rearrange(cur_noise, '(b t) c h w -> b c t h w', t=t)
+                cur_noise = rearrange(cur_noise, '(b t) c h w -> b c t h w', t=temp)
                 noise_list.append(cur_noise)
             noise_list = list(reversed(noise_list)) 
 
@@ -1729,7 +1729,7 @@ class PyramidDiTForVideoGeneration:
                 cur_noise = cur_noise[:,:,:temp]
                 cur_noise = rearrange(cur_noise, 'b c t h w -> (b t) c h w')
                 cur_noise = F.interpolate(cur_noise, size=(height, width), mode='bilinear') * 2
-                cur_noise = rearrange(cur_noise, '(b t) c h w -> b c t h w', t=t)
+                cur_noise = rearrange(cur_noise, '(b t) c h w -> b c t h w', t=temp)
                 noise_list.append(cur_noise)
             noise_list = list(reversed(noise_list)) 
             
