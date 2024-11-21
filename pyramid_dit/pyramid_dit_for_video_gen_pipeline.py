@@ -1713,7 +1713,7 @@ class PyramidDiTForVideoGeneration:
             latents = self.prepare_latents(
                 batch_size * num_images_per_prompt,
                 num_channels_latents,
-                self.num_frames,
+                7,
                 height // self.vae.config.downsample_scale,
                 width // self.vae.config.downsample_scale,
                 prompt_embeds.dtype,
