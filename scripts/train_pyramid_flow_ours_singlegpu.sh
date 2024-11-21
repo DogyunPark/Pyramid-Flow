@@ -21,7 +21,7 @@ NUM_FRAMES=16         # e.g., 16 for 5s, 32 for 10s
 # For the 768p version, make sure to add the args:  --gradient_checkpointing
 
 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 python \
-    train/train_pyramid_flow_ours.py \
+    train/train_pyramid_flow_ours_stage2.py \
     --num_workers 8 \
     --task t2v \
     --use_temporal_causal \
