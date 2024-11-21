@@ -417,7 +417,8 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
                     stage_attention_mask = stage_attention_mask & temporal_causal_mask
 
                 attention_mask.append(stage_attention_mask)
-
+        
+        import pdb;pdb.set_trace()
         return hidden_states, hidden_length, temp_list, height_list, width_list, trainable_token_list, encoder_attention_mask, attention_mask, image_rotary_emb
 
     def split_output(self, batch_hidden_states, hidden_length, temps, heights, widths, trainable_token_list):
