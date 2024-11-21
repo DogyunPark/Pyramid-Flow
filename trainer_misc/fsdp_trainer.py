@@ -100,7 +100,7 @@ def train_one_epoch_with_fsdp(
                     save_memory=True,
                     guidance_scale=2.0
                 )
-                export_to_video(image, "./output/text_to_video_sample-{}epoch-{}.mp4".format(epoch, num_image), fps=12)
+                export_to_video(image, "./output/text_to_video_sample-{}epoch-{}.mp4".format(epoch, 0), fps=12)
 
                 import pdb; pdb.set_trace()
 
