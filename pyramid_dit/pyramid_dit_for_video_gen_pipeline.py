@@ -896,14 +896,19 @@ class PyramidDiTForVideoGeneration:
             current_vae_latent = vae_latent_list[idx]
             # Duplicate the temporal dimension
             b, c, temp_current, _, _ = current_vae_latent.shape
-            ones_tensor = torch.ones(b, c, temp_next, height_next, width_next).to(current_vae_latent.device)
-            x = rearrange(current_vae_latent, 'b c t h w -> (b t) c h w')
-            x = torch.nn.functional.interpolate(x, size=(height_next, width_next), mode='nearest')
-            x = rearrange(x, '(b t) c h w -> b c t h w', t=temp_current)
-            ones_tensor[:,:,:temp_current] = x
-            ones_tensor[:,:,temp_current:] = x[:,:,-1:].repeat(1, 1, temp_next - temp_current, 1, 1)
 
-            upsample_vae_latent_list.append(ones_tensor)
+            if not self.trilinear_interpolation:
+                ones_tensor = torch.ones(b, c, temp_next, height_next, width_next).to(current_vae_latent.device)
+                x = rearrange(current_vae_latent, 'b c t h w -> (b t) c h w')
+                x = torch.nn.functional.interpolate(x, size=(height_next, width_next), mode='nearest')
+                x = rearrange(x, '(b t) c h w -> b c t h w', t=temp_current)
+                ones_tensor[:,:,:temp_current] = x
+                ones_tensor[:,:,temp_current:] = x[:,:,-1:].repeat(1, 1, temp_next - temp_current, 1, 1)
+                current_vae_latent = ones_tensor
+            else:
+                current_vae_latent = torch.nn.functional.interpolate(current_vae_latent, size=(temp_next, height_next, width_next), mode='trilinear')
+
+            upsample_vae_latent_list.append(current_vae_latent)
 
         return upsample_vae_latent_list
 
@@ -1754,19 +1759,21 @@ class PyramidDiTForVideoGeneration:
             # Prepare the latents
             if not self.deterministic_noise:
                 latents = noise_list[i_s]
-                print(latents.shape)
             else:
                 latent_height = latent_height * 2
                 latent_width = latent_width * 2
                 if not self.temporal_autoregressive:
-                    b, c, temp_current, _, _ = latents.shape
-                    ones_tensor = torch.ones(b, c, temp_next, latent_height, latent_width).to(latents.device)
-                    latents = rearrange(latents, 'b c t h w -> (b t) c h w')
-                    latents = torch.nn.functional.interpolate(latents, size=(latent_height, latent_width), mode='nearest')
-                    latents = rearrange(latents, '(b t) c h w -> b c t h w', t=temp_current)
-                    ones_tensor[:,:,:temp_current] = latents
-                    ones_tensor[:,:,temp_current:] = latents[:,:,-1:].repeat(1, 1, temp_next - temp_current, 1, 1)
-                    latents = ones_tensor
+                    if not self.trilinear_interpolation:
+                        b, c, temp_current, _, _ = latents.shape
+                        ones_tensor = torch.ones(b, c, temp_next, latent_height, latent_width).to(latents.device)
+                        latents = rearrange(latents, 'b c t h w -> (b t) c h w')
+                        latents = torch.nn.functional.interpolate(latents, size=(latent_height, latent_width), mode='nearest')
+                        latents = rearrange(latents, '(b t) c h w -> b c t h w', t=temp_current)
+                        ones_tensor[:,:,:temp_current] = latents
+                        ones_tensor[:,:,temp_current:] = latents[:,:,-1:].repeat(1, 1, temp_next - temp_current, 1, 1)
+                        latents = ones_tensor
+                    else:
+                        latents = torch.nn.functional.interpolate(latents, size=(temp_next, latent_height, latent_width), mode='trilinear')
                 else:
                     b, c, temp_current, _, _ = latents.shape
                     latents = rearrange(latents, 'b c t h w -> (b t) c h w')
