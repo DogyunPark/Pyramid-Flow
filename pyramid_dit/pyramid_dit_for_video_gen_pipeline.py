@@ -839,8 +839,11 @@ class PyramidDiTForVideoGeneration:
                 x = rearrange(x, '(b t) c h w -> b c t h w', t=temp)
             else:
                 x = torch.nn.functional.interpolate(original_x, size=(temp, height, width), mode='trilinear')
+            
+            export_to_video(x, "./output/eval_video_%d.mp4" % idx, fps=12)
             video_list.append(x.detach().clone())
 
+        import pdb;pdb.set_trace()
         video_list = list(reversed(video_list))
         return video_list
 
