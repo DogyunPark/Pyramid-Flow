@@ -1699,7 +1699,7 @@ class PyramidDiTForVideoGeneration:
         stages = self.stages
         stage_num = len(stages)
         height, width = input_image.shape[-2:]
-        
+
         # Prepare the condition latents
         stage_latent_condition = rearrange(input_image, 'b c t h w -> (b t) c h w')
         stage_latent_condition = torch.nn.functional.interpolate(stage_latent_condition, size=(height//(2**(stage_num)), width//(2**(stage_num))), mode='bicubic')
@@ -1723,7 +1723,7 @@ class PyramidDiTForVideoGeneration:
             temp_list = self.get_temp_stage(stage_num, downsample=True)
             noise_list = [latents.clone()]
             cur_noise = latents.detach().clone()
-            for i_s in range(stages-1):
+            for i_s in range(stage_num-1):
                 temp = temp_list[i_s]
                 height //= 2;width //= 2
                 cur_noise = cur_noise[:,:,:temp]
