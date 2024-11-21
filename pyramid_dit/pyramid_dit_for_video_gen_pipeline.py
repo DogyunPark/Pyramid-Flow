@@ -840,7 +840,11 @@ class PyramidDiTForVideoGeneration:
             else:
                 x = torch.nn.functional.interpolate(original_x, size=(temp, height, width), mode='trilinear')
             
-            export_to_video(x, "./output/eval_video_%d.mp4" % idx, fps=12)
+            image = x.mul(127.5).add(127.5).clamp(0, 255).byte()
+            image = rearrange(image, "B C T H W -> (B T) H W C")
+            image = image.cpu().numpy()
+            image = self.numpy_to_pil(image)
+            export_to_video(image, "./output/eval_video_%d.mp4" % idx, fps=12)
             video_list.append(x.detach().clone())
 
         import pdb;pdb.set_trace()
