@@ -55,4 +55,3 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 python \
     --load_vae \
     --gradient_checkpointing \
     --dit_pretrained_weight ./result/stage2-condition/checkpoint-999-1/pytorch_model_fsdp.bin \
-    --temporal_autoregressive
