@@ -57,5 +57,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 accelerate launch --multi_gpu --num_process
     --load_vae \
     --gradient_checkpointing \
     --temporal_autoregressive \
-    --use_flash_attn
+    --use_flash_attn \
+    --trilinear_interpolation \
+    --deterministic_noise
     
