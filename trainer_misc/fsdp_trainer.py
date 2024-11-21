@@ -96,7 +96,7 @@ def train_one_epoch_with_fsdp(
                 image = runner.generate_video(
                     prompt=text[1],
                     input_image=video[1:2, :, :1],
-                    num_inference_steps=[60, 60, 60],
+                    num_inference_steps=[20, 20, 20],
                     output_type="pil",
                     save_memory=True,
                     guidance_scale=6.0
