@@ -60,3 +60,4 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 accelerate launch --multi_gpu --num_process
     --temporal_autoregressive \
     --trilinear_interpolation \
     --condition_original_image \
+    --deterministic_noise
