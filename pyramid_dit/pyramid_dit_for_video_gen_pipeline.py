@@ -834,6 +834,7 @@ class PyramidDiTForVideoGeneration:
             height //= 2
             width //= 2
             temp = temp_list[idx]
+            if 
             x = original_x[:, :, :temp]
             x = rearrange(x, 'b c t h w -> (b t) c h w')
             x = torch.nn.functional.interpolate(x, size=(height, width), mode='bicubic')
@@ -1699,6 +1700,8 @@ class PyramidDiTForVideoGeneration:
         stages = self.stages
         stage_num = len(stages)
         height, width = input_image.shape[-2:]
+        latent_height = height // self.vae.config.downsample_scale
+        latent_width = width // self.vae.config.downsample_scale    
 
         # Prepare the condition latents
         stage_latent_condition = rearrange(input_image, 'b c t h w -> (b t) c h w')
@@ -1708,14 +1711,15 @@ class PyramidDiTForVideoGeneration:
         if self.condition_original_image:
             original_latent_condition = (self.vae.encode(input_image.to(self.vae.device, dtype=self.vae.dtype), temporal_chunk=False, tile_sample_min_size=1024).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c t h w] 
 
+
         if not self.deterministic_noise:
             num_channels_latents = (self.dit.config.in_channels // 4) if self.model_name == "pyramid_flux" else  self.dit.config.in_channels
             latents = self.prepare_latents(
                 batch_size * num_images_per_prompt,
                 num_channels_latents,
                 7,
-                height // self.vae.config.downsample_scale,
-                width // self.vae.config.downsample_scale,
+                latent_height,
+                latent_width,
                 prompt_embeds.dtype,
                 device,
                 generator,
@@ -1725,10 +1729,10 @@ class PyramidDiTForVideoGeneration:
             cur_noise = latents.detach().clone()
             for i_s in range(stage_num-1):
                 temp = temp_list[i_s]
-                height //= 2;width //= 2
+                latent_height //= 2;latent_width //= 2
                 cur_noise = cur_noise[:,:,:temp]
                 cur_noise = rearrange(cur_noise, 'b c t h w -> (b t) c h w')
-                cur_noise = F.interpolate(cur_noise, size=(height, width), mode='bilinear') * 2
+                cur_noise = F.interpolate(cur_noise, size=(latent_height, latent_width), mode='bilinear') * 2
                 cur_noise = rearrange(cur_noise, '(b t) c h w -> b c t h w', t=temp)
                 noise_list.append(cur_noise)
             #noise_list = list(reversed(noise_list))
@@ -1749,7 +1753,7 @@ class PyramidDiTForVideoGeneration:
         torch.cuda.empty_cache()  
 
         temp_upsample_list = self.get_temp_stage(stage_num, downsample=False)
-        height, width = latents.shape[-2:]
+        latent_height, latent_width = latents.shape[-2:]
 
         for i_s in range(stage_num):
             self.validation_scheduler.set_timesteps(num_inference_steps[i_s], device=device)
@@ -1762,15 +1766,14 @@ class PyramidDiTForVideoGeneration:
             # Prepare the latents
             if not self.deterministic_noise:
                 latents = noise_list[i_s]
-                print(latents.shape)
             else:
-                height = height * 2
-                width = width * 2
+                latent_height = latent_height * 2
+                latent_width = latent_width * 2
                 if not self.temporal_autoregressive:
                     b, c, temp_current, _, _ = latents.shape
                     ones_tensor = torch.ones(b, c, temp_next, height, width).to(latents.device)
                     latents = rearrange(latents, 'b c t h w -> (b t) c h w')
-                    latents = torch.nn.functional.interpolate(latents, size=(height, width), mode='nearest')
+                    latents = torch.nn.functional.interpolate(latents, size=(latent_height, latent_width), mode='nearest')
                     latents = rearrange(latents, '(b t) c h w -> b c t h w', t=temp_current)
                     ones_tensor[:,:,:temp_current] = latents
                     ones_tensor[:,:,temp_current:] = latents[:,:,-1:].repeat(1, 1, temp_next - temp_current, 1, 1)
@@ -1778,7 +1781,7 @@ class PyramidDiTForVideoGeneration:
                 else:
                     b, c, temp_current, _, _ = latents.shape
                     latents = rearrange(latents, 'b c t h w -> (b t) c h w')
-                    latents = torch.nn.functional.interpolate(latents, size=(height, width), mode='nearest')
+                    latents = torch.nn.functional.interpolate(latents, size=(latent_height, latent_width), mode='nearest')
                     latents = rearrange(latents, '(b t) c h w -> b c t h w', t=temp_current)
                     latents = latents[:,:,:1].detach().clone().repeat(1, 1, temp_next, 1, 1)
             
