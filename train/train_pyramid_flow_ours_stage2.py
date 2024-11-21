@@ -232,7 +232,7 @@ def get_args():
     parser.add_argument('--frame_interval', default=2, type=int, help='frame interval')
     parser.add_argument('--image_size', default=(384, 512), type=tuple, help='image size')
     parser.add_argument('--data_root', default='./train_data/data/train/OpenVid-1M.csv', type=str, help='The data root')
-    parser.add_argument('--json_path', default='./train_data/VIDGEN-1M/VidGen_1M_video_caption.json', type=str, help='The json path')
+    parser.add_argument('--json_path', default='./train_data/VIDGEN-1M/VidGen_1M_video_caption2.json', type=str, help='The json path')
     parser.add_argument('--root', default='./train_data/video', type=str, help='The root')
     parser.add_argument('--json_root', default='./train_data/VIDGEN-1M', type=str, help='The json root')
     parser.add_argument('--promptdir', default='/data/cvpr25/prompts/1024/', type=str, help='The prompt directory')
