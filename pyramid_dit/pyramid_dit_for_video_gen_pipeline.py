@@ -1762,6 +1762,7 @@ class PyramidDiTForVideoGeneration:
             # Prepare the latents
             if not self.deterministic_noise:
                 latents = noise_list[i_s]
+                import pdb; pdb.set_trace()
             else:
                 height = height * 2
                 width = width * 2
