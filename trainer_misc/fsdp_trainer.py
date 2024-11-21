@@ -90,11 +90,19 @@ def train_one_epoch_with_fsdp(
                 video =  samples['video'].to(accelerator.device)
                 text = samples['text']
 
-                #identifier = samples['identifier']
+                import pdb; pdb.set_trace()
+                
+                image = runner.generate_video(
+                    prompt=text[:1],
+                    input_image=video[:1, :, :1],
+                    num_inference_steps=[20, 20, 20],
+                    output_type="pil",
+                    save_memory=True,
+                    guidance_scale=2.0
+                )
+                export_to_video(image, "./output/text_to_video_sample-{}epoch-{}.mp4".format(epoch, num_image), fps=12)
 
-                # Perform the forward using the accerlate
-                # loss, log_loss = runner(video, text, identifier=None, 
-                #     use_temporal_pyramid=use_temporal_pyramid, accelerator=accelerator)
+                import pdb; pdb.set_trace()
 
                 loss, log_loss = runner(video, text, identifier=None, accelerator=accelerator)
 

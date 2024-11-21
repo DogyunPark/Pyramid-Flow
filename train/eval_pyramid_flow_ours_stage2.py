@@ -412,11 +412,7 @@ def main(args):
     global_rank = accelerator.process_index
     #anno_file = args.anno_file
 
-    
-    # For video generation training
-
     logger.info("Building dataset finished")
-
 
     # building ema model
     model_ema = deepcopy(runner.dit) if args.ema_update else None
