@@ -91,10 +91,11 @@ def train_one_epoch_with_fsdp(
                 text = samples['text']
 
                 import pdb; pdb.set_trace()
+                print(text[1])
                 
                 image = runner.generate_video(
-                    prompt=text[0],
-                    input_image=video[:1, :, :1],
+                    prompt=text[1],
+                    input_image=video[1:2, :, :1],
                     num_inference_steps=[60, 60, 60],
                     output_type="pil",
                     save_memory=True,
