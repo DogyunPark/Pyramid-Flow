@@ -239,6 +239,7 @@ def get_args():
     parser.add_argument('--temporal_autoregressive', action='store_true')
     parser.add_argument('--deterministic_noise', action='store_true')
     parser.add_argument('--condition_original_image', action='store_true')
+    parser.add_argument('--trilinear_interpolation', action='store_true')
 
     return parser.parse_args()
 
@@ -284,6 +285,7 @@ def build_model_runner(args):
         temporal_autoregressive=args.temporal_autoregressive,
         deterministic_noise=args.deterministic_noise,
         condition_original_image=args.condition_original_image,
+        trilinear_interpolation=args.trilinear_interpolation,
     )
     
     if args.dit_pretrained_weight:
@@ -551,8 +553,6 @@ def main(args):
     
     if 1:
         validation_height, validation_width = args.image_size
-        #validation_height = validation_height // (2**3)
-        #validation_width = validation_width // (2**3)
         filename_list, validation_images, validation_prompts = load_data_prompts(args.promptdir, video_size=(validation_height, validation_width), video_frames=args.num_frames)
     # if accelerator.is_main_process:
     #     accelerator.init_trackers(os.path.basename(args.output_dir), config=vars(args))
