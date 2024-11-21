@@ -160,6 +160,16 @@ def train_one_epoch_with_fsdp(
 
         # Generate the video for validation
         if step % 20 == 0:
+            image = runner.generate_video(
+                prompt=text[0],
+                input_image=video[:1, :, :1],
+                num_inference_steps=[20, 20, 20],
+                output_type="pil",
+                save_memory=True,
+                guidance_scale=3.0
+            )
+            export_to_video(image, "./output/text_to_video_sample-{}epoch-train.mp4".format(epoch), fps=12)
+        
             assert validation_prompt is not None and validation_image is not None
             for num_image in range(3):
                 prompt = validation_prompt[num_image]
@@ -172,7 +182,7 @@ def train_one_epoch_with_fsdp(
                     num_inference_steps=[20, 20, 20],
                     output_type="pil",
                     save_memory=True,
-                    guidance_scale=2.0
+                    guidance_scale=3.0
                 )
                 export_to_video(image, "./output/text_to_video_sample-{}epoch-{}.mp4".format(epoch, num_image), fps=12)
             print("Generated video for {} step/{} epoch".format(step, epoch))
