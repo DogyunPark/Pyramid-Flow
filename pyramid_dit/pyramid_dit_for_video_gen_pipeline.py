@@ -834,7 +834,7 @@ class PyramidDiTForVideoGeneration:
             height //= 2
             width //= 2
             temp = temp_list[idx]
-            if 
+            #if 
             x = original_x[:, :, :temp]
             x = rearrange(x, 'b c t h w -> (b t) c h w')
             x = torch.nn.functional.interpolate(x, size=(height, width), mode='bicubic')
@@ -1771,7 +1771,7 @@ class PyramidDiTForVideoGeneration:
                 latent_width = latent_width * 2
                 if not self.temporal_autoregressive:
                     b, c, temp_current, _, _ = latents.shape
-                    ones_tensor = torch.ones(b, c, temp_next, height, width).to(latents.device)
+                    ones_tensor = torch.ones(b, c, temp_next, latent_height, latent_width).to(latents.device)
                     latents = rearrange(latents, 'b c t h w -> (b t) c h w')
                     latents = torch.nn.functional.interpolate(latents, size=(latent_height, latent_width), mode='nearest')
                     latents = rearrange(latents, '(b t) c h w -> b c t h w', t=temp_current)
