@@ -1759,7 +1759,7 @@ class PyramidDiTForVideoGeneration:
             stage_latent_condition = latents.detach().clone()
 
             # Prepare the latents
-            if self.deterministic_noise:
+            if not self.deterministic_noise:
                 latents = noise_list[i_s]
             else:
                 height = height * 2
