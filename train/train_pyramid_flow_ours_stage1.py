@@ -239,6 +239,7 @@ def get_args():
     parser.add_argument('--condition_original_image', action='store_true')
     parser.add_argument('--trilinear_interpolation', action='store_true')
     parser.add_argument('--temporal_downsample', action='store_true')
+    parser.add_argument('--downsample_latent', action='store_true')
     return parser.parse_args()
 
 
@@ -285,6 +286,7 @@ def build_model_runner(args):
         condition_original_image=args.condition_original_image,
         trilinear_interpolation=args.trilinear_interpolation,
         temporal_downsample=args.temporal_downsample,
+        downsample_latent=args.downsample_latent,
     )
     
     if args.dit_pretrained_weight:
