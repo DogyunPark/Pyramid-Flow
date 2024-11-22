@@ -276,7 +276,7 @@ class PyramidDiTForVideoGeneration:
             elif stages == 2:
                 return [3, 5]
             elif stages == 3:
-                return [3, 5, 7]
+                return [3, 5, 9]
             else:
                 raise NotImplementedError(f"The number of stages {stages} is not supported")
 
@@ -559,7 +559,9 @@ class PyramidDiTForVideoGeneration:
                 if self.trilinear_interpolation:
                     start_point = temp_start_point.detach().clone()
                 else:
-                    start_point = temp_start_point[:,:,:1].detach().clone().repeat(1, 1, end_point.shape[2], 1, 1)
+                    #start_point = temp_start_point[:,:,:1].detach().clone().repeat(1, 1, end_point.shape[2], 1, 1)
+                    start_point = temp_start_point.detach().clone()
+
                 start_point = start_point + torch.randn_like(start_point) * self.corrupt_ratio[i_s]
             else:
                 start_point = noise_list[i_s][index::column_size]
@@ -1044,8 +1046,6 @@ class PyramidDiTForVideoGeneration:
             noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_with_temporal_pyramid(vae_latent_list, self.sample_ratios)
         else:
             noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_ours2(vae_latent_list, upsample_vae_latent_list, self.sample_ratios)
-
-        import pdb; pdb.set_trace()
 
         return noisy_latents_list, ratios_list, timesteps_list, targets_list
 
@@ -1863,9 +1863,7 @@ class PyramidDiTForVideoGeneration:
                         total_input = [stage_latent_condition_input, latent_model_input]
                     else:
                         total_input = [latent_model_input]
-                
-                import pdb; pdb.set_trace()
-                
+
                 # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
                 timestep = t.expand(latent_model_input.shape[0]).to(latent_model_input.dtype)
                 timestep = timestep.to(device)
@@ -2076,7 +2074,6 @@ class PyramidDiTForVideoGeneration:
 
                 #prompt_embeds = prompt_embeds.to(latent_model_input.dtype)
                 #pooled_prompt_embeds = pooled_prompt_embeds.to(latent_model_input.dtype)
-                #import pdb; pdb.set_trace()
                 noise_pred = self.dit(
                     sample=[[lowest_res_latent_model_input, latent_model_input]],
                     timestep_ratio=timestep,
