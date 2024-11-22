@@ -238,7 +238,7 @@ def get_args():
     parser.add_argument('--deterministic_noise', action='store_true')
     parser.add_argument('--condition_original_image', action='store_true')
     parser.add_argument('--trilinear_interpolation', action='store_true')
-
+    parser.add_argument('--temporal_downsample', action='store_true')
     return parser.parse_args()
 
 
@@ -284,6 +284,7 @@ def build_model_runner(args):
         deterministic_noise=args.deterministic_noise,
         condition_original_image=args.condition_original_image,
         trilinear_interpolation=args.trilinear_interpolation,
+        temporal_downsample=args.temporal_downsample,
     )
     
     if args.dit_pretrained_weight:
