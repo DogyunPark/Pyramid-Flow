@@ -1792,6 +1792,8 @@ class PyramidDiTForVideoGeneration:
         
         generated_latents_list = [latents.clone()]    # The generated results
 
+        import pdb; pdb.set_trace()
+        
         if cpu_offloading:
             self.vae.to("cpu")
             if not self.sequential_offload_enabled:
