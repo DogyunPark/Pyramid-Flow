@@ -162,7 +162,6 @@ def train_one_epoch_with_fsdp(
         if step % 20 == 0:
             runner.dit.eval()
             #print("Generating the video for text: {}".format(text[0]))
-            import pdb; pdb.set_trace()
             image = runner.generate_video(
                 prompt=text[0],
                 input_image=video[:1, :, :1],
@@ -172,7 +171,6 @@ def train_one_epoch_with_fsdp(
                 guidance_scale=3.0
             )
             export_to_video(image, "./output/text_to_video_sample-{}epoch-train.mp4".format(epoch), fps=12)
-            import pdb; pdb.set_trace()
             assert validation_prompt is not None and validation_image is not None
             for num_image in range(3):
                 prompt = validation_prompt[num_image]
