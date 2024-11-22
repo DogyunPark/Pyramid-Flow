@@ -1792,8 +1792,6 @@ class PyramidDiTForVideoGeneration:
         
         generated_latents_list = [latents.clone()]    # The generated results
 
-        import pdb; pdb.set_trace()
-        
         if cpu_offloading:
             self.vae.to("cpu")
             if not self.sequential_offload_enabled:
@@ -1858,7 +1856,8 @@ class PyramidDiTForVideoGeneration:
                         total_input = [stage_latent_condition, latent_model_input]
                     else:
                         total_input = [latent_model_input]
-            
+
+                import pdb; pdb.set_trace()
                 # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
                 timestep = t.expand(latent_model_input.shape[0]).to(latent_model_input.dtype)
                 timestep = timestep.to(device)
