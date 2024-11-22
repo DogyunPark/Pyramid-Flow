@@ -1044,7 +1044,9 @@ class PyramidDiTForVideoGeneration:
             noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_with_temporal_pyramid(vae_latent_list, self.sample_ratios)
         else:
             noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_ours2(vae_latent_list, upsample_vae_latent_list, self.sample_ratios)
-            
+        
+        import pdb; pdb.set_trace()
+        
         return noisy_latents_list, ratios_list, timesteps_list, targets_list
 
     @torch.no_grad()
