@@ -53,6 +53,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 python \
     --save_ckpt_freq 1 \
     --load_vae \
     --gradient_checkpointing \
+    --downsample_latent \
     --temporal_autoregressive \
     --temporal_downsample \
     --condition_original_image \

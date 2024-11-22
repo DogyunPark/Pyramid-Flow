@@ -982,7 +982,7 @@ class PyramidDiTForVideoGeneration:
                     
                     upsample_vae_latent_list = self.get_pyramid_latent_with_spatial_upsample(vae_latent_list)
                 else:
-                    if self.downsample_latent:
+                    if not self.downsample_latent:
                         if self.temporal_downsample:
                             video_list = self.get_pyramid_input_with_temporal_downsample(video, len(self.stages))
                         else:
@@ -1007,6 +1007,7 @@ class PyramidDiTForVideoGeneration:
 
                             vae_latent_list.append(video)
                     else:
+                        video = self.vae.encode(video, temporal_chunk=True, window_size=8, tile_sample_min_size=512).latent_dist.sample() # [b c t h w]
                         if video.shape[2] == 1:
                             # is image
                             video = (video - self.vae_shift_factor) * self.vae_scale_factor
@@ -1039,14 +1040,11 @@ class PyramidDiTForVideoGeneration:
                     vae_latent_list = self.get_pyramid_latent_with_temporal_downsample(video, len(self.stages))
                     upsample_vae_latent_list = self.get_pyramid_latent_with_temporal_upsample(vae_latent_list)
 
-        import pdb; pdb.set_trace()
-
         if use_temporal_pyramid:
             noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_with_temporal_pyramid(vae_latent_list, self.sample_ratios)
         else:
             noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_ours2(vae_latent_list, upsample_vae_latent_list, self.sample_ratios)
-
-        import pdb; pdb.set_trace()
+            
         return noisy_latents_list, ratios_list, timesteps_list, targets_list
 
     @torch.no_grad()
