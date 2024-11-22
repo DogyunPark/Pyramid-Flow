@@ -161,7 +161,7 @@ def train_one_epoch_with_fsdp(
         # Generate the video for validation
         if step % 20 == 0:
             runner.dit.eval()
-            print("Generating the video for text: {}".format(text[0]))
+            #print("Generating the video for text: {}".format(text[0]))
             image = runner.generate_video(
                 prompt=text[0],
                 input_image=video[:1, :, :1],
