@@ -1857,7 +1857,7 @@ class PyramidDiTForVideoGeneration:
                         total_input = [stage_latent_condition_input, latent_model_input]
                     else:
                         total_input = [latent_model_input]
-                        
+                
                 # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
                 timestep = t.expand(latent_model_input.shape[0]).to(latent_model_input.dtype)
                 timestep = timestep.to(device)
