@@ -1045,6 +1045,8 @@ class PyramidDiTForVideoGeneration:
         else:
             noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_ours2(vae_latent_list, upsample_vae_latent_list, self.sample_ratios)
 
+        import pdb; pdb.set_trace()
+
         return noisy_latents_list, ratios_list, timesteps_list, targets_list
 
     @torch.no_grad()
@@ -1830,6 +1832,10 @@ class PyramidDiTForVideoGeneration:
                         ones_tensor[:,:,:temp_current] = latents
                         ones_tensor[:,:,temp_current:] = latents[:,:,-1:].repeat(1, 1, temp_next - temp_current, 1, 1)
                         latents = ones_tensor
+                    else:
+                        latents = rearrange(latents, 'b c t h w -> (b t) c h w')
+                        latents = torch.nn.functional.interpolate(latents, size=(latent_height, latent_width), mode='nearest')
+                        latents = rearrange(latents, '(b t) c h w -> b c t h w', t=latent_temp)
                 else:
                     if self.temporal_downsample:
                         latents = torch.nn.functional.interpolate(latents, size=(temp_next, latent_height, latent_width), mode='trilinear')
@@ -1857,6 +1863,8 @@ class PyramidDiTForVideoGeneration:
                         total_input = [stage_latent_condition_input, latent_model_input]
                     else:
                         total_input = [latent_model_input]
+                
+                import pdb; pdb.set_trace()
                 
                 # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
                 timestep = t.expand(latent_model_input.shape[0]).to(latent_model_input.dtype)
