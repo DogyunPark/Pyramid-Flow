@@ -1810,7 +1810,8 @@ class PyramidDiTForVideoGeneration:
             temp_next = temp_upsample_list[i_s]
             
             # Prepare the condition latents
-            stage_latent_condition = latents.detach().clone()
+            if i_s > 0:
+                stage_latent_condition = latents.detach().clone()
 
             # Prepare the latents
             if not self.deterministic_noise:
@@ -1853,11 +1854,10 @@ class PyramidDiTForVideoGeneration:
                 else:
                     if self.temporal_autoregressive:
                         stage_latent_condition_input = torch.cat([stage_latent_condition] * 2) if self.do_classifier_free_guidance else stage_latent_condition
-                        total_input = [stage_latent_condition, latent_model_input]
+                        total_input = [stage_latent_condition_input, latent_model_input]
                     else:
                         total_input = [latent_model_input]
-
-                import pdb; pdb.set_trace()
+                        
                 # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
                 timestep = t.expand(latent_model_input.shape[0]).to(latent_model_input.dtype)
                 timestep = timestep.to(device)
