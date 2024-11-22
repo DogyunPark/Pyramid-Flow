@@ -276,7 +276,7 @@ class PyramidDiTForVideoGeneration:
             elif stages == 2:
                 return [3, 5]
             elif stages == 3:
-                return [3, 5, 9]
+                return [3, 5, 7]
             else:
                 raise NotImplementedError(f"The number of stages {stages} is not supported")
 
