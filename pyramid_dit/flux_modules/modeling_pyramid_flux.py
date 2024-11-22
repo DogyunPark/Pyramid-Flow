@@ -357,6 +357,7 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
                 each_latent = rearrange(each_latent, 'b t (h p1) (w p2) c -> b (t h w) (p1 p2 c)', p1=self.patch_size, p2=self.patch_size)
                 video_tokens.append(each_latent)
 
+            import pdb; pdb.set_trace()
             video_tokens = torch.cat(video_tokens, dim=1)
             video_tokens = self.x_embedder(video_tokens)
             hidden_states.append(video_tokens)
