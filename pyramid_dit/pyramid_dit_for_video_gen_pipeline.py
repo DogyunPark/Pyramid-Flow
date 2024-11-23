@@ -568,7 +568,7 @@ class PyramidDiTForVideoGeneration:
 
             # Additional injection
             if self.condition_original_image:
-                original_latent_condition = latents_list[-1][index::column_size]
+                original_latent_condition = latents_list[i_s+1][index::column_size]
                 original_latent_condition = original_latent_condition[:,:,0].unsqueeze(2)
                 noise_ratio2 = torch.rand(size=(batch_size,), device=device) / 3
                 noise_ratio2 = noise_ratio2[:, None, None, None, None]
@@ -942,7 +942,12 @@ class PyramidDiTForVideoGeneration:
                 x = torch.nn.functional.interpolate(x, size=(height_next, width_next), mode='nearest')
                 x = rearrange(x, '(b t) c h w -> b c t h w', t=temp_current)
                 ones_tensor[:,:,:temp_current] = x
-                ones_tensor[:,:,temp_current:] = x[:,:,-1:].repeat(1, 1, temp_next - temp_current, 1, 1)
+                if temp_current == 1:
+                    next_x = (x[:,:,-1:].detach().clone() / self.vae_scale_factor) + self.vae_shift_factor
+                    next_x = (next_x - self.vae_video_shift_factor) * self.vae_video_scale_factor
+                    ones_tensor[:,:,temp_current:] = next_x.repeat(1, 1, temp_next - temp_current, 1, 1)
+                else:
+                    ones_tensor[:,:,temp_current:] = x[:,:,-1:].repeat(1, 1, temp_next - temp_current, 1, 1)
                 current_vae_latent = ones_tensor
             else:
                 current_vae_latent = torch.nn.functional.interpolate(current_vae_latent, size=(temp_next, height_next, width_next), mode='trilinear')
