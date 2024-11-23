@@ -1764,7 +1764,7 @@ class PyramidDiTForVideoGeneration:
         stage_latent_condition = (self.vae.encode(stage_latent_condition.to(self.vae.device, dtype=self.vae.dtype), temporal_chunk=False, tile_sample_min_size=1024).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c t h w] 
         if self.condition_original_image:
             original_latent_condition = (self.vae.encode(input_image.to(self.vae.device, dtype=self.vae.dtype), temporal_chunk=False, tile_sample_min_size=1024).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c t h w] 
-
+            original_latent_condition_list = self.get_pyramid_latent_with_spatial_downsample(original_latent_condition, stage_num)
 
         if not self.deterministic_noise:
             num_channels_latents = (self.dit.config.in_channels // 4) if self.model_name == "pyramid_flux" else  self.dit.config.in_channels
@@ -1819,6 +1819,7 @@ class PyramidDiTForVideoGeneration:
             # Prepare the condition latents
             if i_s > 0:
                 stage_latent_condition = latents.detach().clone()
+            original_latent_condition = original_latent_condition_list[i_s+1]
 
             # Prepare the latents
             if not self.deterministic_noise:
