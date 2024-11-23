@@ -1835,7 +1835,12 @@ class PyramidDiTForVideoGeneration:
                         latents = torch.nn.functional.interpolate(latents, size=(latent_height, latent_width), mode='nearest')
                         latents = rearrange(latents, '(b t) c h w -> b c t h w', t=temp_current)
                         ones_tensor[:,:,:temp_current] = latents
-                        ones_tensor[:,:,temp_current:] = latents[:,:,-1:].repeat(1, 1, temp_next - temp_current, 1, 1)
+                        if temp_current == 1:
+                            next_x = (latents[:,:,-1:].detach().clone() / self.vae_scale_factor) + self.vae_shift_factor
+                            next_x = (next_x - self.vae_video_shift_factor) * self.vae_video_scale_factor
+                            ones_tensor[:,:,temp_current:] = next_x.repeat(1, 1, temp_next - temp_current, 1, 1)
+                        else:
+                            ones_tensor[:,:,temp_current:] = latents[:,:,-1:].repeat(1, 1, temp_next - temp_current, 1, 1)
                         latents = ones_tensor
                     else:
                         latents = rearrange(latents, 'b c t h w -> (b t) c h w')
