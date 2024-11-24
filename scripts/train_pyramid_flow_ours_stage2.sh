@@ -61,4 +61,4 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 accelerate launch --multi_gpu --num_process
     --temporal_downsample \
     --downsample_latent \
     --num_frames 49 \
-    --dit_pretrained_path /data/cvpr25/Pyramid-Flow/result/stage3-downsample-noise-conditionoriginal/checkpoint-999-2/pytorch_model_fsdp.bin \
+    --dit_pretrained_weight /data/cvpr25/Pyramid-Flow/result/stage3-downsample-noise-conditionoriginal/checkpoint-999-2/pytorch_model_fsdp.bin \
