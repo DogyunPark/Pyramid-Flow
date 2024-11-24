@@ -301,7 +301,7 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
                     train_temp = temp
                 else:
                     train_temp = self.train_temp
-                cur_image_ids.append(self._prepare_image_ids(batch_size, temp, height, width, train_height, train_width, train_temp, device, start_time_stamp=start_time_stamp))
+                cur_image_ids.append(self._prepare_image_ids(batch_size, temp, height, width, train_height, train_width, device, start_time_stamp=start_time_stamp))
                 #start_time_stamp += temp
 
             cur_image_ids = torch.cat(cur_image_ids, dim=1)
@@ -337,7 +337,7 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
             trainable_token_list.append(height * width * temp)
 
         # prepare the RoPE IDs, 
-        image_ids_list = self._prepare_pyramid_image_ids(sample, pad_batch_size, device)
+        image_ids_list = self._prepare_pyramid_image_ids_ours(sample, pad_batch_size, device)
         text_ids = torch.zeros(pad_batch_size, encoder_attention_mask.shape[1], 3).to(device=device)
         input_ids_list = [torch.cat([text_ids, image_ids], dim=1) for image_ids in image_ids_list]
         image_rotary_emb = [self.pos_embed(input_ids) for input_ids in input_ids_list]  # [bs, seq_len, 1, head_dim // 2, 2, 2]
