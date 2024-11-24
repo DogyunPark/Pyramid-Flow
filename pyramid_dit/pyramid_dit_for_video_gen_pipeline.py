@@ -936,12 +936,12 @@ class PyramidDiTForVideoGeneration:
                 x = torch.nn.functional.interpolate(x, size=(height_next, width_next), mode='nearest')
                 x = rearrange(x, '(b t) c h w -> b c t h w', t=temp_current)
                 ones_tensor[:,:,:temp_current] = x
-                if temp_current == 1:
-                    next_x = (x[:,:,-1:].detach().clone() / self.vae_scale_factor) + self.vae_shift_factor
-                    next_x = (next_x - self.vae_video_shift_factor) * self.vae_video_scale_factor
-                    ones_tensor[:,:,temp_current:] = next_x.repeat(1, 1, temp_next - temp_current, 1, 1)
-                else:
-                    ones_tensor[:,:,temp_current:] = x[:,:,-1:].repeat(1, 1, temp_next - temp_current, 1, 1)
+                # if temp_current == 1:
+                #     next_x = (x[:,:,-1:].detach().clone() / self.vae_scale_factor) + self.vae_shift_factor
+                #     next_x = (next_x - self.vae_video_shift_factor) * self.vae_video_scale_factor
+                #     ones_tensor[:,:,temp_current:] = next_x.repeat(1, 1, temp_next - temp_current, 1, 1)
+                # else:
+                ones_tensor[:,:,temp_current:] = x[:,:,-1:].repeat(1, 1, temp_next - temp_current, 1, 1)
                 current_vae_latent = ones_tensor
             else:
                 current_vae_latent = torch.nn.functional.interpolate(current_vae_latent, size=(temp_next, height_next, width_next), mode='trilinear')
@@ -1046,7 +1046,7 @@ class PyramidDiTForVideoGeneration:
             noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_with_temporal_pyramid(vae_latent_list, self.sample_ratios)
         else:
             noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_ours2(vae_latent_list, upsample_vae_latent_list, self.sample_ratios)
-            
+
         return noisy_latents_list, ratios_list, timesteps_list, targets_list
 
     @torch.no_grad()
@@ -1831,12 +1831,12 @@ class PyramidDiTForVideoGeneration:
                         latents = torch.nn.functional.interpolate(latents, size=(latent_height, latent_width), mode='nearest')
                         latents = rearrange(latents, '(b t) c h w -> b c t h w', t=temp_current)
                         ones_tensor[:,:,:temp_current] = latents
-                        if temp_current == 1:
-                            next_x = (latents[:,:,-1:].detach().clone() / self.vae_scale_factor) + self.vae_shift_factor
-                            next_x = (next_x - self.vae_video_shift_factor) * self.vae_video_scale_factor
-                            ones_tensor[:,:,temp_current:] = next_x.repeat(1, 1, temp_next - temp_current, 1, 1)
-                        else:
-                            ones_tensor[:,:,temp_current:] = latents[:,:,-1:].repeat(1, 1, temp_next - temp_current, 1, 1)
+                        # if temp_current == 1:
+                        #     next_x = (latents[:,:,-1:].detach().clone() / self.vae_scale_factor) + self.vae_shift_factor
+                        #     next_x = (next_x - self.vae_video_shift_factor) * self.vae_video_scale_factor
+                        #     ones_tensor[:,:,temp_current:] = next_x.repeat(1, 1, temp_next - temp_current, 1, 1)
+                        # else:
+                        ones_tensor[:,:,temp_current:] = latents[:,:,-1:].repeat(1, 1, temp_next - temp_current, 1, 1)
                         latents = ones_tensor
                     else:
                         temp_current = latents.shape[2]
