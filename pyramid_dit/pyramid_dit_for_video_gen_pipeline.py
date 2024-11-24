@@ -588,8 +588,6 @@ class PyramidDiTForVideoGeneration:
             timesteps = self.scheduler.timesteps[indices].to(device=device)
             ratios = self.scheduler.sigmas[indices].to(device=device)
 
-            import pdb; pdb.set_trace()
-            
             while len(ratios.shape) < start_point.ndim:
                 ratios = ratios.unsqueeze(-1)
 
@@ -960,13 +958,14 @@ class PyramidDiTForVideoGeneration:
 
         for idx in range(stage_num):
             next_idx = idx + 1
+            temp_next = vae_latent_list[next_idx].shape[2]
             height_next = vae_latent_list[next_idx].shape[3]
             width_next = vae_latent_list[next_idx].shape[4]
 
             current_vae_latent = vae_latent_list[idx]
             x = rearrange(current_vae_latent, 'b c t h w -> (b t) c h w')
             x = torch.nn.functional.interpolate(x, size=(height_next, width_next), mode='nearest')
-            x = rearrange(x, '(b t) c h w -> b c t h w', t=1)
+            x = rearrange(x, '(b t) c h w -> b c t h w', t=temp_next)
             upsample_vae_latent_list.append(x)
 
         return upsample_vae_latent_list
@@ -1047,8 +1046,7 @@ class PyramidDiTForVideoGeneration:
             noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_with_temporal_pyramid(vae_latent_list, self.sample_ratios)
         else:
             noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_ours2(vae_latent_list, upsample_vae_latent_list, self.sample_ratios)
-
-        import pdb; pdb.set_trace()
+            
         return noisy_latents_list, ratios_list, timesteps_list, targets_list
 
     @torch.no_grad()
