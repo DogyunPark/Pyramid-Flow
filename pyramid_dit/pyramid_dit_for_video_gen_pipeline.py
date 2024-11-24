@@ -588,6 +588,8 @@ class PyramidDiTForVideoGeneration:
             timesteps = self.scheduler.timesteps[indices].to(device=device)
             ratios = self.scheduler.sigmas[indices].to(device=device)
 
+            import pdb; pdb.set_trace()
+            
             while len(ratios.shape) < start_point.ndim:
                 ratios = ratios.unsqueeze(-1)
 
