@@ -121,6 +121,8 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
         gradient_checkpointing_ratio: float = 0.6,
         trilinear_interpolation: bool = False,
         num_frames: int = 49,
+        height: int = 256,
+        width: int = 384,
     ):
         super().__init__()
         self.out_channels = in_channels
@@ -175,8 +177,8 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
             print("Using Flash attention")
 
         self.patch_size = 2   # hard-code for now
-        self.train_height = 64 // self.patch_size
-        self.train_width = 64 // self.patch_size
+        self.train_height = (height // 8) // self.patch_size
+        self.train_width = (width // 8) // self.patch_size
         self.train_temp = num_frames
         self.trilinear_interpolation = trilinear_interpolation
 
@@ -356,7 +358,7 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
                 each_latent = rearrange(each_latent, 'b c t h w -> b t h w c')
                 each_latent = rearrange(each_latent, 'b t (h p1) (w p2) c -> b (t h w) (p1 p2 c)', p1=self.patch_size, p2=self.patch_size)
                 video_tokens.append(each_latent)
-                
+
             video_tokens = torch.cat(video_tokens, dim=1)
             video_tokens = self.x_embedder(video_tokens)
             hidden_states.append(video_tokens)

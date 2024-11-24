@@ -288,6 +288,10 @@ def build_model_runner(args):
         condition_original_image=args.condition_original_image,
         trilinear_interpolation=args.trilinear_interpolation,
         temporal_downsample=args.temporal_downsample,
+        downsample_latent=args.downsample_latent,
+        height=args.height,
+        width=args.width,
+        num_frames=args.num_frames,
     )
     
     if args.dit_pretrained_weight:

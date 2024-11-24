@@ -70,6 +70,8 @@ def build_pyramid_dit(
     gradient_checkpointing_ratio: float = 0.6,
     trilinear_interpolation: bool = False,
     num_frames: int = 49,
+    height: int = 256,
+    width: int = 384,
 ):
     model_dtype = torch.float32 if use_mixed_training else torch_dtype
     if model_name == "pyramid_flux":
@@ -80,7 +82,7 @@ def build_pyramid_dit(
             use_flash_attn=use_flash_attn, use_temporal_causal=use_temporal_causal,
             interp_condition_pos=interp_condition_pos, axes_dims_rope=[16, 24, 24],
             trilinear_interpolation=trilinear_interpolation,
-            num_frames=num_frames,
+            num_frames=num_frames, height=height, width=width,
         )
     elif model_name == "pyramid_mmdit":
         dit = PyramidDiffusionMMDiT.from_pretrained(
@@ -126,8 +128,8 @@ class PyramidDiTForVideoGeneration:
         sample_ratios=[1, 1, 1], scheduler_gamma=1/3, use_mixed_training=False, use_flash_attn=False, 
         load_text_encoder=True, load_vae=True, max_temporal_length=31, frame_per_unit=1, use_temporal_causal=True, 
         corrupt_ratio=1/3, interp_condition_pos=True, stages=[1, 2, 4], video_sync_group=8, gradient_checkpointing_ratio=0.6, 
-        temporal_autoregressive=False, deterministic_noise=False, condition_original_image=False, num_frames=49, trilinear_interpolation=False, 
-        temporal_downsample=False, downsample_latent=False, **kwargs,
+        temporal_autoregressive=False, deterministic_noise=False, condition_original_image=False, num_frames=49, height=256, width=384,
+        trilinear_interpolation=False, temporal_downsample=False, downsample_latent=False, **kwargs,
     ):
         super().__init__()
 
@@ -150,7 +152,7 @@ class PyramidDiTForVideoGeneration:
             use_flash_attn=use_flash_attn, use_mixed_training=use_mixed_training,
             interp_condition_pos=interp_condition_pos, use_gradient_checkpointing=use_gradient_checkpointing,
             use_temporal_causal=use_temporal_causal, gradient_checkpointing_ratio=gradient_checkpointing_ratio,
-            trilinear_interpolation=trilinear_interpolation, num_frames=num_frames,
+            trilinear_interpolation=trilinear_interpolation, num_frames=num_frames, height=height, width=width,
         )
 
         # The text encoder
