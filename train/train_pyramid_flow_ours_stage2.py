@@ -289,8 +289,8 @@ def build_model_runner(args):
         trilinear_interpolation=args.trilinear_interpolation,
         temporal_downsample=args.temporal_downsample,
         downsample_latent=args.downsample_latent,
-        height=args.height,
-        width=args.width,
+        height=args.image_size[0],
+        width=args.image_size[1],
         num_frames=args.num_frames,
     )
     
