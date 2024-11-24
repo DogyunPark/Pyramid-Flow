@@ -863,12 +863,6 @@ class PyramidDiTForVideoGeneration:
                 x = rearrange(x, '(b t) c h w -> b c t h w', t=temp)
             else:
                 x = torch.nn.functional.interpolate(original_x, size=(temp, height, width), mode='trilinear')
-            
-            image = x.mul(127.5).add(127.5).clamp(0, 255).byte()
-            image = rearrange(image, "B C T H W -> (B T) H W C")
-            image = image.cpu().numpy()
-            image = self.numpy_to_pil(image)
-            export_to_video(image, "./output/eval_video_%d.mp4" % idx, fps=12)
             video_list.append(x.detach().clone())
 
         video_list = list(reversed(video_list))
@@ -1844,16 +1838,18 @@ class PyramidDiTForVideoGeneration:
                             ones_tensor[:,:,temp_current:] = latents[:,:,-1:].repeat(1, 1, temp_next - temp_current, 1, 1)
                         latents = ones_tensor
                     else:
+                        temp_current = latents.shape[2]
                         latents = rearrange(latents, 'b c t h w -> (b t) c h w')
                         latents = torch.nn.functional.interpolate(latents, size=(latent_height, latent_width), mode='nearest')
-                        latents = rearrange(latents, '(b t) c h w -> b c t h w', t=latent_temp)
+                        latents = rearrange(latents, '(b t) c h w -> b c t h w', t=temp_current)
                 else:
                     if self.temporal_downsample:
                         latents = torch.nn.functional.interpolate(latents, size=(temp_next, latent_height, latent_width), mode='trilinear')
                     else:
+                        temp_current = latents.shape[2]
                         latents = rearrange(latents, 'b c t h w -> (b t) c h w')
                         latents = torch.nn.functional.interpolate(latents, size=(latent_height, latent_width), mode='nearest')
-                        latents = rearrange(latents, '(b t) c h w -> b c t h w', t=latent_temp)
+                        latents = rearrange(latents, '(b t) c h w -> b c t h w', t=temp_current)
 
                 # Noise augmentation
                 noise_aug = torch.randn_like(latents)
