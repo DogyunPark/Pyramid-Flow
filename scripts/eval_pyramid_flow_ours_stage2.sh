@@ -59,5 +59,5 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 python \
     --condition_original_image \
     --temporal_downsample \
     --num_frames 49 \
-    --temporal_autoregressive \
-    --dit_pretrained_weight /data/cvpr25/Pyramid-Flow/result/stage3-downsample-noise-conditionoriginal2/checkpoint-1999-1/pytorch_model_fsdp.bin \
+    --deterministic_noise \
+    --dit_pretrained_weight /data/cvpr25/Pyramid-Flow/result/stage3-downsample-noise-conditionoriginal/checkpoint-999-6/pytorch_model_fsdp.bin \
