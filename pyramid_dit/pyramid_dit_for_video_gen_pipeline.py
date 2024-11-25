@@ -153,6 +153,7 @@ class PyramidDiTForVideoGeneration:
             interp_condition_pos=interp_condition_pos, use_gradient_checkpointing=use_gradient_checkpointing,
             use_temporal_causal=use_temporal_causal, gradient_checkpointing_ratio=gradient_checkpointing_ratio,
             trilinear_interpolation=trilinear_interpolation, num_frames=num_frames, height=height, width=width,
+            condition_original_image=condition_original_image,
         )
 
         # The text encoder

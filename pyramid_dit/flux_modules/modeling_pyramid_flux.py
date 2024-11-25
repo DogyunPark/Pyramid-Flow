@@ -120,6 +120,7 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
         use_gradient_checkpointing: bool = False,
         gradient_checkpointing_ratio: float = 0.6,
         trilinear_interpolation: bool = False,
+        condition_original_image: bool = False,
         num_frames: int = 49,
         height: int = 256,
         width: int = 384,
@@ -179,9 +180,9 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
         self.patch_size = 2   # hard-code for now
         self.train_height = (height // 8) // self.patch_size
         self.train_width = (width // 8) // self.patch_size
-        self.train_temp = num_frames
+        self.train_temp = (num_frames // 8) + 1
         self.trilinear_interpolation = trilinear_interpolation
-
+        self.condition_original_image = condition_original_image
         # init weights
         self.initialize_weights()
 
@@ -297,10 +298,13 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
                 _, _, temp, height, width = clip_.shape
                 height = height // self.patch_size
                 width = width // self.patch_size
-                if i_sample == 0:
-                    train_temp = temp
+                if self.condition_original_image:
+                    if i_sample == 0:
+                        train_temp = temp
+                    else:
+                        train_temp = self.train_temp
                 else:
-                    train_temp = self.train_temp
+                    train_temp = temp
                 cur_image_ids.append(self._prepare_image_ids(batch_size, temp, height, width, train_height, train_width, train_temp, device, start_time_stamp=start_time_stamp))
                 #start_time_stamp += temp
 
