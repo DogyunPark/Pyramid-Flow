@@ -220,7 +220,7 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
         nn.init.constant_(self.proj_out.bias, 0)
 
     @torch.no_grad()
-    def _prepare_image_ids(self, batch_size, temp, height, width, train_height, train_width, train_temp, device, start_time_stamp=0):
+    def _prepare_image_ids(self, batch_size, temp, height, width, train_height, train_width, device, start_time_stamp=0):
         latent_image_ids = torch.zeros(temp, height, width, 3)
 
         #Temporal Rope``
