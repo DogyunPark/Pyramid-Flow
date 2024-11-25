@@ -1846,8 +1846,8 @@ class PyramidDiTForVideoGeneration:
                 latent_width = latent_width * 2
 
                 if self.delta_learning:
-                    temp_start_dim = original_latent_condition.shape[2]
-                    latents = original_latent_condition[:,:,:1].repeat(1, 1, temp_start_dim, 1, 1).detach().clone()
+                    #temp_start_dim = original_latent_condition.shape[2]
+                    latents = original_latent_condition[:,:,:1].repeat(1, 1, temp_next, 1, 1).detach().clone()
                 else:
                     if not self.trilinear_interpolation:
                         if self.temporal_downsample:
