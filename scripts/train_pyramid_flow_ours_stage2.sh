@@ -59,6 +59,5 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 accelerate launch --multi_gpu --num_process
     --temporal_downsample \
     --downsample_latent \
     --num_frames 49 \
-    --temporal_autoregressive \
     --deterministic_noise \
-    --delta_learning \
+    --trilinear_interpolation \

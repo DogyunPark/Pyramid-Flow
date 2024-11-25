@@ -304,7 +304,7 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
                     else:
                         train_temp = self.train_temp
                 else:
-                    train_temp = temp
+                    train_temp = self.train_temp
                 cur_image_ids.append(self._prepare_image_ids(batch_size, temp, height, width, train_height, train_width, train_temp, device, start_time_stamp=start_time_stamp))
                 #start_time_stamp += temp
 
