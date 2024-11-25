@@ -1857,7 +1857,6 @@ class PyramidDiTForVideoGeneration:
                 noise_aug = torch.randn_like(latents)
                 latents = latents + noise_aug * self.corrupt_ratio[i_s]
             
-            import pdb; pdb.set_trace()
             for idx, t in enumerate(timesteps):
                 latent_model_input = torch.cat([latents] * 2) if self.do_classifier_free_guidance else latents
                 if self.condition_original_image:
