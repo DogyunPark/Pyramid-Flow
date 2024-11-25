@@ -254,8 +254,8 @@ def build_model_runner(args):
     model_variant = args.model_variant
 
     print(f"Load the {model_name} model checkpoint from path: {model_path}, using dtype {model_dtype}")
-    sample_ratios = [1, 2, 1]  # The sample_ratios of each stage
-    #sample_ratios = [1]  # The sample_ratios of each stage
+    #sample_ratios = [1, 2, 1]  # The sample_ratios of each stage
+    sample_ratios = [1]  # The sample_ratios of each stage
     corrupt_ratio = [1/6, 1/4, 1/3]
     #corrupt_ratio = [1/3, 1/3, 1/2]
     #sample_ratios = [1]  # The sample_ratios of each stage
@@ -270,8 +270,8 @@ def build_model_runner(args):
         return_log=True,
         model_variant=model_variant,
         timestep_shift=args.schedule_shift,
-        stages=[1, 2, 4],      # using 3 stages
-        #stages=[1],      # using 1 stage
+        #stages=[1, 2, 4],      # using 3 stages
+        stages=[1],      # using 1 stage
         stage_range=[0, 1/3, 2/3, 1],
         sample_ratios=sample_ratios,     # The sample proportion in a training batch
         use_mixed_training=True,
