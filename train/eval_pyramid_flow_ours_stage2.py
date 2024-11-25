@@ -234,7 +234,12 @@ def get_args():
     parser.add_argument('--data_root', default='./train_data/data/train/OpenVid-1M.csv', type=str, help='The data root')
     parser.add_argument('--root', default='./train_data/video', type=str, help='The root')
     parser.add_argument('--promptdir', default='/data/cvpr25/prompts/1024/', type=str, help='The prompt directory')
-
+    parser.add_argument('--temporal_autoregressive', action='store_true')
+    parser.add_argument('--deterministic_noise', action='store_true')
+    parser.add_argument('--condition_original_image', action='store_true')
+    parser.add_argument('--trilinear_interpolation', action='store_true')
+    parser.add_argument('--temporal_downsample', action='store_true')
+    parser.add_argument('--downsample_latent', action='store_true')
     return parser.parse_args()
 
 
@@ -276,6 +281,12 @@ def build_model_runner(args):
         corrupt_ratio=corrupt_ratio,
         interp_condition_pos=args.interp_condition_pos,
         video_sync_group=args.video_sync_group,
+        temporal_autoregressive=args.temporal_autoregressive,
+        deterministic_noise=args.deterministic_noise,
+        condition_original_image=args.condition_original_image,
+        trilinear_interpolation=args.trilinear_interpolation,
+        temporal_downsample=args.temporal_downsample,
+        downsample_latent=args.downsample_latent,
     )
     
     if args.dit_pretrained_weight:
