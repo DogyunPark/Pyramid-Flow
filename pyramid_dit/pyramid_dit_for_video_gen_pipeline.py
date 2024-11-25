@@ -69,6 +69,7 @@ def build_pyramid_dit(
     use_temporal_causal: bool = True,
     gradient_checkpointing_ratio: float = 0.6,
     trilinear_interpolation: bool = False,
+    condition_original_image: bool = False,
     num_frames: int = 49,
     height: int = 256,
     width: int = 384,
@@ -81,7 +82,7 @@ def build_pyramid_dit(
             gradient_checkpointing_ratio=gradient_checkpointing_ratio,
             use_flash_attn=use_flash_attn, use_temporal_causal=use_temporal_causal,
             interp_condition_pos=interp_condition_pos, axes_dims_rope=[16, 24, 24],
-            trilinear_interpolation=trilinear_interpolation,
+            trilinear_interpolation=trilinear_interpolation, condition_original_image=condition_original_image,
             num_frames=num_frames, height=height, width=width,
         )
     elif model_name == "pyramid_mmdit":
