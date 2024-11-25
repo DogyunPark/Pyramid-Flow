@@ -130,7 +130,7 @@ class PyramidDiTForVideoGeneration:
         load_text_encoder=True, load_vae=True, max_temporal_length=31, frame_per_unit=1, use_temporal_causal=True, 
         corrupt_ratio=1/3, interp_condition_pos=True, stages=[1, 2, 4], video_sync_group=8, gradient_checkpointing_ratio=0.6, 
         temporal_autoregressive=False, deterministic_noise=False, condition_original_image=False, num_frames=49, height=256, width=384,
-        trilinear_interpolation=False, temporal_downsample=False, downsample_latent=False, **kwargs,
+        trilinear_interpolation=False, temporal_downsample=False, downsample_latent=False, random_noise=False, **kwargs,
     ):
         super().__init__()
 
@@ -221,7 +221,7 @@ class PyramidDiTForVideoGeneration:
         self.trilinear_interpolation = trilinear_interpolation
         self.temporal_downsample = temporal_downsample
         self.downsample_latent = downsample_latent
-
+        self.random_noise = random_noise
     def _enable_sequential_cpu_offload(self, model):
         self.sequential_offload_enabled = True
         torch_device = torch.device("cuda")
@@ -527,27 +527,32 @@ class PyramidDiTForVideoGeneration:
         training_steps = self.scheduler.config.num_train_timesteps
 
         if not self.deterministic_noise:
-            temp_list = self.get_temp_stage(stages)
-            noise = torch.randn_like(latents_list[-1])
-            temp_current = noise.shape[2]
-            height, width = noise.shape[-2], noise.shape[-1]
-            noise_list = [noise]
-            cur_noise = noise
-            for i_s in range(stages-1):
+            if self.random_noise:
+                for i_s in range(stages):
+                    noise = torch.randn_like(latents_list[i_s+1])
+                    noise_list.append(noise)
+            else:
+                temp_list = self.get_temp_stage(stages)
+                noise = torch.randn_like(latents_list[-1])
+                temp_current = noise.shape[2]
+                height, width = noise.shape[-2], noise.shape[-1]
+                noise_list = [noise]
+                cur_noise = noise
+                for i_s in range(stages-1):
 
-                height //= 2;width //= 2
-                if self.temporal_downsample:
-                    temp = temp_list[i_s]
-                    cur_noise = cur_noise[:,:,:temp]
-                else:
-                    temp = temp_current
-                if self.trilinear_interpolation:
-                    cur_noise = F.interpolate(cur_noise, size=(temp, height, width), mode='trilinear') * 2
-                else:
-                    cur_noise = rearrange(cur_noise, 'b c t h w -> (b t) c h w')
-                    cur_noise = F.interpolate(cur_noise, size=(height, width), mode='bilinear') * 2
-                    cur_noise = rearrange(cur_noise, '(b t) c h w -> b c t h w', t=temp)
-                noise_list.append(cur_noise)
+                    height //= 2;width //= 2
+                    if self.temporal_downsample:
+                        temp = temp_list[i_s]
+                        cur_noise = cur_noise[:,:,:temp]
+                    else:
+                        temp = temp_current
+                    if self.trilinear_interpolation:
+                        cur_noise = F.interpolate(cur_noise, size=(temp, height, width), mode='trilinear') * 2
+                    else:
+                        cur_noise = rearrange(cur_noise, 'b c t h w -> (b t) c h w')
+                        cur_noise = F.interpolate(cur_noise, size=(height, width), mode='bilinear') * 2
+                        cur_noise = rearrange(cur_noise, '(b t) c h w -> b c t h w', t=temp)
+                    noise_list.append(cur_noise)
             noise_list = list(reversed(noise_list)) 
 
         # from low resolution to high resolution
@@ -1797,7 +1802,12 @@ class PyramidDiTForVideoGeneration:
                     cur_noise = F.interpolate(cur_noise, size=(latent_height, latent_width), mode='bilinear') * 2
                     cur_noise = rearrange(cur_noise, '(b t) c h w -> b c t h w', t=temp)
                 noise_list.append(cur_noise)
-            noise_list = list(reversed(noise_list))            
+            noise_list = list(reversed(noise_list))
+            if self.random_noise:
+                noise_list_random = []
+                for noise in noise_list:
+                    noise_list_random.append(torch.randn_like(noise))
+                noise_list = noise_list_random
         else:
             latents = stage_latent_condition.detach().clone()
         
