@@ -1789,10 +1789,10 @@ class PyramidDiTForVideoGeneration:
                 else:
                     temp = latent_temp
                 if self.trilinear_interpolation:
-                    cur_noise = F.interpolate(cur_noise, size=(temp, height, width), mode='trilinear') * 2
+                    cur_noise = F.interpolate(cur_noise, size=(temp, latent_height, latent_width), mode='trilinear') * 2
                 else:
                     cur_noise = rearrange(cur_noise, 'b c t h w -> (b t) c h w')
-                    cur_noise = F.interpolate(cur_noise, size=(height, width), mode='bilinear') * 2
+                    cur_noise = F.interpolate(cur_noise, size=(latent_height, latent_width), mode='bilinear') * 2
                     cur_noise = rearrange(cur_noise, '(b t) c h w -> b c t h w', t=temp)
                 noise_list.append(cur_noise)
             noise_list = list(reversed(noise_list))            
