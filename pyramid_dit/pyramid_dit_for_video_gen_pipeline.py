@@ -605,7 +605,7 @@ class PyramidDiTForVideoGeneration:
 
             indices = (u * training_steps).long()   # Totally 1000 training steps per stage
             indices = indices.clamp(0, training_steps-1)
-            timesteps = self.scheduler.timesteps[indices].to(device=device)
+            timesteps = self.scheduler.timesteps[indices].to(device=device) + 1000 * i_s
             ratios = self.scheduler.sigmas[indices].to(device=device)
 
             while len(ratios.shape) < start_point.ndim:
@@ -961,7 +961,8 @@ class PyramidDiTForVideoGeneration:
                 #     next_x = (next_x - self.vae_video_shift_factor) * self.vae_video_scale_factor
                 #     ones_tensor[:,:,temp_current:] = next_x.repeat(1, 1, temp_next - temp_current, 1, 1)
                 # else:
-                ones_tensor[:,:,temp_current:] = x[:,:,-1:].repeat(1, 1, temp_next - temp_current, 1, 1)
+                #ones_tensor[:,:,temp_current:] = x[:,:,-1:].repeat(1, 1, temp_next - temp_current, 1, 1)
+                ones_tensor[:,:,temp_current:] = torch.randn_like(ones_tensor[:,:,temp_current:])
                 current_vae_latent = ones_tensor
             else:
                 current_vae_latent = torch.nn.functional.interpolate(current_vae_latent, size=(temp_next, height_next, width_next), mode='trilinear')
@@ -1862,7 +1863,8 @@ class PyramidDiTForVideoGeneration:
                             #     next_x = (next_x - self.vae_video_shift_factor) * self.vae_video_scale_factor
                             #     ones_tensor[:,:,temp_current:] = next_x.repeat(1, 1, temp_next - temp_current, 1, 1)
                             # else:
-                            ones_tensor[:,:,temp_current:] = latents[:,:,-1:].repeat(1, 1, temp_next - temp_current, 1, 1)
+                            #ones_tensor[:,:,temp_current:] = latents[:,:,-1:].repeat(1, 1, temp_next - temp_current, 1, 1)
+                            ones_tensor[:,:,temp_current:] = torch.randn_like(ones_tensor[:,:,temp_current:])
                             latents = ones_tensor
                         else:
                             temp_current = latents.shape[2]
@@ -1899,7 +1901,7 @@ class PyramidDiTForVideoGeneration:
                         total_input = [latent_model_input]
 
                 # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
-                timestep = t.expand(latent_model_input.shape[0]).to(latent_model_input.dtype)
+                timestep = t.expand(latent_model_input.shape[0]).to(latent_model_input.dtype) + 1000 * (2-i_s)
                 timestep = timestep.to(device)
 
                 if is_sequence_parallel_initialized():
