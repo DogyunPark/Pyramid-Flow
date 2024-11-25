@@ -528,6 +528,7 @@ class PyramidDiTForVideoGeneration:
 
         if not self.deterministic_noise:
             if self.random_noise:
+                noise_list = []
                 for i_s in range(stages):
                     noise = torch.randn_like(latents_list[i_s+1])
                     noise_list.append(noise)
