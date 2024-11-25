@@ -539,9 +539,12 @@ class PyramidDiTForVideoGeneration:
                     cur_noise = cur_noise[:,:,:temp]
                 else:
                     temp = temp_current
-                cur_noise = rearrange(cur_noise, 'b c t h w -> (b t) c h w')
-                cur_noise = F.interpolate(cur_noise, size=(height, width), mode='bilinear') * 2
-                cur_noise = rearrange(cur_noise, '(b t) c h w -> b c t h w', t=temp)
+                if self.trilinear_interpolation:
+                    cur_noise = F.interpolate(cur_noise, size=(temp, height, width), mode='trilinear') * 2
+                else:
+                    cur_noise = rearrange(cur_noise, 'b c t h w -> (b t) c h w')
+                    cur_noise = F.interpolate(cur_noise, size=(height, width), mode='bilinear') * 2
+                    cur_noise = rearrange(cur_noise, '(b t) c h w -> b c t h w', t=temp)
                 noise_list.append(cur_noise)
             noise_list = list(reversed(noise_list)) 
 
@@ -554,7 +557,6 @@ class PyramidDiTForVideoGeneration:
             noise_ratio = noise_ratio[:, None, None, None, None]
             stage_latent_condition = noise_ratio * torch.randn_like(stage_latent_condition) + (1 - noise_ratio) * stage_latent_condition
             end_point = latents_list[i_s+1][index::column_size]
-            
 
             if self.deterministic_noise:
                 temp_start_point = upsample_vae_latent_list[i_s][index::column_size]
@@ -830,7 +832,7 @@ class PyramidDiTForVideoGeneration:
             height //= 2
             width //= 2
             x = rearrange(original_x, 'b c t h w -> (b t) c h w')
-            x = torch.nn.functional.interpolate(x, size=(height, width), mode='bicubic')
+            x = torch.nn.functional.interpolate(x, size=(height, width), mode='bilinear')
             x = rearrange(x, '(b t) c h w -> b c t h w', t=temp)
             video_list.append(x.detach().clone())
 
@@ -1786,21 +1788,18 @@ class PyramidDiTForVideoGeneration:
                     cur_noise = cur_noise[:,:,:temp]
                 else:
                     temp = latent_temp
-                cur_noise = rearrange(cur_noise, 'b c t h w -> (b t) c h w')
-                cur_noise = F.interpolate(cur_noise, size=(latent_height, latent_width), mode='bilinear') * 2
-                cur_noise = rearrange(cur_noise, '(b t) c h w -> b c t h w', t=temp)
+                if self.trilinear_interpolation:
+                    cur_noise = F.interpolate(cur_noise, size=(temp, height, width), mode='trilinear') * 2
+                else:
+                    cur_noise = rearrange(cur_noise, 'b c t h w -> (b t) c h w')
+                    cur_noise = F.interpolate(cur_noise, size=(height, width), mode='bilinear') * 2
+                    cur_noise = rearrange(cur_noise, '(b t) c h w -> b c t h w', t=temp)
                 noise_list.append(cur_noise)
             noise_list = list(reversed(noise_list))            
         else:
             latents = stage_latent_condition.detach().clone()
         
         generated_latents_list = [latents.clone()]    # The generated results
-
-        if cpu_offloading:
-            self.vae.to("cpu")
-            if not self.sequential_offload_enabled:
-                self.dit.to("cuda")
-            torch.cuda.empty_cache()
        
         gc.collect()
         torch.cuda.empty_cache()  
@@ -2008,84 +2007,137 @@ class PyramidDiTForVideoGeneration:
             pooled_prompt_embeds = torch.cat([negative_pooled_prompt_embeds, pooled_prompt_embeds], dim=0)
             prompt_attention_mask = torch.cat([negative_prompt_attention_mask, prompt_attention_mask], dim=0)
 
-        if is_sequence_parallel_initialized():
-            # sync the prompt embedding across multiple GPUs
-            sp_group_rank = get_sequence_parallel_group_rank()
-            global_src_rank = sp_group_rank * get_sequence_parallel_world_size()
-            torch.distributed.broadcast(prompt_embeds, global_src_rank, group=get_sequence_parallel_group())
-            torch.distributed.broadcast(pooled_prompt_embeds, global_src_rank, group=get_sequence_parallel_group())
-            torch.distributed.broadcast(prompt_attention_mask, global_src_rank, group=get_sequence_parallel_group())
-
         # Create the initial random noise
         stages = self.stages
-        # encode the image latents
-        lowest_input_image = rearrange(input_image, 'b c t h w -> (b t) c h w')
-        lowest_input_image = torch.nn.functional.interpolate(lowest_input_image, size=(height//(2**3), width//(2**3)), mode='bicubic')
-        lowest_input_image = rearrange(lowest_input_image, '(b t) c h w -> b c t h w', t=1)
-        lowest_res_latent = (self.vae.encode(input_image.to(self.vae.device, dtype=self.vae.dtype)).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c 1 h w] 
-        latents = (self.vae.encode(lowest_input_image.to(self.vae.device, dtype=self.vae.dtype)).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c 1 h w]
-        #lowest_res_latent = latents.clone()
+        stage_num = len(stages)
+        height, width = input_image.shape[-2:]
+        latent_height = height // self.vae.config.downsample_scale
+        latent_width = width // self.vae.config.downsample_scale
+        latent_temp = 1
 
-        if is_sequence_parallel_initialized():
-            # sync the image latent across multiple GPUs
-            sp_group_rank = get_sequence_parallel_group_rank()
-            global_src_rank = sp_group_rank * get_sequence_parallel_world_size()
-            torch.distributed.broadcast(latents, global_src_rank, group=get_sequence_parallel_group())
+        # Prepare the condition latents
+        stage_latent_condition = rearrange(input_image, 'b c t h w -> (b t) c h w')
+        stage_latent_condition = torch.nn.functional.interpolate(stage_latent_condition, size=(height//(2**(stage_num)), width//(2**(stage_num))), mode='bicubic')
+        stage_latent_condition = rearrange(stage_latent_condition, '(b t) c h w -> b c t h w', t=1)
+        stage_latent_condition = (self.vae.encode(stage_latent_condition.to(self.vae.device, dtype=self.vae.dtype), temporal_chunk=False, tile_sample_min_size=1024).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c t h w] 
+        if self.condition_original_image:
+            original_latent_condition = (self.vae.encode(input_image.to(self.vae.device, dtype=self.vae.dtype), temporal_chunk=False, tile_sample_min_size=1024).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c t h w] 
+            original_latent_condition_list = self.get_pyramid_latent_with_spatial_downsample(original_latent_condition, stage_num)
 
-        latent_height, latent_width = latents.shape[-2:]
-        # for idx in range(3): #TODO: make this dynamic
-        #     latent_height //= 2
-        #     latent_width //= 2
-        #     latents = rearrange(latents, 'b c t h w -> (b t) c h w')
-        #     latents = torch.nn.functional.interpolate(latents, size=(latent_height, latent_width), mode='bilinear', align_corners=False)
-        #     latents = rearrange(latents, '(b t) c h w -> b c t h w', t=1)
+        if not self.deterministic_noise:
+            num_channels_latents = (self.dit.config.in_channels // 4) if self.model_name == "pyramid_flux" else  self.dit.config.in_channels
+            latents = self.prepare_latents(
+                batch_size * num_images_per_prompt,
+                num_channels_latents,
+                latent_temp,
+                height, 
+                width,
+                prompt_embeds.dtype,
+                device,
+                generator,
+            )
 
+            temp_list = self.get_temp_stage(stage_num, downsample=True)
+            noise_list = [latents.clone()]
+            cur_noise = latents.detach().clone()
+            for i_s in range(stage_num-1):
+                latent_height //= 2;latent_width //= 2
+                if self.temporal_downsample:
+                    temp = temp_list[i_s]
+                    cur_noise = cur_noise[:,:,:temp]
+                else:
+                    temp = latent_temp
+                if self.trilinear_interpolation:
+                    cur_noise = F.interpolate(cur_noise, size=(temp, height, width), mode='trilinear') * 2
+                else:
+                    cur_noise = rearrange(cur_noise, 'b c t h w -> (b t) c h w')
+                    cur_noise = F.interpolate(cur_noise, size=(height, width), mode='bilinear') * 2
+                    cur_noise = rearrange(cur_noise, '(b t) c h w -> b c t h w', t=temp)
+                noise_list.append(cur_noise)
+            noise_list = list(reversed(noise_list))            
+        else:
+            latents = stage_latent_condition.detach().clone()
+        
         generated_latents_list = [latents.clone()]    # The generated results
-
-        if cpu_offloading:
-            self.vae.to("cpu")
-            if not self.sequential_offload_enabled:
-                self.dit.to("cuda")
-            torch.cuda.empty_cache()
        
         gc.collect()
         torch.cuda.empty_cache()  
 
-        #temp_upsample_list = [3, 5, 9] #TODO: make this dynamic
-        height, width = latents.shape[-2:]
-        # prepare the condition latents
-        for i_s in range(len(stages)):
+        temp_upsample_list = self.get_temp_stage(stage_num, downsample=False)
+        latent_height, latent_width = latents.shape[-2:]
+
+        for i_s in range(stage_num):
             self.validation_scheduler.set_timesteps(num_inference_steps[i_s], device=device)
             timesteps = self.validation_scheduler.timesteps
-            #temp_next = temp_upsample_list[i_s]
-            height = height * 2
-            width = width * 2
-                
-            # Noise augmentation
-            #latents = latents + torch.randn_like(latents) * self.corrupt_ratio[i_s]
-
-            lowest_res_latent_input = lowest_res_latent + torch.randn_like(lowest_res_latent) * self.corrupt_ratio[i_s]
-
+            temp_next = temp_upsample_list[i_s]
             
+            # Prepare the condition latents
+            if i_s > 0:
+                stage_latent_condition = latents.detach().clone()
+            original_latent_condition = original_latent_condition_list[i_s+1]
+
+            # Prepare the latents
+            if not self.deterministic_noise:
+                latents = noise_list[i_s]
+            else:
+                latent_height = latent_height * 2
+                latent_width = latent_width * 2
+
+                if not self.trilinear_interpolation:
+                    if self.temporal_downsample:
+                        b, c, temp_current, _, _ = latents.shape
+                        ones_tensor = torch.ones(b, c, temp_next, latent_height, latent_width).to(latents.device)
+                        latents = rearrange(latents, 'b c t h w -> (b t) c h w')
+                        latents = torch.nn.functional.interpolate(latents, size=(latent_height, latent_width), mode='nearest')
+                        latents = rearrange(latents, '(b t) c h w -> b c t h w', t=temp_current)
+                        ones_tensor[:,:,:temp_current] = latents
+                        # if temp_current == 1:
+                        #     next_x = (latents[:,:,-1:].detach().clone() / self.vae_scale_factor) + self.vae_shift_factor
+                        #     next_x = (next_x - self.vae_video_shift_factor) * self.vae_video_scale_factor
+                        #     ones_tensor[:,:,temp_current:] = next_x.repeat(1, 1, temp_next - temp_current, 1, 1)
+                        # else:
+                        ones_tensor[:,:,temp_current:] = latents[:,:,-1:].repeat(1, 1, temp_next - temp_current, 1, 1)
+                        latents = ones_tensor
+                    else:
+                        temp_current = latents.shape[2]
+                        latents = rearrange(latents, 'b c t h w -> (b t) c h w')
+                        latents = torch.nn.functional.interpolate(latents, size=(latent_height, latent_width), mode='nearest')
+                        latents = rearrange(latents, '(b t) c h w -> b c t h w', t=temp_current)
+                else:
+                    if self.temporal_downsample:
+                        latents = torch.nn.functional.interpolate(latents, size=(temp_next, latent_height, latent_width), mode='trilinear')
+                    else:
+                        temp_current = latents.shape[2]
+                        latents = rearrange(latents, 'b c t h w -> (b t) c h w')
+                        latents = torch.nn.functional.interpolate(latents, size=(latent_height, latent_width), mode='nearest')
+                        latents = rearrange(latents, '(b t) c h w -> b c t h w', t=temp_current)
+
+                # Noise augmentation
+                noise_aug = torch.randn_like(latents)
+                latents = latents + noise_aug * self.corrupt_ratio[i_s]
             
             for idx, t in enumerate(timesteps):
                 latent_model_input = torch.cat([latents] * 2) if self.do_classifier_free_guidance else latents
-                lowest_res_latent_model_input = torch.cat([lowest_res_latent_input] * 2) if self.do_classifier_free_guidance else lowest_res_latent_input
-            
+                if self.condition_original_image:
+                    original_latent_condition_input = torch.cat([original_latent_condition] * 2) if self.do_classifier_free_guidance else original_latent_condition
+                    if self.temporal_autoregressive:
+                        stage_latent_condition_input = torch.cat([stage_latent_condition] * 2) if self.do_classifier_free_guidance else stage_latent_condition
+                        total_input = [original_latent_condition_input, stage_latent_condition_input, latent_model_input]
+                    else:
+                        total_input = [original_latent_condition_input, latent_model_input]
+                else:
+                    if self.temporal_autoregressive:
+                        stage_latent_condition_input = torch.cat([stage_latent_condition] * 2) if self.do_classifier_free_guidance else stage_latent_condition
+                        total_input = [stage_latent_condition_input, latent_model_input]
+                    else:
+                        total_input = [latent_model_input]
+
                 # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
                 timestep = t.expand(latent_model_input.shape[0]).to(latent_model_input.dtype)
                 timestep = timestep.to(device)
 
-                if is_sequence_parallel_initialized():
-                    # sync the input latent
-                    sp_group_rank = get_sequence_parallel_group_rank()
-                    global_src_rank = sp_group_rank * get_sequence_parallel_world_size()
-                    torch.distributed.broadcast(latent_model_input, global_src_rank, group=get_sequence_parallel_group())
-
-                #prompt_embeds = prompt_embeds.to(latent_model_input.dtype)
-                #pooled_prompt_embeds = pooled_prompt_embeds.to(latent_model_input.dtype)
                 noise_pred = self.dit(
-                    sample=[[lowest_res_latent_model_input, latent_model_input]],
+                    sample=[total_input],
                     timestep_ratio=timestep,
                     encoder_hidden_states=prompt_embeds,
                     encoder_attention_mask=prompt_attention_mask,
