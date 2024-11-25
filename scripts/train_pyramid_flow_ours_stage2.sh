@@ -61,4 +61,3 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 accelerate launch --multi_gpu --num_process
     --condition_original_image \
     --num_frames 49 \
     --deterministic_noise \
-    --dit_pretrained_weight /data/cvpr25/Pyramid-Flow/result/stage1/checkpoint-1000-2/pytorch_model_fsdp.bin \
