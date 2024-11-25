@@ -535,8 +535,8 @@ def main(args):
     logger.info("Number of training examples per epoch = %d" % (total_batch_size * num_training_steps_per_epoch))
 
     # Auto resume the checkpoint
-    initial_global_step = auto_resume(args, accelerator)
-    first_epoch = initial_global_step // num_training_steps_per_epoch
+    # initial_global_step = auto_resume(args, accelerator)
+    # first_epoch = initial_global_step // num_training_steps_per_epoch
 
     # Start Train!
     start_time = time.time()
