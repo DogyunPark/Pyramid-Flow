@@ -554,7 +554,7 @@ class PyramidDiTForVideoGeneration:
                         cur_noise = F.interpolate(cur_noise, size=(height, width), mode='bilinear') * 2
                         cur_noise = rearrange(cur_noise, '(b t) c h w -> b c t h w', t=temp)
                     noise_list.append(cur_noise)
-            noise_list = list(reversed(noise_list)) 
+                noise_list = list(reversed(noise_list)) 
 
         # from low resolution to high resolution
         for index in range(column_size):
