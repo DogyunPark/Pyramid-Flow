@@ -243,6 +243,7 @@ def get_args():
     parser.add_argument('--temporal_downsample', action='store_true')
     parser.add_argument('--downsample_latent', action='store_true')
     parser.add_argument('--random_noise', action='store_true')
+    parser.add_argument('--delta_learning', action='store_true')
     return parser.parse_args()
 
 
@@ -294,6 +295,7 @@ def build_model_runner(args):
         width=args.image_size[1],
         num_frames=args.num_frames,
         random_noise=args.random_noise,
+        delta_learning=args.delta_learning,
     )
     
     if args.dit_pretrained_weight:

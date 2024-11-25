@@ -10,7 +10,7 @@ SHARD_STRATEGY=zero2   # zero2 or zero3
 MODEL_NAME=pyramid_flux     # The model name, `pyramid_flux` or `pyramid_mmdit`
 MODEL_PATH=/data/cvpr25/Pyramid-Flow/output/pyramid-flow-miniflux  # The downloaded ckpt dir. IMPORTANT: It should match with model_name, flux or mmdit (sd3)
 VARIANT=diffusion_transformer_image  # The DiT Variant
-OUTPUT_DIR=/data/cvpr25/Pyramid-Flow/result/stage3-downsample-noise-conditionoriginal2    # The checkpoint saving dir
+OUTPUT_DIR=/data/cvpr25/Pyramid-Flow/result/stage3-downsample-noise-conditionoriginal3    # The checkpoint saving dir
 
 BATCH_SIZE=4    # It should satisfy batch_size % 4 == 0
 GRAD_ACCU_STEPS=2
@@ -56,9 +56,9 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 accelerate launch --multi_gpu --num_process
     --save_ckpt_freq 1 \
     --load_vae \
     --gradient_checkpointing \
-    --condition_original_image \
     --temporal_downsample \
     --downsample_latent \
     --num_frames 49 \
     --temporal_autoregressive \
-    --random_noise \
+    --deterministic_noise \
+    --delta_learning \
