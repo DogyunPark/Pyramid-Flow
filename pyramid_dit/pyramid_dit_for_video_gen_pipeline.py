@@ -278,14 +278,17 @@ class PyramidDiTForVideoGeneration:
             else:
                 raise NotImplementedError(f"The number of stages {stages} is not supported")
         else:
-            if stages == 1:
-                return [3]
-            elif stages == 2:
-                return [3, 5]
-            elif stages == 3:
-                return [3, 5, 7]
+            if self.temporal_downsample:
+                if stages == 1:
+                    return [3]
+                elif stages == 2:
+                    return [3, 5]
+                elif stages == 3:
+                    return [3, 5, 7]
+                else:
+                    raise NotImplementedError(f"The number of stages {stages} is not supported")
             else:
-                raise NotImplementedError(f"The number of stages {stages} is not supported")
+                return [7, 7, 7]
 
     @torch.no_grad()
     def add_pyramid_noise(
@@ -564,6 +567,8 @@ class PyramidDiTForVideoGeneration:
             i_s = column_to_stage[index]
             
             stage_latent_condition = latents_list[i_s][index::column_size]
+            if i_s == 0:
+                stage_latent_condition = stage_latent_condition[:,:,:1]
             noise_ratio = torch.rand(size=(batch_size,), device=device) / 3
             noise_ratio = noise_ratio[:, None, None, None, None]
             stage_latent_condition = noise_ratio * torch.randn_like(stage_latent_condition) + (1 - noise_ratio) * stage_latent_condition
