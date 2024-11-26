@@ -884,7 +884,7 @@ class PyramidDiTForVideoGeneration:
             if not self.trilinear_interpolation:
                 x = original_x[:, :, :temp]
                 x = rearrange(x, 'b c t h w -> (b t) c h w')
-                x = torch.nn.functional.interpolate(x, size=(height, width), mode='bicubic')
+                x = torch.nn.functional.interpolate(x, size=(height, width), mode='bilinear')
                 x = rearrange(x, '(b t) c h w -> b c t h w', t=temp)
             else:
                 x = torch.nn.functional.interpolate(original_x, size=(temp, height, width), mode='trilinear')
@@ -905,7 +905,7 @@ class PyramidDiTForVideoGeneration:
             height //= 2
             width //= 2
             x = rearrange(original_x, 'b c t h w -> (b t) c h w')
-            x = torch.nn.functional.interpolate(x, size=(height, width), mode='bicubic')
+            x = torch.nn.functional.interpolate(x, size=(height, width), mode='bilinear')
             x = rearrange(x, '(b t) c h w -> b c t h w', t=temp)
             vae_latent_list.append(x)
 
@@ -929,7 +929,7 @@ class PyramidDiTForVideoGeneration:
             if not self.trilinear_interpolation:
                 x = original_x[:, :, :temp]
                 x = rearrange(x, 'b c t h w -> (b t) c h w')
-                x = torch.nn.functional.interpolate(x, size=(height, width), mode='bicubic')
+                x = torch.nn.functional.interpolate(x, size=(height, width), mode='bilinear')
                 x = rearrange(x, '(b t) c h w -> b c t h w', t=temp)
             else:
                 x = torch.nn.functional.interpolate(original_x, size=(temp, height, width), mode='trilinear')
