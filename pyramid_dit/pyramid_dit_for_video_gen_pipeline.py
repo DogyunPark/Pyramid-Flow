@@ -966,8 +966,8 @@ class PyramidDiTForVideoGeneration:
                 #     next_x = (next_x - self.vae_video_shift_factor) * self.vae_video_scale_factor
                 #     ones_tensor[:,:,temp_current:] = next_x.repeat(1, 1, temp_next - temp_current, 1, 1)
                 # else:
-                #ones_tensor[:,:,temp_current:] = x[:,:,-1:].repeat(1, 1, temp_next - temp_current, 1, 1)
-                ones_tensor[:,:,temp_current:] = torch.randn_like(ones_tensor[:,:,temp_current:])
+                ones_tensor[:,:,temp_current:] = x[:,:,-1:].repeat(1, 1, temp_next - temp_current, 1, 1)
+                #ones_tensor[:,:,temp_current:] = torch.randn_like(ones_tensor[:,:,temp_current:])
                 current_vae_latent = ones_tensor
             else:
                 current_vae_latent = torch.nn.functional.interpolate(current_vae_latent, size=(temp_next, height_next, width_next), mode='trilinear')
@@ -1868,8 +1868,8 @@ class PyramidDiTForVideoGeneration:
                             #     next_x = (next_x - self.vae_video_shift_factor) * self.vae_video_scale_factor
                             #     ones_tensor[:,:,temp_current:] = next_x.repeat(1, 1, temp_next - temp_current, 1, 1)
                             # else:
-                            #ones_tensor[:,:,temp_current:] = latents[:,:,-1:].repeat(1, 1, temp_next - temp_current, 1, 1)
-                            ones_tensor[:,:,temp_current:] = torch.randn_like(ones_tensor[:,:,temp_current:])
+                            ones_tensor[:,:,temp_current:] = latents[:,:,-1:].repeat(1, 1, temp_next - temp_current, 1, 1)
+                            #ones_tensor[:,:,temp_current:] = torch.randn_like(ones_tensor[:,:,temp_current:])
                             latents = ones_tensor
                         else:
                             temp_current = latents.shape[2]
