@@ -484,6 +484,8 @@ class PyramidDiTForVideoGeneration:
                 last_clean_latent_temp = last_clean_latent[:,:,:1].repeat(1, 1, temp_dim_last_clean_latent, 1, 1).detach().clone()
                 start_point = start_sigma * last_clean_latent_temp + (1 - start_sigma) * last_clean_latent
             
+            start_point = start_point + torch.randn_like(start_point) * self.corrupt_ratio[i_s]
+            
             if i_s == stages - 1:
                 end_point = latents_list[i_s+1][index::column_size]   # [bs, c, t, h, w]
             else:
@@ -1914,16 +1916,7 @@ class PyramidDiTForVideoGeneration:
                                 latents = torch.nn.functional.interpolate(latents, size=(latent_height, latent_width), mode='nearest')
                                 latents = rearrange(latents, '(b t) c h w -> b c t h w', t=temp_current)
 
-                                # Fix the stage
-                                ori_sigma = 1 - self.scheduler.ori_start_sigmas[i_s]   # the original coeff of signal
-                                gamma = self.scheduler.config.gamma
-                                alpha = 1 / (math.sqrt(1 + (1 / gamma)) * (1 - ori_sigma) + ori_sigma)
-                                beta = alpha * (1 - ori_sigma) / math.sqrt(gamma)
-
-                                bs, ch, temp, height, width = latents.shape
-                                noise = self.sample_block_noise(bs, ch, temp, height, width)
-                                noise = noise.to(device=device, dtype=dtype)
-                                latents = alpha * latents + beta * noise    # To fix the block artifact
+                                latents = latents + torch.randn_like(latents) * self.corrupt_ratio[i_s]
                         else:
                             if self.temporal_downsample:
                                 latents = torch.nn.functional.interpolate(latents, size=(temp_next, latent_height, latent_width), mode='trilinear')
