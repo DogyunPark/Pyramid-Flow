@@ -584,7 +584,7 @@ class PyramidDiTForVideoGeneration:
                     if self.temporal_downsample:
                         temp = temp_list[i_s]
                         cur_noise = cur_noise[:,:,:temp]
-                    else:
+                    else: 
                         temp = temp_current
                     if self.trilinear_interpolation:
                         cur_noise = F.interpolate(cur_noise, size=(temp, height, width), mode='trilinear') * 2
@@ -1860,7 +1860,7 @@ class PyramidDiTForVideoGeneration:
                 noise_list = noise_list_random
         else:
             latents = stage_latent_condition.detach().clone()
-            if self.use_perflow:
+            if not self.temporal_downsample:
                 latents = latents.repeat(1, 1, latent_temp, 1, 1)
         
         generated_latents_list = [latents.clone()]    # The generated results
