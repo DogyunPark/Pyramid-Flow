@@ -1918,7 +1918,7 @@ class PyramidDiTForVideoGeneration:
                                 latents = torch.nn.functional.interpolate(latents, size=(latent_height, latent_width), mode='nearest')
                                 latents = rearrange(latents, '(b t) c h w -> b c t h w', t=temp_current)
 
-                                latents = latents + torch.randn_like(latents) * self.corrupt_ratio[i_s]
+                                #latents = latents + torch.randn_like(latents) * self.corrupt_ratio[i_s]
                         else:
                             if self.temporal_downsample:
                                 latents = torch.nn.functional.interpolate(latents, size=(temp_next, latent_height, latent_width), mode='trilinear')
