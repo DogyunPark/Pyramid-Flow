@@ -474,17 +474,17 @@ class PyramidDiTForVideoGeneration:
             end_sigma = self.scheduler.end_sigmas[i_s]
             
             if i_s == 0:
-                start_point = latents_list[i_s+1][index::column_size]
+                start_point = upsample_vae_latent_list[i_s][index::column_size]
                 temp_dim_start_point = start_point.shape[2]
                 start_point = start_point[:,:,:1].repeat(1, 1, temp_dim_start_point, 1, 1)
             else:
                 # Get the upsampled latent
                 last_clean_latent = upsample_vae_latent_list[i_s][index::column_size]
                 temp_dim_last_clean_latent = last_clean_latent.shape[2]
-                last_clean_latent_temp = last_clean_latent[:,:,:1].repeat(1, 1, temp_dim_last_clean_latent, 1, 1).detach().clone()
+                last_clean_latent_temp = latents_list[i_s+1][index::column_size][:,:,:1].repeat(1, 1, temp_dim_last_clean_latent, 1, 1).detach().clone()
                 start_point = start_sigma * last_clean_latent_temp + (1 - start_sigma) * last_clean_latent
             
-            start_point = start_point + torch.randn_like(start_point) * self.corrupt_ratio[i_s]
+            #start_point = start_point + torch.randn_like(start_point) * self.corrupt_ratio[i_s]
             
             if i_s == stages - 1:
                 end_point = latents_list[i_s+1][index::column_size]   # [bs, c, t, h, w]
@@ -1062,8 +1062,9 @@ class PyramidDiTForVideoGeneration:
                                 video = (video - self.vae_shift_factor) * self.vae_scale_factor
                             else:
                                 # is video
-                                video[:, :, :1] = (video[:, :, :1] - self.vae_shift_factor) * self.vae_scale_factor
-                                video[:, :, 1:] =  (video[:, :, 1:] - self.vae_video_shift_factor) * self.vae_video_scale_factor
+                                #video[:, :, :1] = (video[:, :, :1] - self.vae_shift_factor) * self.vae_scale_factor
+                                #video[:, :, 1:] =  (video[:, :, 1:] - self.vae_video_shift_factor) * self.vae_video_scale_factor
+                                video = (video - self.vae_video_shift_factor) * self.vae_video_scale_factor
                             #video = video / self.vae_video_scale_factor + self.vae_video_shift_factor
 
                             vae_latent_list.append(video)
@@ -1074,8 +1075,9 @@ class PyramidDiTForVideoGeneration:
                             video = (video - self.vae_shift_factor) * self.vae_scale_factor
                         else:
                             # is video
-                            video[:, :, :1] = (video[:, :, :1] - self.vae_shift_factor) * self.vae_scale_factor
-                            video[:, :, 1:] =  (video[:, :, 1:] - self.vae_video_shift_factor) * self.vae_video_scale_factor
+                            #video[:, :, :1] = (video[:, :, :1] - self.vae_shift_factor) * self.vae_scale_factor
+                            #video[:, :, 1:] =  (video[:, :, 1:] - self.vae_video_shift_factor) * self.vae_video_scale_factor
+                            video = (video - self.vae_video_shift_factor) * self.vae_video_scale_factor
                         
                         if self.temporal_downsample:
                             vae_latent_list = self.get_pyramid_latent_with_temporal_downsample(video, len(self.stages))
@@ -2261,9 +2263,9 @@ class PyramidDiTForVideoGeneration:
         if latents.shape[2] == 1:
             latents = (latents / self.vae_scale_factor) + self.vae_shift_factor
         else:
-            latents[:, :, :1] = (latents[:, :, :1] / self.vae_scale_factor) + self.vae_shift_factor
-            latents[:, :, 1:] = (latents[:, :, 1:] / self.vae_video_scale_factor) + self.vae_video_shift_factor
-            #latents = (latents / self.vae_video_scale_factor) + self.vae_video_shift_factor
+            #latents[:, :, :1] = (latents[:, :, :1] / self.vae_scale_factor) + self.vae_shift_factor
+            #latents[:, :, 1:] = (latents[:, :, 1:] / self.vae_video_scale_factor) + self.vae_video_shift_factor
+            latents = (latents / self.vae_video_scale_factor) + self.vae_video_shift_factor
         
         if save_memory:
             # reducing the tile size and temporal chunk window size
