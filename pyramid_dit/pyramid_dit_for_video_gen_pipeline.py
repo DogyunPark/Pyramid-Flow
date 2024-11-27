@@ -1869,7 +1869,10 @@ class PyramidDiTForVideoGeneration:
         latent_height, latent_width = latents.shape[-2:]
 
         for i_s in range(stage_num):
-            self.validation_scheduler.set_timesteps(num_inference_steps[i_s], device=device)
+            if self.use_perflow:
+                self.validation_scheduler.set_timesteps(num_inference_steps[i_s], i_s, device=device)
+            else:
+                self.validation_scheduler.set_timesteps(num_inference_steps[i_s], device=device)
             timesteps = self.validation_scheduler.timesteps
             temp_next = temp_upsample_list[i_s]
             
