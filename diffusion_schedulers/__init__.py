@@ -1,2 +1,3 @@
 from .scheduling_cosine_ddpm import DDPMCosineScheduler
 from .scheduling_flow_matching import PyramidFlowMatchEulerDiscreteScheduler
+from .scheduling_flow_matching_original import PyramidFlowMatchEulerDiscreteScheduler as PyramidFlowMatchEulerDiscreteScheduler_original

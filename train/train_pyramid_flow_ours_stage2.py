@@ -244,6 +244,7 @@ def get_args():
     parser.add_argument('--downsample_latent', action='store_true')
     parser.add_argument('--random_noise', action='store_true')
     parser.add_argument('--delta_learning', action='store_true')
+    parser.add_argument('--use_perflow', action='store_true')
     return parser.parse_args()
 
 
@@ -296,6 +297,7 @@ def build_model_runner(args):
         num_frames=args.num_frames,
         random_noise=args.random_noise,
         delta_learning=args.delta_learning,
+        use_perflow=args.use_perflow,
     )
     
     if args.dit_pretrained_weight:
