@@ -229,7 +229,7 @@ def get_args():
 
     # Added by us
     parser.add_argument('--num_frames', default=49, type=int, help='number of frames in a video')
-    parser.add_argument('--frame_interval', default=2, type=int, help='frame interval')
+    parser.add_argument('--frame_interval', default=1, type=int, help='frame interval')
     parser.add_argument('--image_size', default=(256, 384), type=tuple, help='image size')
     parser.add_argument('--data_root', default='./train_data/data/train/OpenVid-1M.csv', type=str, help='The data root')
     parser.add_argument('--json_path', default='./train_data/VIDGEN-1M/VidGen_1M_video_caption2.json', type=str, help='The json path')
@@ -255,8 +255,8 @@ def build_model_runner(args):
     model_variant = args.model_variant
 
     print(f"Load the {model_name} model checkpoint from path: {model_path}, using dtype {model_dtype}")
-    #sample_ratios = [1, 2, 1]  # The sample_ratios of each stage
-    sample_ratios = [1]  # The sample_ratios of each stage
+    sample_ratios = [1, 2, 1]  # The sample_ratios of each stage
+    #sample_ratios = [1]  # The sample_ratios of each stage
     corrupt_ratio = [1/6, 1/6, 1/6]
     #corrupt_ratio = [1/3, 1/3, 1/2]
     #sample_ratios = [1]  # The sample_ratios of each stage
@@ -271,8 +271,8 @@ def build_model_runner(args):
         return_log=True,
         model_variant=model_variant,
         timestep_shift=args.schedule_shift,
-        #stages=[1, 2, 4],      # using 3 stages
-        stages=[1],      # using 1 stage
+        stages=[1, 2, 4],      # using 3 stages
+        #stages=[1],      # using 1 stage
         stage_range=[0, 1/3, 2/3, 1],
         sample_ratios=sample_ratios,     # The sample proportion in a training batch
         use_mixed_training=True,
