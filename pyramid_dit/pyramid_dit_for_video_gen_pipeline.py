@@ -2276,9 +2276,9 @@ class PyramidDiTForVideoGeneration:
         if latents.shape[2] == 1:
             latents = (latents / self.vae_scale_factor) + self.vae_shift_factor
         else:
-            latents[:, :, :1] = (latents[:, :, :1] / self.vae_scale_factor) + self.vae_shift_factor
-            latents[:, :, 1:] = (latents[:, :, 1:] / self.vae_video_scale_factor) + self.vae_video_shift_factor
-            #latents = (latents / self.vae_video_scale_factor) + self.vae_video_shift_factor
+            #latents[:, :, :1] = (latents[:, :, :1] / self.vae_scale_factor) + self.vae_shift_factor
+            #latents[:, :, 1:] = (latents[:, :, 1:] / self.vae_video_scale_factor) + self.vae_video_shift_factor
+            latents = (latents / self.vae_video_scale_factor) + self.vae_video_shift_factor
         
         if save_memory:
             # reducing the tile size and temporal chunk window size
