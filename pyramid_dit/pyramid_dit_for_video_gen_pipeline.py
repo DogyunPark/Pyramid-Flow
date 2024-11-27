@@ -1106,7 +1106,6 @@ class PyramidDiTForVideoGeneration:
         else:
             noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_ours2(vae_latent_list, upsample_vae_latent_list, self.sample_ratios)
 
-        import pdb; pdb.set_trace()
         return noisy_latents_list, ratios_list, timesteps_list, targets_list
 
     @torch.no_grad()
@@ -1859,6 +1858,8 @@ class PyramidDiTForVideoGeneration:
                 noise_list = noise_list_random
         else:
             latents = stage_latent_condition.detach().clone()
+            if self.use_perflow:
+                latents = latents.repeat(1, 1, latent_temp, 1, 1)
         
         generated_latents_list = [latents.clone()]    # The generated results
        
@@ -1912,7 +1913,6 @@ class PyramidDiTForVideoGeneration:
                                 latents = rearrange(latents, 'b c t h w -> (b t) c h w')
                                 latents = torch.nn.functional.interpolate(latents, size=(latent_height, latent_width), mode='nearest')
                                 latents = rearrange(latents, '(b t) c h w -> b c t h w', t=temp_current)
-                                print('hi')
                         else:
                             if self.temporal_downsample:
                                 latents = torch.nn.functional.interpolate(latents, size=(temp_next, latent_height, latent_width), mode='trilinear')
