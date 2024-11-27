@@ -512,8 +512,6 @@ class PyramidDiTForVideoGeneration:
             # interpolate the latent
             noisy_latents = ratios * start_point + (1 - ratios) * end_point
 
-            last_cond_noisy_sigma = torch.rand(size=(batch_size,), device=device) * self.corrupt_ratio
-
             # [stage1_latent, stage2_latent, ..., stagen_latent], which will be concat after patching
             noisy_latents_list.append([noisy_latents.to(dtype)])
             ratios_list.append(ratios.to(dtype))
