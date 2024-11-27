@@ -611,11 +611,11 @@ class PyramidDiTForVideoGeneration:
             i_s = column_to_stage[index]
             
             stage_latent_condition = latents_list[i_s][index::column_size]
-            if i_s == 0:
-                stage_latent_condition = stage_latent_condition[:,:,:1]
+            #if i_s == 0:
+            #    stage_latent_condition = stage_latent_condition[:,:,:1]
             noise_ratio = torch.rand(size=(batch_size,), device=device) / 3
             noise_ratio = noise_ratio[:, None, None, None, None]
-            stage_latent_condition = noise_ratio * torch.randn_like(stage_latent_condition) + (1 - noise_ratio) * stage_latent_condition
+            #stage_latent_condition = noise_ratio * torch.randn_like(stage_latent_condition) + (1 - noise_ratio) * stage_latent_condition
             end_point = latents_list[i_s+1][index::column_size]
 
             if self.deterministic_noise:
@@ -641,7 +641,7 @@ class PyramidDiTForVideoGeneration:
                 original_latent_condition = original_latent_condition[:,:,0].unsqueeze(2)
                 noise_ratio2 = torch.rand(size=(batch_size,), device=device) / 3
                 noise_ratio2 = noise_ratio2[:, None, None, None, None]
-                original_latent_condition = noise_ratio2 * torch.randn_like(original_latent_condition) + (1 - noise_ratio2) * original_latent_condition
+                #original_latent_condition = noise_ratio2 * torch.randn_like(original_latent_condition) + (1 - noise_ratio2) * original_latent_condition
 
             # To sample a timestep
             u = compute_density_for_timestep_sampling(
@@ -654,7 +654,7 @@ class PyramidDiTForVideoGeneration:
 
             indices = (u * training_steps).long()   # Totally 1000 training steps per stage
             indices = indices.clamp(0, training_steps-1)
-            timesteps = self.scheduler.timesteps[indices].to(device=device) + 1000 * i_s
+            timesteps = self.scheduler.timesteps[indices].to(device=device)# + 1000 * i_s
             ratios = self.scheduler.sigmas[indices].to(device=device)
 
             while len(ratios.shape) < start_point.ndim:
@@ -1073,9 +1073,9 @@ class PyramidDiTForVideoGeneration:
                                 video = (video - self.vae_shift_factor) * self.vae_scale_factor
                             else:
                                 # is video
-                                video[:, :, :1] = (video[:, :, :1] - self.vae_shift_factor) * self.vae_scale_factor
-                                video[:, :, 1:] =  (video[:, :, 1:] - self.vae_video_shift_factor) * self.vae_video_scale_factor
-                                #video = (video - self.vae_video_shift_factor) * self.vae_video_scale_factor
+                                #video[:, :, :1] = (video[:, :, :1] - self.vae_shift_factor) * self.vae_scale_factor
+                                #video[:, :, 1:] =  (video[:, :, 1:] - self.vae_video_shift_factor) * self.vae_video_scale_factor
+                                video = (video - self.vae_video_shift_factor) * self.vae_video_scale_factor
                             #video = video / self.vae_video_scale_factor + self.vae_video_shift_factor
 
                             vae_latent_list.append(video)
@@ -1086,9 +1086,9 @@ class PyramidDiTForVideoGeneration:
                             video = (video - self.vae_shift_factor) * self.vae_scale_factor
                         else:
                             # is video
-                            video[:, :, :1] = (video[:, :, :1] - self.vae_shift_factor) * self.vae_scale_factor
-                            video[:, :, 1:] =  (video[:, :, 1:] - self.vae_video_shift_factor) * self.vae_video_scale_factor
-                            #video = (video - self.vae_video_shift_factor) * self.vae_video_scale_factor
+                            #video[:, :, :1] = (video[:, :, :1] - self.vae_shift_factor) * self.vae_scale_factor
+                            #video[:, :, 1:] =  (video[:, :, 1:] - self.vae_video_shift_factor) * self.vae_video_scale_factor
+                            video = (video - self.vae_video_shift_factor) * self.vae_video_scale_factor
                         
                         if self.temporal_downsample:
                             vae_latent_list = self.get_pyramid_latent_with_temporal_downsample(video, len(self.stages))
@@ -1830,9 +1830,11 @@ class PyramidDiTForVideoGeneration:
         stage_latent_condition = rearrange(input_image, 'b c t h w -> (b t) c h w')
         stage_latent_condition = torch.nn.functional.interpolate(stage_latent_condition, size=(height//(2**(stage_num-1)), width//(2**(stage_num-1))), mode='bilinear')
         stage_latent_condition = rearrange(stage_latent_condition, '(b t) c h w -> b c t h w', t=1)
-        stage_latent_condition = (self.vae.encode(stage_latent_condition.to(self.vae.device, dtype=self.vae.dtype), temporal_chunk=False, tile_sample_min_size=1024).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c t h w] 
+        #stage_latent_condition = (self.vae.encode(stage_latent_condition.to(self.vae.device, dtype=self.vae.dtype), temporal_chunk=False, tile_sample_min_size=1024).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c t h w] 
+        stage_latent_condition = (self.vae.encode(stage_latent_condition.to(self.vae.device, dtype=self.vae.dtype), temporal_chunk=False, tile_sample_min_size=1024).latent_dist.sample() - self.vae_video_shift_factor) * self.vae_video_scale_factor  # [b c t h w] 
         #if self.condition_original_image:
-        original_latent_condition = (self.vae.encode(input_image.to(self.vae.device, dtype=self.vae.dtype), temporal_chunk=False, tile_sample_min_size=1024).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c t h w] 
+        #original_latent_condition = (self.vae.encode(input_image.to(self.vae.device, dtype=self.vae.dtype), temporal_chunk=False, tile_sample_min_size=1024).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c t h w] 
+        original_latent_condition = (self.vae.encode(input_image.to(self.vae.device, dtype=self.vae.dtype), temporal_chunk=False, tile_sample_min_size=1024).latent_dist.sample() - self.vae_video_shift_factor) * self.vae_video_scale_factor  # [b c t h w] 
         original_latent_condition_list = self.get_pyramid_latent_with_spatial_downsample(original_latent_condition, stage_num)
 
         if not self.deterministic_noise:
