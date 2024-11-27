@@ -1073,9 +1073,9 @@ class PyramidDiTForVideoGeneration:
                                 video = (video - self.vae_shift_factor) * self.vae_scale_factor
                             else:
                                 # is video
-                                #video[:, :, :1] = (video[:, :, :1] - self.vae_shift_factor) * self.vae_scale_factor
-                                #video[:, :, 1:] =  (video[:, :, 1:] - self.vae_video_shift_factor) * self.vae_video_scale_factor
-                                video = (video - self.vae_video_shift_factor) * self.vae_video_scale_factor
+                                video[:, :, :1] = (video[:, :, :1] - self.vae_shift_factor) * self.vae_scale_factor
+                                video[:, :, 1:] =  (video[:, :, 1:] - self.vae_video_shift_factor) * self.vae_video_scale_factor
+                                #video = (video - self.vae_video_shift_factor) * self.vae_video_scale_factor
                             #video = video / self.vae_video_scale_factor + self.vae_video_shift_factor
 
                             vae_latent_list.append(video)
@@ -1086,9 +1086,9 @@ class PyramidDiTForVideoGeneration:
                             video = (video - self.vae_shift_factor) * self.vae_scale_factor
                         else:
                             # is video
-                            #video[:, :, :1] = (video[:, :, :1] - self.vae_shift_factor) * self.vae_scale_factor
-                            #video[:, :, 1:] =  (video[:, :, 1:] - self.vae_video_shift_factor) * self.vae_video_scale_factor
-                            video = (video - self.vae_video_shift_factor) * self.vae_video_scale_factor
+                            video[:, :, :1] = (video[:, :, :1] - self.vae_shift_factor) * self.vae_scale_factor
+                            video[:, :, 1:] =  (video[:, :, 1:] - self.vae_video_shift_factor) * self.vae_video_scale_factor
+                            #video = (video - self.vae_video_shift_factor) * self.vae_video_scale_factor
                         
                         if self.temporal_downsample:
                             vae_latent_list = self.get_pyramid_latent_with_temporal_downsample(video, len(self.stages))
@@ -1837,10 +1837,11 @@ class PyramidDiTForVideoGeneration:
             original_latent_condition_list = []
             input_image_list = self.get_pyramid_input_with_spatial_downsample(input_image, stage_num)
             for input_img in input_image_list:
-                #original_latent_condition_list.append((self.vae.encode(input_img.to(self.vae.device, dtype=self.vae.dtype), temporal_chunk=False, tile_sample_min_size=1024).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor)
-                original_latent_condition_list.append((self.vae.encode(input_img.to(self.vae.device, dtype=self.vae.dtype), temporal_chunk=False, tile_sample_min_size=1024).latent_dist.sample() - self.vae_video_shift_factor) * self.vae_video_scale_factor)  # [b c t h w] 
+                original_latent_condition_list.append((self.vae.encode(input_img.to(self.vae.device, dtype=self.vae.dtype), temporal_chunk=False, tile_sample_min_size=1024).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor)
+                #original_latent_condition_list.append((self.vae.encode(input_img.to(self.vae.device, dtype=self.vae.dtype), temporal_chunk=False, tile_sample_min_size=1024).latent_dist.sample() - self.vae_video_shift_factor) * self.vae_video_scale_factor)  # [b c t h w] 
         else:
-            original_latent_condition = (self.vae.encode(input_image.to(self.vae.device, dtype=self.vae.dtype), temporal_chunk=False, tile_sample_min_size=1024).latent_dist.sample() - self.vae_video_shift_factor) * self.vae_video_scale_factor  # [b c t h w] 
+            original_latent_condition = (self.vae.encode(input_image.to(self.vae.device, dtype=self.vae.dtype), temporal_chunk=False, tile_sample_min_size=1024).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c t h w] 
+            #original_latent_condition = (self.vae.encode(input_image.to(self.vae.device, dtype=self.vae.dtype), temporal_chunk=False, tile_sample_min_size=1024).latent_dist.sample() - self.vae_video_shift_factor) * self.vae_video_scale_factor  # [b c t h w] 
             original_latent_condition_list = self.get_pyramid_latent_with_spatial_downsample(original_latent_condition, stage_num)
 
         if not self.deterministic_noise:
@@ -2282,9 +2283,9 @@ class PyramidDiTForVideoGeneration:
         if latents.shape[2] == 1:
             latents = (latents / self.vae_scale_factor) + self.vae_shift_factor
         else:
-            #latents[:, :, :1] = (latents[:, :, :1] / self.vae_scale_factor) + self.vae_shift_factor
-            #latents[:, :, 1:] = (latents[:, :, 1:] / self.vae_video_scale_factor) + self.vae_video_shift_factor
-            latents = (latents / self.vae_video_scale_factor) + self.vae_video_shift_factor
+            latents[:, :, :1] = (latents[:, :, :1] / self.vae_scale_factor) + self.vae_shift_factor
+            latents[:, :, 1:] = (latents[:, :, 1:] / self.vae_video_scale_factor) + self.vae_video_shift_factor
+            #latents = (latents / self.vae_video_scale_factor) + self.vae_video_shift_factor
         
         if save_memory:
             # reducing the tile size and temporal chunk window size
