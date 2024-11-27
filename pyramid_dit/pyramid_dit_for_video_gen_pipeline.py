@@ -654,7 +654,7 @@ class PyramidDiTForVideoGeneration:
 
             indices = (u * training_steps).long()   # Totally 1000 training steps per stage
             indices = indices.clamp(0, training_steps-1)
-            timesteps = self.scheduler.timesteps[indices].to(device=device)# + 1000 * i_s
+            timesteps = self.scheduler.timesteps[indices].to(device=device) + 1000 * i_s
             ratios = self.scheduler.sigmas[indices].to(device=device)
 
             while len(ratios.shape) < start_point.ndim:
@@ -1962,7 +1962,7 @@ class PyramidDiTForVideoGeneration:
                         total_input = [latent_model_input]
 
                 # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
-                timestep = t.expand(latent_model_input.shape[0]).to(latent_model_input.dtype)# + 1000 * (2-i_s)
+                timestep = t.expand(latent_model_input.shape[0]).to(latent_model_input.dtype) + 1000 * (2-i_s)
                 timestep = timestep.to(device)
 
                 if is_sequence_parallel_initialized():
