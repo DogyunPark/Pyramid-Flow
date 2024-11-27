@@ -481,7 +481,7 @@ class PyramidDiTForVideoGeneration:
                 # Get the upsampled latent
                 last_clean_latent = upsample_vae_latent_list[i_s][index::column_size]
                 temp_dim_last_clean_latent = last_clean_latent.shape[2]
-                last_clean_latent_temp = latents_list[i_s+1][index::column_size][:,:,:1].repeat(1, 1, temp_dim_last_clean_latent, 1, 1).detach().clone()
+                last_clean_latent_temp = last_clean_latent[:,:,:1].repeat(1, 1, temp_dim_last_clean_latent, 1, 1).detach().clone()
                 start_point = start_sigma * last_clean_latent_temp + (1 - start_sigma) * last_clean_latent
             
             #start_point = start_point + torch.randn_like(start_point) * self.corrupt_ratio[i_s]
@@ -493,6 +493,13 @@ class PyramidDiTForVideoGeneration:
                 temp_dim_clean_latent = clean_latent.shape[2]
                 clean_latent_temp = clean_latent[:,:,:1].repeat(1, 1, temp_dim_clean_latent, 1, 1).detach().clone()
                 end_point = end_sigma * clean_latent_temp + (1 - end_sigma) * clean_latent
+
+            if self.condition_original_image:
+                original_latent_condition = latents_list[i_s+1][index::column_size]
+                original_latent_condition = original_latent_condition[:,:,0].unsqueeze(2)
+                noise_ratio2 = torch.rand(size=(batch_size,), device=device) / 3
+                noise_ratio2 = noise_ratio2[:, None, None, None, None]
+                original_latent_condition = noise_ratio2 * torch.randn_like(original_latent_condition) + (1 - noise_ratio2) * original_latent_condition
 
             # To sample a timestep
             u = compute_density_for_timestep_sampling(
@@ -515,7 +522,11 @@ class PyramidDiTForVideoGeneration:
             noisy_latents = ratios * start_point + (1 - ratios) * end_point
 
             # [stage1_latent, stage2_latent, ..., stagen_latent], which will be concat after patching
-            noisy_latents_list.append([noisy_latents.to(dtype)])
+            if self.condition_original_image:
+                noisy_latents_list.append([original_latent_condition, noisy_latents.to(dtype)])
+            else:
+                noisy_latents_list.append([noisy_latents.to(dtype)])
+                    
             ratios_list.append(ratios.to(dtype))
             timesteps_list.append(timesteps.to(dtype))
             targets_list.append(start_point - end_point)     # The standard rectified flow matching objective
@@ -1817,7 +1828,7 @@ class PyramidDiTForVideoGeneration:
 
         # Prepare the condition latents
         stage_latent_condition = rearrange(input_image, 'b c t h w -> (b t) c h w')
-        stage_latent_condition = torch.nn.functional.interpolate(stage_latent_condition, size=(height//(2**(stage_num-1)), width//(2**(stage_num-1))), mode='bicubic')
+        stage_latent_condition = torch.nn.functional.interpolate(stage_latent_condition, size=(height//(2**(stage_num)), width//(2**(stage_num))), mode='bilinear')
         stage_latent_condition = rearrange(stage_latent_condition, '(b t) c h w -> b c t h w', t=1)
         stage_latent_condition = (self.vae.encode(stage_latent_condition.to(self.vae.device, dtype=self.vae.dtype), temporal_chunk=False, tile_sample_min_size=1024).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c t h w] 
         #if self.condition_original_image:
@@ -1894,7 +1905,7 @@ class PyramidDiTForVideoGeneration:
                     #temp_start_dim = original_latent_condition.shape[2]
                     latents = original_latent_condition[:,:,:1].repeat(1, 1, temp_next, 1, 1).detach().clone()
                 else:
-                    if i_s > 0:
+                    if 1:
                         latent_height *= 2;latent_width *= 2
                         if not self.trilinear_interpolation:
                             if self.temporal_downsample:
