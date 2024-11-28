@@ -109,12 +109,12 @@ class PyramidFlowMatchEulerDiscreteScheduler(SchedulerMixin, ConfigMixin):
             end_sigma = self.sigmas[end_indice].item() if end_indice < training_steps else 0.0
             self.ori_start_sigmas[i_s] = start_sigma
 
-            if i_s != 0:
-                ori_sigma = 1 - start_sigma
-                gamma = self.config.gamma
-                corrected_sigma = (1 / (math.sqrt(1 + (1 / gamma)) * (1 - ori_sigma) + ori_sigma)) * ori_sigma
-                # corrected_sigma = 1 / (2 - ori_sigma) * ori_sigma
-                start_sigma = 1 - corrected_sigma
+            # if i_s != 0:
+            #     ori_sigma = 1 - start_sigma
+            #     gamma = self.config.gamma
+            #     corrected_sigma = (1 / (math.sqrt(1 + (1 / gamma)) * (1 - ori_sigma) + ori_sigma)) * ori_sigma
+            #     # corrected_sigma = 1 / (2 - ori_sigma) * ori_sigma
+            #     start_sigma = 1 - corrected_sigma
 
             stage_distance.append(start_sigma - end_sigma)
             self.start_sigmas[i_s] = start_sigma
