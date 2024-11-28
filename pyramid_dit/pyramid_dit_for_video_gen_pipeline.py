@@ -753,8 +753,6 @@ class PyramidDiTForVideoGeneration:
         # from low resolution to high resolution
         for index in range(column_size):
             i_s = column_to_stage[index]
-            start_sigma = self.scheduler.start_sigmas[i_s]
-            end_sigma = self.scheduler.end_sigmas[i_s]
             
             if i_s == 0:
                 start_point = latents_list[-1][index::column_size]
