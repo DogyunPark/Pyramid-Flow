@@ -1141,8 +1141,8 @@ class PyramidDiTForVideoGeneration:
             height //= 2
             width //= 2
             x = rearrange(x, 'b c t h w -> (b t) c h w')
-            #if self.use_gaussian_filter:
-            #    x = self.gaussian_filter(x)
+            if self.use_gaussian_filter:
+                x = self.gaussian_filter(x)
             x = torch.nn.functional.interpolate(x, size=(height, width), mode='bilinear')
             x = rearrange(x, '(b t) c h w -> b c t h w', t=temp)
             vae_latent_list.append(x)
