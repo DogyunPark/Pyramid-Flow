@@ -795,8 +795,8 @@ class PyramidDiTForVideoGeneration:
 
             indices = (u * training_steps).long()   # Totally 1000 training steps per stage
             indices = indices.clamp(0, training_steps-1)
-            timesteps = self.scheduler.timesteps_per_stage[i_s][indices].to(device=device)
-            ratios = self.scheduler.sigmas_per_stage[i_s][indices].to(device=device)
+            timesteps = self.scheduler.timesteps[indices].to(device=device) + 1000 * i_s
+            ratios = self.scheduler.sigmas[indices].to(device=device)
 
             while len(ratios.shape) < start_point.ndim:
                 ratios = ratios.unsqueeze(-1)
@@ -1228,9 +1228,9 @@ class PyramidDiTForVideoGeneration:
         #if use_temporal_pyramid:
         #    noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_with_temporal_pyramid(vae_latent_list, self.sample_ratios)
         if self.use_perflow:
-            noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_ours3(vae_latent_list, upsample_vae_latent_list, self.sample_ratios)
+            noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_ours(vae_latent_list, upsample_vae_latent_list, self.sample_ratios)
         else:
-            noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_ours2(vae_latent_list, upsample_vae_latent_list, self.sample_ratios)
+            noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_ours3(vae_latent_list, upsample_vae_latent_list, self.sample_ratios)
 
         return noisy_latents_list, ratios_list, timesteps_list, targets_list
 
@@ -1946,7 +1946,6 @@ class PyramidDiTForVideoGeneration:
         stage_latent_condition = torch.nn.functional.interpolate(stage_latent_condition, size=(latent_height//(2**(stage_num-1)), latent_width//(2**(stage_num-1))), mode='bilinear')
         stage_latent_condition = rearrange(stage_latent_condition, '(b t) c h w -> b c t h w', t=1)
         
-        #stage_latent_condition = (self.vae.encode(stage_latent_condition.to(self.vae.device, dtype=self.vae.dtype), temporal_chunk=False, tile_sample_min_size=1024).latent_dist.sample() - self.vae_video_shift_factor) * self.vae_video_scale_factor  # [b c t h w] 
         #if self.condition_original_image:
         if not self.downsample_latent:
             original_latent_condition_list = []
