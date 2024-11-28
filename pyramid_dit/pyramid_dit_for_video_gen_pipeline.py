@@ -853,6 +853,8 @@ class PyramidDiTForVideoGeneration:
                 end_point_0 = rearrange(end_point_0, '(b t) c h w -> b c t h w', t=t)
                 end_point = end_point_1 + end_point_0
 
+                import pdb; pdb.set_trace()
+
                 while len(ratios.shape) < start_point.ndim:
                     ratios = ratios.unsqueeze(-1)
 
