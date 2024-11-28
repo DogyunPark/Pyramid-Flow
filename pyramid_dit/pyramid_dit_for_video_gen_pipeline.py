@@ -1278,7 +1278,7 @@ class PyramidDiTForVideoGeneration:
 
             current_noise = noise_list[idx]
             x = rearrange(current_noise, 'b c t h w -> (b t) c h w')
-            x = torch.nn.functional.interpolate(x, size=(height_next, width_next), mode='bilinear')
+            x = torch.nn.functional.interpolate(x, size=(height_next, width_next), mode='nearest')
             #if self.use_gaussian_filter:
             #    x = self.gaussian_filter(x)
             x = rearrange(x, '(b t) c h w -> b c t h w', t=temp_next)
