@@ -774,16 +774,19 @@ class PyramidDiTForVideoGeneration:
                 end_point = end_point[:,:,temp_init+1]
             else:
                 end_point = latents_list[i_s+1][index::column_size]   # [bs, c, t, h, w]
-                end_point_x0 = end_point[:,:,temp_init].unsqueeze(2)
-                end_point_x1 = end_point[:,:,temp_init+1].unsqueeze(2)
+                end_point_x0 = end_point[:,:,temp_init]
+                end_point_x1 = end_point[:,:,temp_init+1]
                 end_point = end_sigma * end_point_x0 + (1 - end_sigma) * end_point_x1
             
             if self.temporal_autoregressive:
-                stage_latent_condition = latents_list[i_s][index::column_size]
-                stage_latent_condition = stage_latent_condition[:,:,:temp_init]
-                noise_ratio2 = torch.rand(size=(batch_size,), device=device) / 3
-                noise_ratio2 = noise_ratio2[:, None, None, None, None]
-                stage_latent_condition = noise_ratio2 * torch.randn_like(stage_latent_condition) + (1 - noise_ratio2) * stage_latent_condition
+                if temp_init > 0:
+                    stage_latent_condition = latents_list[i_s][index::column_size]
+                    stage_latent_condition = stage_latent_condition[:,:,:temp_init]
+                    noise_ratio2 = torch.rand(size=(batch_size,), device=device) / 3
+                    noise_ratio2 = noise_ratio2[:, None, None, None, None]
+                    stage_latent_condition = noise_ratio2 * torch.randn_like(stage_latent_condition) + (1 - noise_ratio2) * stage_latent_condition
+                else:
+                    stage_latent_condition = None
                                                                                          
             if self.condition_original_image:
                 original_latent_condition = latents_list[i_s+1][index::column_size]
@@ -814,12 +817,12 @@ class PyramidDiTForVideoGeneration:
 
             # [stage1_latent, stage2_latent, ..., stagen_latent], which will be concat after patching
             if self.condition_original_image:
-                if self.temporal_autoregressive:
+                if self.temporal_autoregressive and stage_latent_condition is not None:
                     noisy_latents_list.append([original_latent_condition, stage_latent_condition, noisy_latents.to(dtype)])
                 else:
                     noisy_latents_list.append([original_latent_condition, noisy_latents.to(dtype)])
             else:
-                if self.temporal_autoregressive:
+                if self.temporal_autoregressive and stage_latent_condition is not None:
                     noisy_latents_list.append([stage_latent_condition, noisy_latents.to(dtype)])
                 else:
                     noisy_latents_list.append([noisy_latents.to(dtype)])
