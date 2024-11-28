@@ -2008,8 +2008,8 @@ class PyramidDiTForVideoGeneration:
                 noise_list = noise_list_random
         else:
             latents = stage_latent_condition_list[0].detach().clone()
-            if not self.temporal_downsample:
-                latents = latents.repeat(1, 1, latent_temp, 1, 1)
+            #if not self.temporal_downsample:
+            #    latents = latents.repeat(1, 1, latent_temp, 1, 1)
         
         generated_latents_list = [stage_latent_condition_list[-1].detach().clone()]    # The generated results
 
