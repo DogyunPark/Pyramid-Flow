@@ -859,9 +859,7 @@ class PyramidDiTForVideoGeneration:
                     ratios = ratios.unsqueeze(-1)
 
                 noisy_latents = ratios * start_point + (1 - ratios) * end_point
-            
-            import pdb; pdb.set_trace()
-            
+
             if self.temporal_autoregressive:
                 if temp_init > 0:
                     stage_latent_condition = latents_list[i_s][index::column_size]
@@ -2379,8 +2377,6 @@ class PyramidDiTForVideoGeneration:
         latent_width = width // self.vae.config.downsample_scale
         latent_temp = int(self.num_frames // self.vae.config.downsample_scale + 1)
 
-
-        
         num_channels_latents = (self.dit.config.in_channels // 4) if self.model_name == "pyramid_flux" else  self.dit.config.in_channels
         latents = self.prepare_latents(
             batch_size * num_images_per_prompt,
@@ -2424,6 +2420,8 @@ class PyramidDiTForVideoGeneration:
                 noise = noise.to(device=device, dtype=dtype)
                 latents = alpha * latents + beta * noise    # To fix the block artifact
 
+            import pdb; pdb.set_trace()
+            
             for idx, t in enumerate(timesteps):
                 # expand the latents if we are doing classifier free guidance
                 latent_model_input = torch.cat([latents] * 2) if self.do_classifier_free_guidance else latents
