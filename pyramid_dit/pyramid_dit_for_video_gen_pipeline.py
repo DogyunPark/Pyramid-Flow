@@ -2009,7 +2009,7 @@ class PyramidDiTForVideoGeneration:
             temp_next = temp_upsample_list[i_s]
             
             # Prepare the condition latents
-            if i_s > 0:
+            if i_s > 0:q
                 stage_latent_condition = latents.detach().clone()
             original_latent_condition = original_latent_condition_list[i_s+1]
 
@@ -2053,7 +2053,7 @@ class PyramidDiTForVideoGeneration:
                                 bs, ch, temp, height, width = latents.shape
                                 noise = self.sample_block_noise(bs, ch, temp, height, width)
                                 noise = noise.to(device=device, dtype=dtype)
-                                latents = alpha * latents #+ beta * noise    # To fix the block artifact
+                                #latents = alpha * latents #+ beta * noise    # To fix the block artifact
                                 #latents = latents + torch.randn_like(latents) * self.corrupt_ratio[i_s]
                         else:
                             if self.temporal_downsample:
