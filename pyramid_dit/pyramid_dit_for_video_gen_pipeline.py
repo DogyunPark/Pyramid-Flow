@@ -264,7 +264,7 @@ class PyramidDiTForVideoGeneration:
         self.use_perflow = use_perflow
         self.use_gaussian_filter = use_gaussian_filter
         if self.use_gaussian_filter:
-            self.gaussian_filter = Gaussian2DFilter(kernel_size=(3, 3), sigma=(0.5, 0.5)).to(device=self.vae.device)
+            self.gaussian_filter = Gaussian2DFilter(kernel_size=(3, 3), sigma=(1.0, 1.0)).to(device=self.vae.device)
 
     def _enable_sequential_cpu_offload(self, model):
         self.sequential_offload_enabled = True
@@ -814,7 +814,7 @@ class PyramidDiTForVideoGeneration:
                 #start_point = start_point[:,:,temp_init].unsqueeze(2)
                 
                 end_point = laplacian_pyramid_latents[i_s][index::column_size]   # [bs, c, t, h, w]
-                end_point = end_sigma * start_point + (1 - end_sigma) * end_point
+                #end_point = end_sigma * start_point + (1 - end_sigma) * end_point
                 #end_point_t0 = end_point[:,:,temp_init]
                # end_point_t1 = end_point[:,:,temp_init+1]
                # end_point = end_point_t1 - end_point_t0
@@ -841,8 +841,10 @@ class PyramidDiTForVideoGeneration:
                 #end_point_1_t1 = end_point_1[:,:,temp_init+1]
                 #end_point_1 = end_point_1_t1 - end_point_1_t0
 
-                start_point_0 = start_sigma * start_point_0 + (1 - start_sigma) * end_point_0
-                start_point_1 = start_sigma * start_point_1 + (1 - start_sigma) * end_point_1
+                #start_point_0 = start_sigma * start_point_0 + (1 - start_sigma) * end_point_0
+                start_point_0 = end_point_0
+                #start_point_1 = start_sigma * start_point_1 + (1 - start_sigma) * end_point_1
+                start_point_1 = start_point_1
                 #end_point_0 = end_sigma * start_point_0 + (1 - end_sigma) * end_point_0
                 #end_point_1 = end_sigma * start_point_1 + (1 - end_sigma) * end_point_1
                 
@@ -1226,7 +1228,7 @@ class PyramidDiTForVideoGeneration:
 
             current_vae_latent = vae_latent_list[idx]
             x = rearrange(current_vae_latent, 'b c t h w -> (b t) c h w')
-            x = torch.nn.functional.interpolate(x, size=(height_next, width_next), mode='bilinear')
+            x = torch.nn.functional.interpolate(x, size=(height_next, width_next), mode='nearest')
             x = rearrange(x, '(b t) c h w -> b c t h w', t=temp_next)
             upsample_vae_latent_list.append(x)
 
@@ -1248,8 +1250,8 @@ class PyramidDiTForVideoGeneration:
         return laplacian_pyramid_noises
 
     @torch.no_grad()
-    def get_pyramid_noise_with_spatial_downsample(self, vae_latent_list, stage_num):
-        noise = torch.randn_like(vae_latent_list[-1])
+    def get_pyramid_noise_with_spatial_downsample(self, vae, stage_num):
+        noise = torch.randn_like(vae)
         t, height, width = noise.shape[-3], noise.shape[-2], noise.shape[-1]
         noise_list = [noise]
         cur_noise = noise
@@ -1345,7 +1347,7 @@ class PyramidDiTForVideoGeneration:
                     else:
                         upsample_vae_latent_list = self.get_pyramid_latent_with_spatial_upsample(vae_latent_list)
                     
-                    noise_list = self.get_pyramid_noise_with_spatial_downsample(vae_latent_list, len(self.stages))
+                    noise_list = self.get_pyramid_noise_with_spatial_downsample(vae_latent_list[-1], len(self.stages))
                     upsample_noise_list = self.get_pyramid_noise_with_spatial_upsample(noise_list, len(self.stages))
                     laplacian_pyramid_latents = self.get_laplacian_pyramid_latents(vae_latent_list, upsample_vae_latent_list)
                     laplacian_pyramid_noises = self.get_laplacian_pyramid_noises(noise_list, upsample_noise_list)
@@ -2388,6 +2390,10 @@ class PyramidDiTForVideoGeneration:
         temp, height, width = latents.shape[-3], latents.shape[-2], latents.shape[-1]
         latents = rearrange(latents, 'b c t h w -> (b t) c h w')
         # by defalut, we needs to start from the block noise
+        latents_list = self.get_pyramid_noise_with_spatial_downsample(latents, stage_num)
+        upsample_latents = self.get_pyramid_noise_with_spatial_upsample(latents_list, stage_num)
+        laplacian_latents = self.get_laplacian_pyramid_noises(latents_list, upsample_latents)
+
         for _ in range(len(self.stages)-1):
             height //= 2;width //= 2
             latents = F.interpolate(latents, size=(height, width), mode='bilinear') * 2
@@ -2403,18 +2409,21 @@ class PyramidDiTForVideoGeneration:
             if i_s > 0:
                 height *= 2; width *= 2
                 latents = rearrange(latents, 'b c t h w -> (b t) c h w')
-                latents = F.interpolate(latents, size=(height, width), mode='bilinear')
+                latents = F.interpolate(latents, size=(height, width), mode='nearest')
                 latents = rearrange(latents, '(b t) c h w -> b c t h w', t=temp)
-                # Fix the stage
-                ori_sigma = 1 - self.validation_scheduler.ori_start_sigmas[i_s]   # the original coeff of signal
-                gamma = self.validation_scheduler.config.gamma
-                alpha = 1 / (math.sqrt(1 + (1 / gamma)) * (1 - ori_sigma) + ori_sigma)
-                beta = alpha * (1 - ori_sigma) / math.sqrt(gamma)
 
-                bs, ch, temp, height, width = latents.shape
-                noise = self.sample_block_noise(bs, ch, temp, height, width)
-                noise = noise.to(device=device, dtype=dtype)
-                latents = alpha * latents + beta * noise    # To fix the block artifact
+                latents = laplacian_latents[i_s] + latents
+
+                # Fix the stage
+                # ori_sigma = 1 - self.validation_scheduler.ori_start_sigmas[i_s]   # the original coeff of signal
+                # gamma = self.validation_scheduler.config.gamma
+                # alpha = 1 / (math.sqrt(1 + (1 / gamma)) * (1 - ori_sigma) + ori_sigma)
+                # beta = alpha * (1 - ori_sigma) / math.sqrt(gamma)
+
+                # bs, ch, temp, height, width = latents.shape
+                # noise = self.sample_block_noise(bs, ch, temp, height, width)
+                # noise = noise.to(device=device, dtype=dtype)
+                # latents = alpha * latents + beta * noise    # To fix the block artifact
 
             for idx, t in enumerate(timesteps):
                 # expand the latents if we are doing classifier free guidance
