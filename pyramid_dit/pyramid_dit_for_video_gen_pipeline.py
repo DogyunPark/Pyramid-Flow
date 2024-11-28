@@ -756,6 +756,7 @@ class PyramidDiTForVideoGeneration:
             start_sigma = self.scheduler.start_sigmas[i_s]
             end_sigma = self.scheduler.end_sigmas[i_s]
 
+            import pdb; pdb.set_trace()
             temp_init = torch.randint(0, latents_list[-1].shape[2]-1, size=(1,), device=device)
             
             if i_s == 0:
