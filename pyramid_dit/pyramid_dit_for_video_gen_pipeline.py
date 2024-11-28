@@ -2009,7 +2009,7 @@ class PyramidDiTForVideoGeneration:
             temp_next = temp_upsample_list[i_s]
             
             # Prepare the condition latents
-            if i_s > 0:q
+            if i_s > 0:
                 stage_latent_condition = latents.detach().clone()
             original_latent_condition = original_latent_condition_list[i_s+1]
 
