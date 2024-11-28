@@ -793,8 +793,8 @@ class PyramidDiTForVideoGeneration:
 
             indices = (u * training_steps).long()   # Totally 1000 training steps per stage
             indices = indices.clamp(0, training_steps-1)
-            timesteps = self.scheduler.timesteps[indices].to(device=device) + 1000 * i_s
-            ratios = self.scheduler.sigmas[indices].to(device=device)
+            timesteps = self.scheduler.timesteps_per_stage[i_s][indices].to(device=device)
+            ratios = self.scheduler.sigmas_per_stage[i_s][indices].to(device=device)
 
             while len(ratios.shape) < start_point.ndim:
                 ratios = ratios.unsqueeze(-1)
@@ -1226,7 +1226,7 @@ class PyramidDiTForVideoGeneration:
         #if use_temporal_pyramid:
         #    noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_with_temporal_pyramid(vae_latent_list, self.sample_ratios)
         if self.use_perflow:
-            noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_ours(vae_latent_list, upsample_vae_latent_list, self.sample_ratios)
+            noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_ours3(vae_latent_list, upsample_vae_latent_list, self.sample_ratios)
         else:
             noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_ours3(vae_latent_list, upsample_vae_latent_list, self.sample_ratios)
 
@@ -2050,6 +2050,15 @@ class PyramidDiTForVideoGeneration:
                                 latents = torch.nn.functional.interpolate(latents, size=(latent_height, latent_width), mode='nearest')
                                 latents = rearrange(latents, '(b t) c h w -> b c t h w', t=temp_current)
 
+                                ori_sigma = 1 - self.scheduler.ori_start_sigmas[i_s]   # the original coeff of signal
+                                gamma = self.scheduler.config.gamma
+                                alpha = 1 / (math.sqrt(1 + (1 / gamma)) * (1 - ori_sigma) + ori_sigma)
+                                beta = alpha * (1 - ori_sigma) / math.sqrt(gamma)
+
+                                bs, ch, temp, height, width = latents.shape
+                                noise = self.sample_block_noise(bs, ch, temp, height, width)
+                                noise = noise.to(device=device, dtype=dtype)
+                                latents = alpha * latents #+ beta * noise    # To fix the block artifact
                                 #latents = latents + torch.randn_like(latents) * self.corrupt_ratio[i_s]
                         else:
                             if self.temporal_downsample:
@@ -2081,7 +2090,7 @@ class PyramidDiTForVideoGeneration:
                         total_input = [latent_model_input]
 
                 # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
-                timestep = t.expand(latent_model_input.shape[0]).to(latent_model_input.dtype) + 1000 * (2-i_s)
+                timestep = t.expand(latent_model_input.shape[0]).to(latent_model_input.dtype)
                 timestep = timestep.to(device)
 
                 if is_sequence_parallel_initialized():
