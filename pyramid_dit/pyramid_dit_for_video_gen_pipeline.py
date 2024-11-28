@@ -2388,17 +2388,19 @@ class PyramidDiTForVideoGeneration:
         )
 
         temp, height, width = latents.shape[-3], latents.shape[-2], latents.shape[-1]
-        latents = rearrange(latents, 'b c t h w -> (b t) c h w')
         # by defalut, we needs to start from the block noise
         latents_list = self.get_pyramid_noise_with_spatial_downsample(latents, stage_num)
         upsample_latents = self.get_pyramid_noise_with_spatial_upsample(latents_list, stage_num)
         laplacian_latents = self.get_laplacian_pyramid_noises(latents_list, upsample_latents)
-
-        for _ in range(len(self.stages)-1):
-            height //= 2;width //= 2
-            latents = F.interpolate(latents, size=(height, width), mode='bilinear') * 2
         
-        latents = rearrange(latents, '(b t) c h w -> b c t h w', t=temp)
+
+        # latents = rearrange(latents, 'b c t h w -> (b t) c h w')
+        # for _ in range(len(self.stages)-1):
+        #     height //= 2;width //= 2
+        #     latents = F.interpolate(latents, size=(height, width), mode='bilinear') * 2
+        # latents = rearrange(latents, '(b t) c h w -> b c t h w', t=temp)
+
+        latents = laplacian_latents[0]
         
         generated_latents_list = []    # The generated results
 
