@@ -2024,7 +2024,7 @@ class PyramidDiTForVideoGeneration:
             if i_u > 0:
                 start_latent_list = self.get_pyramid_latent_with_spatial_downsample(latents, stage_num)
                 latents = start_latent_list[0].detach().clone()
-                latents_height, latents_width = latents.shape[-2:]
+                latent_height, latent_width = latents.shape[-2:]
 
                 stage_latent_condition = torch.cat(generated_latents_list[:i_u], dim=2)
                 stage_latent_condition_list = self.get_pyramid_latent_with_spatial_downsample(stage_latent_condition, stage_num)
