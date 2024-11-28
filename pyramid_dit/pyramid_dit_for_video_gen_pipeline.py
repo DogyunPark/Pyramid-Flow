@@ -2403,7 +2403,7 @@ class PyramidDiTForVideoGeneration:
             if i_s > 0:
                 height *= 2; width *= 2
                 latents = rearrange(latents, 'b c t h w -> (b t) c h w')
-                latents = F.interpolate(latents, size=(height, width), mode='nearest')
+                latents = F.interpolate(latents, size=(height, width), mode='bilinear')
                 latents = rearrange(latents, '(b t) c h w -> b c t h w', t=temp)
                 # Fix the stage
                 ori_sigma = 1 - self.validation_scheduler.ori_start_sigmas[i_s]   # the original coeff of signal
