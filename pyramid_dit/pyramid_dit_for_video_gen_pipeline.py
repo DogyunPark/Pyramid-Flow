@@ -814,6 +814,7 @@ class PyramidDiTForVideoGeneration:
                 #start_point = start_point[:,:,temp_init].unsqueeze(2)
                 
                 end_point = laplacian_pyramid_latents[i_s][index::column_size]   # [bs, c, t, h, w]
+                end_point = end_sigma * start_point + (1 - end_sigma) * end_point
                 #end_point_t0 = end_point[:,:,temp_init]
                # end_point_t1 = end_point[:,:,temp_init+1]
                # end_point = end_point_t1 - end_point_t0
@@ -842,8 +843,8 @@ class PyramidDiTForVideoGeneration:
 
                 start_point_0 = start_sigma * start_point_0 + (1 - start_sigma) * end_point_0
                 start_point_1 = start_sigma * start_point_1 + (1 - start_sigma) * end_point_1
-                end_point_0 = end_sigma * start_point_0 + (1 - end_sigma) * end_point_0
-                end_point_1 = end_sigma * start_point_1 + (1 - end_sigma) * end_point_1
+                #end_point_0 = end_sigma * start_point_0 + (1 - end_sigma) * end_point_0
+                #end_point_1 = end_sigma * start_point_1 + (1 - end_sigma) * end_point_1
                 
                 start_point_0 = rearrange(start_point_0, 'b c t h w -> (b t) c h w')
                 start_point_0 = torch.nn.functional.interpolate(start_point_0, size=(start_point_1.shape[-2], start_point_1.shape[-1]), mode='nearest')
