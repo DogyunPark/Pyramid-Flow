@@ -2422,7 +2422,6 @@ class PyramidDiTForVideoGeneration:
 
             for idx, t in enumerate(timesteps):
                 # expand the latents if we are doing classifier free guidance
-                import pdb; pdb.set_trace()
                 latent_model_input = torch.cat([latents] * 2) if self.do_classifier_free_guidance else latents
                 latent_model_input = [latent_model_input]
             
