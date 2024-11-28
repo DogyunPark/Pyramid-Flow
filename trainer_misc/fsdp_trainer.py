@@ -162,22 +162,22 @@ def train_one_epoch_with_fsdp(
         if step % 20 == 0:
             runner.dit.eval()
             #print("Generating the video for text: {}".format(text[0]))
-            image = runner.generate_video(
-                prompt=text[0],
-                input_image=video[:1, :, :1],
-                num_inference_steps=[20, 20, 20],
-                output_type="pil",
-                save_memory=True,
-                guidance_scale=3.0
-            )
-            export_to_video(image, "./output/text_to_video_sample-{}epoch-train.mp4".format(epoch), fps=12)
+            # image = runner.generate_video(
+            #     prompt=text[0],
+            #     input_image=video[:1, :, :1],
+            #     num_inference_steps=[20, 20, 20],
+            #     output_type="pil",
+            #     save_memory=True,
+            #     guidance_scale=3.0
+            # )
+            #export_to_video(image, "./output/text_to_video_sample-{}epoch-train.mp4".format(epoch), fps=12)
             assert validation_prompt is not None and validation_image is not None
             for num_image in range(3):
                 prompt = validation_prompt[num_image]
                 img = validation_image[num_image][:,0].to(accelerator.device)
                 img = img.unsqueeze(0).unsqueeze(2)
 
-                image = runner.generate_video(
+                image = runner.generate_laplacian_video(
                     prompt=prompt,
                     input_image=img,
                     num_inference_steps=[20, 20, 20],

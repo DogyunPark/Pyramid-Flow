@@ -805,9 +805,6 @@ class PyramidDiTForVideoGeneration:
             indices = indices.clamp(0, training_steps-1)
             timesteps = self.scheduler.timesteps_per_stage[i_s][indices].to(device=device)
             ratios = self.scheduler.sigmas_per_stage[i_s][indices].to(device=device)
-
-            while len(ratios.shape) < start_point.ndim:
-                ratios = ratios.unsqueeze(-1)
             
             #temp_init = torch.randint(0, latents_list[-1].shape[2]-1, size=(1,), device=device)
             temp_init = 0
@@ -821,6 +818,8 @@ class PyramidDiTForVideoGeneration:
                # end_point_t1 = end_point[:,:,temp_init+1]
                # end_point = end_point_t1 - end_point_t0
 
+                while len(ratios.shape) < start_point.ndim:
+                    ratios = ratios.unsqueeze(-1)
                 # interpolate the latent
                 noisy_latents = ratios * start_point + (1 - ratios) * end_point
 
@@ -840,9 +839,11 @@ class PyramidDiTForVideoGeneration:
                 #end_point_1_t0 = end_point_1[:,:,temp_init]
                 #end_point_1_t1 = end_point_1[:,:,temp_init+1]
                 #end_point_1 = end_point_1_t1 - end_point_1_t0
-
                 start_point = start_point_1 + torch.nn.functional.interpolate(start_point_0, size=(start_point_1.shape[-2], start_point_1.shape[-1]), mode='bilinear')
                 end_point = end_point_1 + torch.nn.functional.interpolate(end_point_0, size=(end_point_1.shape[-2], end_point_1.shape[-1]), mode='bilinear')
+
+                while len(ratios.shape) < start_point.ndim:
+                    ratios = ratios.unsqueeze(-1)
 
                 noisy_latents = ratios * start_point + (1 - ratios) * end_point
             
