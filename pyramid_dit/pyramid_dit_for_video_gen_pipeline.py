@@ -1238,7 +1238,7 @@ class PyramidDiTForVideoGeneration:
     @torch.no_grad()
     def get_pyramid_noise_with_spatial_downsample(self, vae_latent_list, stage_num):
         noise = torch.randn_like(vae_latent_list[-1])
-        height, width = noise.shape[-2], noise.shape[-1]
+        t, height, width = noise.shape[-3], noise.shape[-2], noise.shape[-1]
         noise_list = [noise]
         cur_noise = noise
         for i_s in range(stage_num-1):
