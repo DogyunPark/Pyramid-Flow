@@ -1228,11 +1228,10 @@ class PyramidDiTForVideoGeneration:
         return laplacian_pyramid_latents
     
     @torch.no_grad()
-    def get_laplacian_pyramid_noises(self, noise_list):
+    def get_laplacian_pyramid_noises(self, noise_list, upsample_noise_list):
         laplacian_pyramid_noises = [noise_list[0]]
-        for idx in range(1, len(noise_list)):
-            upsample_noise = torch.nn.functional.interpolate(noise_list[idx], size=(noise_list[idx].shape[-2] * 2, noise_list[idx].shape[-1] * 2), mode='bilinear')
-            laplacian_pyramid_noises.append(upsample_noise - noise_list[idx])
+        for idx in range(1, len(upsample_noise_list)):
+            laplacian_pyramid_noises.append(upsample_noise_list[idx-1] - noise_list[idx])
         return laplacian_pyramid_noises
 
     @torch.no_grad()
@@ -1250,6 +1249,28 @@ class PyramidDiTForVideoGeneration:
 
         noise_list = list(reversed(noise_list))   # make sure from low res to high res
         return noise_list
+    
+    @torch.no_grad()
+    def get_pyramid_noise_with_spatial_upsample(self, noise_list, stage_num):
+        upsample_noise_list = []
+        stage_num = len(noise_list)-1
+
+        for idx in range(stage_num):
+            next_idx = idx + 1
+            temp_next = noise_list[next_idx].shape[2]
+            height_next = noise_list[next_idx].shape[3]
+            width_next = noise_list[next_idx].shape[4]
+
+            current_noise = noise_list[idx]
+            x = rearrange(current_noise, 'b c t h w -> (b t) c h w')
+            x = torch.nn.functional.interpolate(x, size=(height_next, width_next), mode='nearest')
+            #if self.use_gaussian_filter:
+            #    x = self.gaussian_filter(x)
+            x = rearrange(x, '(b t) c h w -> b c t h w', t=temp_next)
+            upsample_noise_list.append(x)
+
+        return upsample_noise_list
+        
 
     @torch.no_grad()
     def get_vae_latent(self, video, use_temporal_pyramid=False):
@@ -1312,8 +1333,9 @@ class PyramidDiTForVideoGeneration:
                         upsample_vae_latent_list = self.get_pyramid_latent_with_spatial_upsample(vae_latent_list)
                     
                     noise_list = self.get_pyramid_noise_with_spatial_downsample(vae_latent_list, len(self.stages))
+                    upsample_noise_list = self.get_pyramid_noise_with_spatial_upsample(noise_list, len(self.stages))
                     laplacian_pyramid_latents = self.get_laplacian_pyramid_latents(vae_latent_list, upsample_vae_latent_list)
-                    laplacian_pyramid_noises = self.get_laplacian_pyramid_noises(noise_list)
+                    laplacian_pyramid_noises = self.get_laplacian_pyramid_noises(noise_list, upsample_noise_list)
             else:
                 assert video.shape[1] == 3, "The vae is loaded, the input should be raw pixels"
                 if video.shape[2] == 1:
