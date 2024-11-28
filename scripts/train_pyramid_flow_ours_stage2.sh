@@ -57,7 +57,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 accelerate launch --multi_gpu --num_process
     --save_ckpt_freq 1 \
     --load_vae \
     --gradient_checkpointing \
-    --num_frames 1 \
+    --num_frames 49 \
     --deterministic_noise \
     --use_perflow \
     --downsample_latent \
