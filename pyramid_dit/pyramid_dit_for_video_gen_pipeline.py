@@ -1943,7 +1943,7 @@ class PyramidDiTForVideoGeneration:
         #stage_latent_condition = rearrange(stage_latent_condition, '(b t) c h w -> b c t h w', t=1)
         stage_latent_condition = (self.vae.encode(input_image.to(self.vae.device, dtype=self.vae.dtype), temporal_chunk=False, tile_sample_min_size=1024).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c t h w] 
         stage_latent_condition = rearrange(stage_latent_condition, 'b c t h w -> (b t) c h w')
-        stage_latent_condition = torch.nn.functional.interpolate(stage_latent_condition, size=(height//(2**(stage_num-1)), width//(2**(stage_num-1))), mode='bilinear')
+        stage_latent_condition = torch.nn.functional.interpolate(stage_latent_condition, size=(latent_height//(2**(stage_num-1)), latent_width//(2**(stage_num-1))), mode='bilinear')
         stage_latent_condition = rearrange(stage_latent_condition, '(b t) c h w -> b c t h w', t=1)
         
         #stage_latent_condition = (self.vae.encode(stage_latent_condition.to(self.vae.device, dtype=self.vae.dtype), temporal_chunk=False, tile_sample_min_size=1024).latent_dist.sample() - self.vae_video_shift_factor) * self.vae_video_scale_factor  # [b c t h w] 
