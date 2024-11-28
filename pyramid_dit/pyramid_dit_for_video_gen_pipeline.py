@@ -2423,13 +2423,13 @@ class PyramidDiTForVideoGeneration:
             for idx, t in enumerate(timesteps):
                 # expand the latents if we are doing classifier free guidance
                 latent_model_input = torch.cat([latents] * 2) if self.do_classifier_free_guidance else latents
-                latent_model_input = [latent_model_input]
+                total_input = [latent_model_input]
             
                 # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
                 timestep = t.expand(latent_model_input.shape[0]).to(latent_model_input.dtype)
 
                 noise_pred = self.dit(
-                    sample=[latent_model_input],
+                    sample=[total_input],
                     timestep_ratio=timestep,
                     encoder_hidden_states=prompt_embeds,
                     encoder_attention_mask=prompt_attention_mask,
