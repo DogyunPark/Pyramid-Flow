@@ -2420,20 +2420,13 @@ class PyramidDiTForVideoGeneration:
                 noise = noise.to(device=device, dtype=dtype)
                 latents = alpha * latents + beta * noise    # To fix the block artifact
 
-            import pdb; pdb.set_trace()
-            
             for idx, t in enumerate(timesteps):
                 # expand the latents if we are doing classifier free guidance
+                import pdb; pdb.set_trace()
                 latent_model_input = torch.cat([latents] * 2) if self.do_classifier_free_guidance else latents
             
                 # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
                 timestep = t.expand(latent_model_input.shape[0]).to(latent_model_input.dtype)
-
-                if is_sequence_parallel_initialized():
-                    # sync the input latent
-                    sp_group_rank = get_sequence_parallel_group_rank()
-                    global_src_rank = sp_group_rank * get_sequence_parallel_world_size()
-                    torch.distributed.broadcast(latent_model_input, global_src_rank, group=get_sequence_parallel_group())
 
                 noise_pred = self.dit(
                     sample=[latent_model_input],
