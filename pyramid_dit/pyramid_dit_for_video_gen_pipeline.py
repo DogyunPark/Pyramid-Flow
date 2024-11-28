@@ -842,6 +842,8 @@ class PyramidDiTForVideoGeneration:
 
                 start_point_0 = start_sigma * start_point_0 + (1 - start_sigma) * end_point_0
                 start_point_1 = start_sigma * start_point_1 + (1 - start_sigma) * end_point_1
+                end_point_0 = end_sigma * start_point_0 + (1 - end_sigma) * end_point_0
+                end_point_1 = end_sigma * start_point_1 + (1 - end_sigma) * end_point_1
                 
                 start_point_0 = rearrange(start_point_0, 'b c t h w -> (b t) c h w')
                 start_point_0 = torch.nn.functional.interpolate(start_point_0, size=(start_point_1.shape[-2], start_point_1.shape[-1]), mode='nearest')
@@ -853,12 +855,12 @@ class PyramidDiTForVideoGeneration:
                 end_point_0 = rearrange(end_point_0, '(b t) c h w -> b c t h w', t=t)
                 end_point = end_point_1 + end_point_0
 
-                import pdb; pdb.set_trace()
-
                 while len(ratios.shape) < start_point.ndim:
                     ratios = ratios.unsqueeze(-1)
 
                 noisy_latents = ratios * start_point + (1 - ratios) * end_point
+            
+            import pdb; pdb.set_trace()
             
             if self.temporal_autoregressive:
                 if temp_init > 0:
