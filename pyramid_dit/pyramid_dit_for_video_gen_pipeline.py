@@ -1239,14 +1239,14 @@ class PyramidDiTForVideoGeneration:
     def get_laplacian_pyramid_latents(self, vae_latent_list, upsample_vae_latent_list):
         laplacian_pyramid_latents = [vae_latent_list[1]]
         for idx in range(1, len(upsample_vae_latent_list)):
-            laplacian_pyramid_latents.append(upsample_vae_latent_list[idx] - vae_latent_list[idx+1])
+            laplacian_pyramid_latents.append(vae_latent_list[idx+1]-upsample_vae_latent_list[idx])
         return laplacian_pyramid_latents
     
     @torch.no_grad()
     def get_laplacian_pyramid_noises(self, noise_list, upsample_noise_list):
         laplacian_pyramid_noises = [noise_list[0]]
         for idx in range(1, len(noise_list)):
-            laplacian_pyramid_noises.append(upsample_noise_list[idx-1] - noise_list[idx])
+            laplacian_pyramid_noises.append(noise_list[idx]-upsample_noise_list[idx-1])
         return laplacian_pyramid_noises
 
     @torch.no_grad()
