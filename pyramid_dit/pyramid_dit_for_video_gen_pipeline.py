@@ -263,7 +263,7 @@ class PyramidDiTForVideoGeneration:
         self.use_perflow = use_perflow
         self.use_gaussian_filter = use_gaussian_filter
         if self.use_gaussian_filter:
-            self.gaussian_filter = Gaussian2DFilter(kernel_size=(5, 5), sigma=(1.0, 1.0)).to(device=self.vae.device)
+            self.gaussian_filter = Gaussian2DFilter(kernel_size=(3, 3), sigma=(0.5, 0.5)).to(device=self.vae.device)
 
     def _enable_sequential_cpu_offload(self, model):
         self.sequential_offload_enabled = True
@@ -2051,14 +2051,14 @@ class PyramidDiTForVideoGeneration:
         for i_u in range(num_units):
             gc.collect()
             torch.cuda.empty_cache()
-            latent_height, latent_width = latents.shape[-2:]
-
             if i_u > 0:
                 start_latent_list = self.get_pyramid_latent_with_spatial_downsample(latents, stage_num)
                 latents = start_latent_list[0].detach().clone()
 
                 stage_latent_condition = torch.cat(generated_latents_list[:i_u], dim=2)
                 stage_latent_condition_list = self.get_pyramid_latent_with_spatial_downsample(stage_latent_condition, stage_num)
+            
+            latent_height, latent_width = latents.shape[-2:]
 
             for i_s in range(stage_num):
                 if self.use_perflow:
