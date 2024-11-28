@@ -753,27 +753,22 @@ class PyramidDiTForVideoGeneration:
         # from low resolution to high resolution
         for index in range(column_size):
             i_s = column_to_stage[index]
+            start_sigma = self.scheduler.start_sigmas[i_s]
+            end_sigma = self.scheduler.end_sigmas[i_s]
             
             if i_s == 0:
-                start_point = latents_list[-1][index::column_size]
-                start_point = rearrange(start_point, 'b c t h w -> (b t) c h w')
-                start_point = torch.nn.functional.interpolate(start_point, size=(start_point.shape[-2] // (2*2), start_point.shape[-1] // (2*2)), mode='bilinear')
-                start_point = rearrange(start_point, '(b t) c h w -> b c t h w', t=1)
+                start_point = upsample_vae_latent_list[i_s][index::column_size]
             else:
                 # Get the upsampled latent
-                last_clean_latent = latents_list[-1][index::column_size]
-                last_clean_latent = rearrange(last_clean_latent, 'b c t h w -> (b t) c h w')
-                last_clean_latent = torch.nn.functional.interpolate(last_clean_latent, size=(last_clean_latent.shape[-2] // (2*(3-i_s)), last_clean_latent.shape[-1] // (2*(3-i_s))), mode='bilinear')
-                start_point = torch.nn.functional.interpolate(last_clean_latent, size=(last_clean_latent.shape[-2] * 2, last_clean_latent.shape[-1] * 2), mode='nearest')
-                start_point = rearrange(start_point, '(b t) c h w -> b c t h w', t=1)
+                last_clean_latent = upsample_vae_latent_list[i_s][index::column_size]
+                start_point = start_sigma * last_clean_latent + (1 - start_sigma) * last_clean_latent
+                
             
             if i_s == stages - 1:
                 end_point = latents_list[-1][index::column_size]   # [bs, c, t, h, w]
             else:
-                clean_latent = latents_list[-1][index::column_size]   # [bs, c, t, h, w]
-                clean_latent = rearrange(clean_latent, 'b c t h w -> (b t) c h w')
-                end_point = torch.nn.functional.interpolate(clean_latent, size=(clean_latent.shape[-2] // (2*(2-i_s)), clean_latent.shape[-1] // (2*(2-i_s))), mode='bilinear')
-                end_point = rearrange(end_point, '(b t) c h w -> b c t h w', t=1)
+                end_point = latents_list[i_s+1][index::column_size]   # [bs, c, t, h, w]
+                
 
             if self.condition_original_image:
                 original_latent_condition = latents_list[i_s+1][index::column_size]
