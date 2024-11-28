@@ -69,6 +69,7 @@ class Gaussian2DFilter(nn.Module):
         """
         return kornia.filters.gaussian_blur2d(x, self.kernel_size, self.sigma)
 
+
 def compute_density_for_timestep_sampling(
     weighting_scheme: str, batch_size: int, logit_mean: float = None, logit_std: float = None, mode_scale: float = None
 ):
@@ -739,6 +740,9 @@ class PyramidDiTForVideoGeneration:
         self, 
         latents_list,
         upsample_vae_latent_list,
+        noise_list,
+        laplacian_pyramid_latents,
+        laplacian_pyramid_noises,
         sample_ratios=[1, 1, 1],
     ):
         """
@@ -750,15 +754,17 @@ class PyramidDiTForVideoGeneration:
 
         Params:
             latent_list: [low_res, mid_res, high_res] The vae latents of all stages
+            upsample_vae_latent_list: [low_res, mid_res, high_res] The upsampled vae latents of all stages
+            noise_list: [low_res, mid_res, high_res] The noise of all stages
+            laplacian_pyramid_latents: [low_res, mid_res, high_res] The laplacian pyramid latents of all stages
             sample_ratios: The proportion of each stage in the training batch
         """
-        noise = torch.randn_like(latents_list[-1])
-        device = noise.device
+        device = latents_list[-1].device
         dtype = latents_list[-1].dtype
-        t = noise.shape[2]
+        t = noise_list[-1].shape[2]
 
         stages = len(self.stages)
-        tot_samples = noise.shape[0]
+        tot_samples = latents_list[-1].shape[0]
         assert tot_samples % (int(sum(sample_ratios))) == 0
         assert stages == len(sample_ratios)
         
@@ -785,44 +791,6 @@ class PyramidDiTForVideoGeneration:
             start_sigma = self.scheduler.start_sigmas[i_s]
             end_sigma = self.scheduler.end_sigmas[i_s]
 
-            temp_init = torch.randint(0, latents_list[-1].shape[2]-1, size=(1,), device=device)
-            
-            if i_s == 0:
-                start_point = upsample_vae_latent_list[i_s][index::column_size]
-                start_point = start_point[:,:,temp_init]
-            else:
-                # Get the upsampled latent
-                clean_latent = upsample_vae_latent_list[i_s][index::column_size]
-                clean_latent_x0 = clean_latent[:,:,temp_init]
-                clean_latent_x1 = clean_latent[:,:,temp_init+1]
-                start_point = start_sigma * clean_latent_x0 + (1 - start_sigma) * clean_latent_x1
-                
-            
-            if i_s == stages - 1:
-                end_point = latents_list[-1][index::column_size]   # [bs, c, t, h, w]
-                end_point = end_point[:,:,temp_init+1]
-            else:
-                end_point = latents_list[i_s+1][index::column_size]   # [bs, c, t, h, w]
-                end_point_x0 = end_point[:,:,temp_init]
-                end_point_x1 = end_point[:,:,temp_init+1]
-                end_point = end_sigma * end_point_x0 + (1 - end_sigma) * end_point_x1
-            
-            if self.temporal_autoregressive:
-                if temp_init > 0:
-                    stage_latent_condition = latents_list[i_s][index::column_size]
-                    stage_latent_condition = stage_latent_condition[:,:,:temp_init]
-                    noise_ratio2 = torch.rand(size=(batch_size,), device=device) / 3
-                    noise_ratio2 = noise_ratio2[:, None, None, None, None]
-                    stage_latent_condition = noise_ratio2 * torch.randn_like(stage_latent_condition) + (1 - noise_ratio2) * stage_latent_condition
-                else:
-                    stage_latent_condition = None
-                                                                                         
-            if self.condition_original_image:
-                original_latent_condition = latents_list[i_s+1][index::column_size]
-                original_latent_condition = original_latent_condition[:,:,0].unsqueeze(2)
-                noise_ratio2 = torch.rand(size=(batch_size,), device=device) / 3
-                noise_ratio2 = noise_ratio2[:, None, None, None, None]
-                original_latent_condition = noise_ratio2 * torch.randn_like(original_latent_condition) + (1 - noise_ratio2) * original_latent_condition
 
             # To sample a timestep
             u = compute_density_for_timestep_sampling(
@@ -840,9 +808,60 @@ class PyramidDiTForVideoGeneration:
 
             while len(ratios.shape) < start_point.ndim:
                 ratios = ratios.unsqueeze(-1)
+            
+            #temp_init = torch.randint(0, latents_list[-1].shape[2]-1, size=(1,), device=device)
+            temp_init = 0
 
-            # interpolate the latent
-            noisy_latents = ratios * start_point + (1 - ratios) * end_point
+            if i_s == 0:
+                start_point = laplacian_pyramid_noises[i_s][index::column_size]
+                #start_point = start_point[:,:,temp_init].unsqueeze(2)
+                
+                end_point = laplacian_pyramid_latents[i_s][index::column_size]   # [bs, c, t, h, w]
+                #end_point_t0 = end_point[:,:,temp_init]
+               # end_point_t1 = end_point[:,:,temp_init+1]
+               # end_point = end_point_t1 - end_point_t0
+
+                # interpolate the latent
+                noisy_latents = ratios * start_point + (1 - ratios) * end_point
+
+            elif i_s == 1:
+                # Get the upsampled latent
+                start_point_0 = laplacian_pyramid_noises[0][index::column_size]
+                #start_point_0 = start_point_0[:,:,temp_init].unsqueeze(2)
+                start_point_1 = laplacian_pyramid_noises[1][index::column_size]
+                #start_point_1 = start_point_1[:,:,temp_init].unsqueeze(2)
+
+                end_point_0 = laplacian_pyramid_latents[0][index::column_size]   # [bs, c, t, h, w]
+                #end_point_0_t0 = end_point_0[:,:,temp_init]
+                #end_point_0_t1 = end_point_0[:,:,temp_init+1]
+                #end_point_0 = end_point_0_t1 - end_point_0_t0
+
+                end_point_1 = laplacian_pyramid_latents[1][index::column_size]   # [bs, c, t, h, w]
+                #end_point_1_t0 = end_point_1[:,:,temp_init]
+                #end_point_1_t1 = end_point_1[:,:,temp_init+1]
+                #end_point_1 = end_point_1_t1 - end_point_1_t0
+
+                start_point = start_point_1 + torch.nn.functional.interpolate(start_point_0, size=(start_point_1.shape[-2], start_point_1.shape[-1]), mode='bilinear')
+                end_point = end_point_1 + torch.nn.functional.interpolate(end_point_0, size=(end_point_1.shape[-2], end_point_1.shape[-1]), mode='bilinear')
+
+                noisy_latents = ratios * start_point + (1 - ratios) * end_point
+            
+            if self.temporal_autoregressive:
+                if temp_init > 0:
+                    stage_latent_condition = latents_list[i_s][index::column_size]
+                    stage_latent_condition = stage_latent_condition[:,:,:temp_init]
+                    noise_ratio2 = torch.rand(size=(batch_size,), device=device) / 3
+                    noise_ratio2 = noise_ratio2[:, None, None, None, None]
+                    stage_latent_condition = noise_ratio2 * torch.randn_like(stage_latent_condition) + (1 - noise_ratio2) * stage_latent_condition
+                else:
+                    stage_latent_condition = None
+                                                                                         
+            if self.condition_original_image:
+                original_latent_condition = latents_list[i_s+1][index::column_size]
+                original_latent_condition = original_latent_condition[:,:,0].unsqueeze(2)
+                noise_ratio2 = torch.rand(size=(batch_size,), device=device) / 3
+                noise_ratio2 = noise_ratio2[:, None, None, None, None]
+                original_latent_condition = noise_ratio2 * torch.randn_like(original_latent_condition) + (1 - noise_ratio2) * original_latent_condition
 
             # [stage1_latent, stage2_latent, ..., stagen_latent], which will be concat after patching
             if self.condition_original_image:
@@ -1105,8 +1124,8 @@ class PyramidDiTForVideoGeneration:
             height //= 2
             width //= 2
             x = rearrange(x, 'b c t h w -> (b t) c h w')
-            if self.use_gaussian_filter:
-                x = self.gaussian_filter(x)
+            #if self.use_gaussian_filter:
+            #    x = self.gaussian_filter(x)
             x = torch.nn.functional.interpolate(x, size=(height, width), mode='bilinear')
             x = rearrange(x, '(b t) c h w -> b c t h w', t=temp)
             vae_latent_list.append(x)
@@ -1193,12 +1212,44 @@ class PyramidDiTForVideoGeneration:
             current_vae_latent = vae_latent_list[idx]
             x = rearrange(current_vae_latent, 'b c t h w -> (b t) c h w')
             x = torch.nn.functional.interpolate(x, size=(height_next, width_next), mode='nearest')
-            if self.use_gaussian_filter:
-                x = self.gaussian_filter(x)
+            #if self.use_gaussian_filter:
+            #    x = self.gaussian_filter(x)
             x = rearrange(x, '(b t) c h w -> b c t h w', t=temp_next)
             upsample_vae_latent_list.append(x)
 
         return upsample_vae_latent_list
+
+
+    @torch.no_grad()
+    def get_laplacian_pyramid_latents(self, vae_latent_list, upsample_vae_latent_list):
+        laplacian_pyramid_latents = [vae_latent_list[1]]
+        for idx in range(1, len(upsample_vae_latent_list)):
+            laplacian_pyramid_latents.append(upsample_vae_latent_list[idx] - vae_latent_list[idx+1])
+        return laplacian_pyramid_latents
+    
+    @torch.no_grad()
+    def get_laplacian_pyramid_noises(self, noise_list):
+        laplacian_pyramid_noises = [noise_list[0]]
+        for idx in range(1, len(noise_list)):
+            upsample_noise = torch.nn.functional.interpolate(noise_list[idx], size=(noise_list[idx].shape[-2] * 2, noise_list[idx].shape[-1] * 2), mode='bilinear')
+            laplacian_pyramid_noises.append(upsample_noise - noise_list[idx])
+        return laplacian_pyramid_noises
+
+    @torch.no_grad()
+    def get_pyramid_noise_with_spatial_downsample(self, vae_latent_list, stage_num):
+        noise = torch.randn_like(vae_latent_list[-1])
+        height, width = noise.shape[-2], noise.shape[-1]
+        noise_list = [noise]
+        cur_noise = noise
+        for i_s in range(stage_num-1):
+            height //= 2;width //= 2
+            cur_noise = rearrange(cur_noise, 'b c t h w -> (b t) c h w')
+            cur_noise = F.interpolate(cur_noise, size=(height, width), mode='bilinear') * 2
+            cur_noise = rearrange(cur_noise, '(b t) c h w -> b c t h w', t=t)
+            noise_list.append(cur_noise)
+
+        noise_list = list(reversed(noise_list))   # make sure from low res to high res
+        return noise_list
 
     @torch.no_grad()
     def get_vae_latent(self, video, use_temporal_pyramid=False):
@@ -1259,7 +1310,10 @@ class PyramidDiTForVideoGeneration:
                         upsample_vae_latent_list = self.get_pyramid_latent_with_temporal_upsample(vae_latent_list)
                     else:
                         upsample_vae_latent_list = self.get_pyramid_latent_with_spatial_upsample(vae_latent_list)
-            
+                    
+                    noise_list = self.get_pyramid_noise_with_spatial_downsample(vae_latent_list, len(self.stages))
+                    laplacian_pyramid_latents = self.get_laplacian_pyramid_latents(vae_latent_list, upsample_vae_latent_list)
+                    laplacian_pyramid_noises = self.get_laplacian_pyramid_noises(noise_list)
             else:
                 assert video.shape[1] == 3, "The vae is loaded, the input should be raw pixels"
                 if video.shape[2] == 1:
@@ -1273,11 +1327,14 @@ class PyramidDiTForVideoGeneration:
                     video[:, :, 1:] =  (video[:, :, 1:] - self.vae_video_shift_factor) * self.vae_video_scale_factor
                     vae_latent_list = self.get_pyramid_latent_with_temporal_downsample(video, len(self.stages))
                     upsample_vae_latent_list = self.get_pyramid_latent_with_temporal_upsample(vae_latent_list)
+        
+
+        import pdb; pdb.set_trace()
 
         #if use_temporal_pyramid:
         #    noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_with_temporal_pyramid(vae_latent_list, self.sample_ratios)
         if self.use_perflow:
-            noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_ours3(vae_latent_list, upsample_vae_latent_list, self.sample_ratios)
+            noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_ours3(vae_latent_list, upsample_vae_latent_list, noise_list, laplacian_pyramid_latents, laplacian_pyramid_noises, self.sample_ratios)
         else:
             noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_ours2(vae_latent_list, upsample_vae_latent_list, self.sample_ratios)
 
@@ -2199,6 +2256,191 @@ class PyramidDiTForVideoGeneration:
 
         return image
     
+    @torch.no_grad()
+    def generate_laplacian_video(
+        self,
+        prompt: Union[str, List[str]] = '',
+        input_image: PIL.Image = None,
+        temp: int = 1,
+        num_inference_steps: Optional[Union[int, List[int]]] = 28,
+        guidance_scale: float = 7.0,
+        video_guidance_scale: float = 4.0,
+        min_guidance_scale: float = 2.0,
+        use_linear_guidance: bool = False,
+        alpha: float = 0.5,
+        negative_prompt: Optional[Union[str, List[str]]]="cartoon style, worst quality, low quality, blurry, absolute black, absolute white, low res, extra limbs, extra digits, misplaced objects, mutated anatomy, monochrome, horror",
+        num_images_per_prompt: Optional[int] = 1,
+        generator: Optional[Union[torch.Generator, List[torch.Generator]]] = None,
+        output_type: Optional[str] = "pil",
+        save_memory: bool = True,
+        cpu_offloading: bool = False, # If true, reload device will be cuda.
+        inference_multigpu: bool = False,
+        callback: Optional[Callable[[int, int, Dict], None]] = None,
+        sampling_scheduler: PyramidFlowMatchEulerDiscreteScheduler = None,
+    ):
+        if self.sequential_offload_enabled and not cpu_offloading:
+            print("Warning: overriding cpu_offloading set to false, as it's needed for sequential cpu offload")
+            cpu_offloading=True
+        device = self.device if not cpu_offloading else torch.device("cuda")
+        dtype = self.dtype
+        if cpu_offloading:
+            # skip caring about the text encoder here as its about to be used anyways.
+            if not self.sequential_offload_enabled:
+                if str(self.dit.device) != "cpu":
+                    print("(dit) Warning: Do not preload pipeline components (i.e. to cuda) with cpu offloading enabled! Otherwise, a second transfer will occur needlessly taking up time.")
+                    self.dit.to("cpu")
+                    torch.cuda.empty_cache()
+            if str(self.vae.device) != "cpu":
+                print("(vae) Warning: Do not preload pipeline components (i.e. to cuda) with cpu offloading enabled! Otherwise, a second transfer will occur needlessly taking up time.")
+                self.vae.to("cpu")
+                torch.cuda.empty_cache()
+
+        if isinstance(prompt, str):
+            batch_size = 1
+            prompt = prompt + ", hyper quality, Ultra HD, 8K"   # adding this prompt to improve aesthetics
+        else:
+            assert isinstance(prompt, list)
+            batch_size = len(prompt)
+            prompt = [_ + ", hyper quality, Ultra HD, 8K" for _ in prompt]
+
+        if isinstance(num_inference_steps, int):
+            num_inference_steps = [num_inference_steps] * len(self.stages)
+        
+        negative_prompt = negative_prompt or ""
+
+        # Get the text embeddings
+        if cpu_offloading and not self.sequential_offload_enabled:
+            self.text_encoder.to("cuda") 
+        prompt_embeds, prompt_attention_mask, pooled_prompt_embeds = self.text_encoder(prompt, device)
+        negative_prompt_embeds, negative_prompt_attention_mask, negative_pooled_prompt_embeds = self.text_encoder(negative_prompt, device)
+        
+        if cpu_offloading:
+            if not self.sequential_offload_enabled:
+                self.text_encoder.to("cpu")
+            self.vae.to("cuda")
+            torch.cuda.empty_cache()
+
+        if use_linear_guidance:
+            max_guidance_scale = guidance_scale
+            guidance_scale_list = [max(max_guidance_scale - alpha * t_, min_guidance_scale) for t_ in range(temp+1)]
+            print(guidance_scale_list)
+
+        self._guidance_scale = guidance_scale
+        self._video_guidance_scale = video_guidance_scale
+
+        if self.do_classifier_free_guidance:
+            prompt_embeds = torch.cat([negative_prompt_embeds, prompt_embeds], dim=0)
+            pooled_prompt_embeds = torch.cat([negative_pooled_prompt_embeds, pooled_prompt_embeds], dim=0)
+            prompt_attention_mask = torch.cat([negative_prompt_attention_mask, prompt_attention_mask], dim=0)
+        
+        # Create the initial random noise
+        stages = self.stages
+        stage_num = len(stages)
+        height, width = input_image.shape[-2:]
+        latent_height = height // self.vae.config.downsample_scale
+        latent_width = width // self.vae.config.downsample_scale
+        latent_temp = int(self.num_frames // self.vae.config.downsample_scale + 1)
+
+
+        
+        num_channels_latents = (self.dit.config.in_channels // 4) if self.model_name == "pyramid_flux" else  self.dit.config.in_channels
+        latents = self.prepare_latents(
+            batch_size * num_images_per_prompt,
+            num_channels_latents,
+            latent_temp,
+            height, 
+            width,
+            prompt_embeds.dtype,
+            device,
+            generator,
+        )
+
+        temp, height, width = latents.shape[-3], latents.shape[-2], latents.shape[-1]
+        latents = rearrange(latents, 'b c t h w -> (b t) c h w')
+        # by defalut, we needs to start from the block noise
+        for _ in range(len(self.stages)-1):
+            height //= 2;width //= 2
+            latents = F.interpolate(latents, size=(height, width), mode='bilinear') * 2
+        
+        latents = rearrange(latents, '(b t) c h w -> b c t h w', t=temp)
+        
+        generated_latents_list = []    # The generated results
+
+        for i_s in range(len(stages)):
+            self.validation_scheduler.set_timesteps(num_inference_steps[i_s], i_s, device=device)
+            timesteps = self.validation_scheduler.timesteps
+
+            if i_s > 0:
+                height *= 2; width *= 2
+                latents = rearrange(latents, 'b c t h w -> (b t) c h w')
+                latents = F.interpolate(latents, size=(height, width), mode='nearest')
+                latents = rearrange(latents, '(b t) c h w -> b c t h w', t=temp)
+                # Fix the stage
+                ori_sigma = 1 - self.validation_scheduler.ori_start_sigmas[i_s]   # the original coeff of signal
+                gamma = self.validation_scheduler.config.gamma
+                alpha = 1 / (math.sqrt(1 + (1 / gamma)) * (1 - ori_sigma) + ori_sigma)
+                beta = alpha * (1 - ori_sigma) / math.sqrt(gamma)
+
+                bs, ch, temp, height, width = latents.shape
+                noise = self.sample_block_noise(bs, ch, temp, height, width)
+                noise = noise.to(device=device, dtype=dtype)
+                latents = alpha * latents + beta * noise    # To fix the block artifact
+
+            for idx, t in enumerate(timesteps):
+                # expand the latents if we are doing classifier free guidance
+                latent_model_input = torch.cat([latents] * 2) if self.do_classifier_free_guidance else latents
+            
+                # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
+                timestep = t.expand(latent_model_input.shape[0]).to(latent_model_input.dtype)
+
+                if is_sequence_parallel_initialized():
+                    # sync the input latent
+                    sp_group_rank = get_sequence_parallel_group_rank()
+                    global_src_rank = sp_group_rank * get_sequence_parallel_world_size()
+                    torch.distributed.broadcast(latent_model_input, global_src_rank, group=get_sequence_parallel_group())
+
+                noise_pred = self.dit(
+                    sample=[latent_model_input],
+                    timestep_ratio=timestep,
+                    encoder_hidden_states=prompt_embeds,
+                    encoder_attention_mask=prompt_attention_mask,
+                    pooled_projections=pooled_prompt_embeds,
+                )
+                noise_pred = noise_pred[0]
+                    
+                # perform guidance
+                if self.do_classifier_free_guidance:
+                    noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
+                    noise_pred = noise_pred_uncond + self.guidance_scale * (noise_pred_text - noise_pred_uncond)
+                    
+                # compute the previous noisy sample x_t -> x_t-1
+                latents = self.validation_scheduler.step(
+                    model_output=noise_pred,
+                    timestep=timestep,
+                    sample=latents,
+                    generator=generator,
+                ).prev_sample
+
+            generated_latents_list.append(latents.detach().clone())
+
+        latents = latents.to(torch.bfloat16)
+
+        if output_type == "latent":
+            image = latents
+        else:
+            if cpu_offloading:
+                if not self.sequential_offload_enabled:
+                    self.dit.to("cpu")
+                self.vae.to("cuda")
+                torch.cuda.empty_cache()
+            image = self.decode_latent(latents, save_memory=save_memory, inference_multigpu=inference_multigpu)
+            if cpu_offloading:
+                self.vae.to("cpu")
+                torch.cuda.empty_cache()
+                # not technically necessary, but returns the pipeline to its original state
+
+        return image
+
     @torch.no_grad()
     def generate_image(
         self,

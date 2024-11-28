@@ -53,9 +53,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 python \
     --save_ckpt_freq 1 \
     --load_vae \
     --gradient_checkpointing \
-    --num_frames 1 \
-    --deterministic_noise \
+    --num_frames 49 \
     --use_perflow \
     --downsample_latent \
-
     
