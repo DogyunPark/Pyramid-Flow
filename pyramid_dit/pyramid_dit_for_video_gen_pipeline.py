@@ -1247,7 +1247,7 @@ class PyramidDiTForVideoGeneration:
         if self.use_perflow:
             noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_ours3(vae_latent_list, upsample_vae_latent_list, self.sample_ratios)
         else:
-            noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_ours3(vae_latent_list, upsample_vae_latent_list, self.sample_ratios)
+            noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_ours2(vae_latent_list, upsample_vae_latent_list, self.sample_ratios)
 
         return noisy_latents_list, ratios_list, timesteps_list, targets_list
 
@@ -2014,17 +2014,16 @@ class PyramidDiTForVideoGeneration:
         generated_latents_list = [stage_latent_condition_list[-1].detach().clone()]    # The generated results
 
         temp_upsample_list = self.get_temp_stage(stage_num, downsample=False)
-        latent_height, latent_width = latents.shape[-2:]
         num_units = 2
 
         for i_u in range(num_units):
             gc.collect()
             torch.cuda.empty_cache()
+            latent_height, latent_width = latents.shape[-2:]
 
             if i_u > 0:
                 start_latent_list = self.get_pyramid_latent_with_spatial_downsample(latents, stage_num)
                 latents = start_latent_list[0].detach().clone()
-                latent_height, latent_width = latents.shape[-2:]
 
                 stage_latent_condition = torch.cat(generated_latents_list[:i_u], dim=2)
                 stage_latent_condition_list = self.get_pyramid_latent_with_spatial_downsample(stage_latent_condition, stage_num)
