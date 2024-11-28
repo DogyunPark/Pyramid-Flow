@@ -849,12 +849,12 @@ class PyramidDiTForVideoGeneration:
                 #end_point_1 = end_sigma * start_point_1 + (1 - end_sigma) * end_point_1
                 
                 start_point_0 = rearrange(start_point_0, 'b c t h w -> (b t) c h w')
-                start_point_0 = torch.nn.functional.interpolate(start_point_0, size=(start_point_1.shape[-2], start_point_1.shape[-1]), mode='bilinear')
+                start_point_0 = torch.nn.functional.interpolate(start_point_0, size=(start_point_1.shape[-2], start_point_1.shape[-1]), mode='nearest')
                 start_point_0 = rearrange(start_point_0, '(b t) c h w -> b c t h w', t=t)
                 start_point = start_point_1 + start_point_0
 
                 end_point_0 = rearrange(end_point_0, 'b c t h w -> (b t) c h w')
-                end_point_0 = torch.nn.functional.interpolate(end_point_0, size=(end_point_1.shape[-2], end_point_1.shape[-1]), mode='bilinear')
+                end_point_0 = torch.nn.functional.interpolate(end_point_0, size=(end_point_1.shape[-2], end_point_1.shape[-1]), mode='nearest')
                 end_point_0 = rearrange(end_point_0, '(b t) c h w -> b c t h w', t=t)
                 end_point = end_point_1 + end_point_0
 
