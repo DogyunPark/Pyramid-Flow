@@ -2401,6 +2401,7 @@ class PyramidDiTForVideoGeneration:
         # latents = rearrange(latents, '(b t) c h w -> b c t h w', t=temp)
 
         latents = laplacian_latents[0]
+        height, width = latents.shape[-2:]
         
         generated_latents_list = []    # The generated results
 
