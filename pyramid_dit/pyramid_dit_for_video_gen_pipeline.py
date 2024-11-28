@@ -2021,6 +2021,9 @@ class PyramidDiTForVideoGeneration:
         num_units = 2
 
         for i_u in range(num_units):
+            gc.collect()
+            torch.cuda.empty_cache()
+            
             if i_u > 0:
                 stage_latent_condition_list = self.get_pyramid_latent_with_spatial_downsample(generated_latents, stage_num)
             for i_s in range(stage_num):
