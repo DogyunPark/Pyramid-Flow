@@ -42,6 +42,32 @@ from .flux_modules import (
     FluxTextEncoderWithMask,
 )
 
+import kornia
+
+class Gaussian2DFilter(nn.Module):
+    def __init__(self, kernel_size: tuple, sigma: tuple):
+        """
+        Initialize the Gaussian2DFilter class.
+
+        Args:
+            kernel_size (tuple): Size of the Gaussian kernel (e.g., (5, 5)).
+            sigma (tuple): Standard deviation of the Gaussian kernel (e.g., (1.0, 1.0)).
+        """
+        super(Gaussian2DFilter, self).__init__()
+        self.kernel_size = kernel_size
+        self.sigma = sigma
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Apply the Gaussian filter to the input tensor.
+
+        Args:
+            x (torch.Tensor): Input tensor of shape (B, C, H, W).
+
+        Returns:
+            torch.Tensor: Filtered tensor of the same shape as input.
+        """
+        return kornia.filters.gaussian_blur2d(x, self.kernel_size, self.sigma)
 
 def compute_density_for_timestep_sampling(
     weighting_scheme: str, batch_size: int, logit_mean: float = None, logit_std: float = None, mode_scale: float = None
@@ -131,7 +157,7 @@ class PyramidDiTForVideoGeneration:
         corrupt_ratio=1/3, interp_condition_pos=True, stages=[1, 2, 4], video_sync_group=8, gradient_checkpointing_ratio=0.6, 
         temporal_autoregressive=False, deterministic_noise=False, condition_original_image=False, num_frames=49, height=256, width=384,
         trilinear_interpolation=False, temporal_downsample=False, downsample_latent=False, random_noise=False, 
-        delta_learning=False, use_perflow=False, **kwargs,
+        delta_learning=False, use_perflow=False, use_gaussian_filter=True, **kwargs,
     ):
         super().__init__()
 
@@ -235,6 +261,9 @@ class PyramidDiTForVideoGeneration:
         self.random_noise = random_noise
         self.delta_learning = delta_learning
         self.use_perflow = use_perflow
+        self.use_gaussian_filter = use_gaussian_filter
+        if self.use_gaussian_filter:
+            self.gaussian_filter = Gaussian2DFilter(kernel_size=(5, 5), sigma=(1.0, 1.0)).to(device=self.vae.device)
 
     def _enable_sequential_cpu_offload(self, model):
         self.sequential_offload_enabled = True
@@ -1012,7 +1041,6 @@ class PyramidDiTForVideoGeneration:
         
         return noisy_latents_list, ratios_list, timesteps_list, targets_list
     
-    
     @torch.no_grad()
     def get_pyramid_input_with_spatial_downsample(self, x, stage_num):
         # x is the origin vae latent
@@ -1078,6 +1106,8 @@ class PyramidDiTForVideoGeneration:
             width //= 2
             x = rearrange(x, 'b c t h w -> (b t) c h w')
             x = torch.nn.functional.interpolate(x, size=(height, width), mode='bilinear')
+            if self.use_gaussian_filter:
+                x = self.gaussian_filter(x)
             x = rearrange(x, '(b t) c h w -> b c t h w', t=temp)
             vae_latent_list.append(x)
 
@@ -1163,6 +1193,8 @@ class PyramidDiTForVideoGeneration:
             current_vae_latent = vae_latent_list[idx]
             x = rearrange(current_vae_latent, 'b c t h w -> (b t) c h w')
             x = torch.nn.functional.interpolate(x, size=(height_next, width_next), mode='nearest')
+            if self.use_gaussian_filter:
+                x = self.gaussian_filter(x)
             x = rearrange(x, '(b t) c h w -> b c t h w', t=temp_next)
             upsample_vae_latent_list.append(x)
 
@@ -2070,6 +2102,8 @@ class PyramidDiTForVideoGeneration:
                                     temp_current = latents.shape[2]
                                     latents = rearrange(latents, 'b c t h w -> (b t) c h w')
                                     latents = torch.nn.functional.interpolate(latents, size=(latent_height, latent_width), mode='nearest')
+                                    if self.use_gaussian_filter:
+                                        latents = self.gaussian_filter(latents)
                                     latents = rearrange(latents, '(b t) c h w -> b c t h w', t=temp_current)
 
                                     ori_sigma = 1 - self.scheduler.ori_start_sigmas[i_s]   # the original coeff of signal
