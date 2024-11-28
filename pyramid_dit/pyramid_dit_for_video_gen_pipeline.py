@@ -2081,7 +2081,7 @@ class PyramidDiTForVideoGeneration:
                         total_input = [latent_model_input]
 
                 # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
-                timestep = t.expand(latent_model_input.shape[0]).to(latent_model_input.dtype) #+ 1000 * (2-i_s)
+                timestep = t.expand(latent_model_input.shape[0]).to(latent_model_input.dtype) + 1000 * (2-i_s)
                 timestep = timestep.to(device)
 
                 if is_sequence_parallel_initialized():
