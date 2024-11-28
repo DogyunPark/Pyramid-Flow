@@ -2012,9 +2012,6 @@ class PyramidDiTForVideoGeneration:
                 latents = latents.repeat(1, 1, latent_temp, 1, 1)
         
         generated_latents_list = [stage_latent_condition_list[-1].detach().clone()]    # The generated results
-       
-        gc.collect()
-        torch.cuda.empty_cache()  
 
         temp_upsample_list = self.get_temp_stage(stage_num, downsample=False)
         latent_height, latent_width = latents.shape[-2:]
@@ -2023,9 +2020,14 @@ class PyramidDiTForVideoGeneration:
         for i_u in range(num_units):
             gc.collect()
             torch.cuda.empty_cache()
-            
+
             if i_u > 0:
-                stage_latent_condition_list = self.get_pyramid_latent_with_spatial_downsample(generated_latents, stage_num)
+                start_latent_list = self.get_pyramid_latent_with_spatial_downsample(latents, stage_num)
+                latents = start_latent_list[0].detach().clone()
+
+                stage_latent_condition = torch.cat(generated_latents_list[:i_u], dim=2)
+                stage_latent_condition_list = self.get_pyramid_latent_with_spatial_downsample(stage_latent_condition, stage_num)
+
             for i_s in range(stage_num):
                 if self.use_perflow:
                     self.validation_scheduler.set_timesteps(num_inference_steps[i_s], i_s, device=device)
@@ -2035,7 +2037,7 @@ class PyramidDiTForVideoGeneration:
                 temp_next = temp_upsample_list[i_s]
                 
                 # Prepare the condition latents
-                stage_latent_condition = stage_latent_condition_list[i_s]
+                stage_latent_condition = stage_latent_condition_list[i_s] if i_s > 0 else None
                 original_latent_condition = original_latent_condition_list[i_s+1]
 
                 # Prepare the latents
@@ -2097,13 +2099,13 @@ class PyramidDiTForVideoGeneration:
                     latent_model_input = torch.cat([latents] * 2) if self.do_classifier_free_guidance else latents
                     if self.condition_original_image:
                         original_latent_condition_input = torch.cat([original_latent_condition] * 2) if self.do_classifier_free_guidance else original_latent_condition
-                        if self.temporal_autoregressive:
+                        if self.temporal_autoregressive and stage_latent_condition is not None:
                             stage_latent_condition_input = torch.cat([stage_latent_condition] * 2) if self.do_classifier_free_guidance else stage_latent_condition
                             total_input = [original_latent_condition_input, stage_latent_condition_input, latent_model_input]
                         else:
                             total_input = [original_latent_condition_input, latent_model_input]
                     else:
-                        if self.temporal_autoregressive:
+                        if self.temporal_autoregressive and stage_latent_condition is not None:
                             stage_latent_condition_input = torch.cat([stage_latent_condition] * 2) if self.do_classifier_free_guidance else stage_latent_condition
                             total_input = [stage_latent_condition_input, latent_model_input]
                         else:
@@ -2143,8 +2145,9 @@ class PyramidDiTForVideoGeneration:
                     ).prev_sample
 
             generated_latents_list.append(latents.detach().clone())
-            generated_latents = torch.cat(generated_latents_list, dim=2)
-            generated_latents = generated_latents.to(torch.bfloat16)
+
+        generated_latents = torch.cat(generated_latents_list, dim=2)
+        generated_latents = generated_latents.to(torch.bfloat16)
 
         if output_type == "latent":
             image = latents
