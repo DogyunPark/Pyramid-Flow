@@ -64,6 +64,7 @@ def train_one_epoch_with_fsdp(
     use_temporal_pyramid=True,
     validation_prompt=None,
     validation_image=None,
+    save_intermediate_latents=False,
 ):
     runner.dit.train()
     metric_logger = MetricLogger(delimiter="  ")
@@ -161,18 +162,22 @@ def train_one_epoch_with_fsdp(
         # Generate the video for validation
         if step % 20 == 0:
             runner.dit.eval()
-            #print("Generating the video for text: {}".format(text[0]))
-            # image = runner.generate_video(
-            #     prompt=text[0],
-            #     input_image=video[:1, :, :1],
-            #     num_inference_steps=[20, 20, 20],
-            #     output_type="pil",
-            #     save_memory=True,
-            #     guidance_scale=3.0
-            # )
-            #export_to_video(image, "./output/text_to_video_sample-{}epoch-train.mp4".format(epoch), fps=12)
+            print("Generating the video for text: {}".format(text[0]))
+            image = runner.generate_laplacian_video(
+                prompt=text[0],
+                input_image=video[:1, :, :1],
+                num_inference_steps=[20, 20, 20],
+                output_type="pil",
+                save_memory=True,
+                guidance_scale=5.0
+            )
+            if save_intermediate_latents:
+                for i_img, img in enumerate(image):
+                    export_to_video(img, "./output/text_to_video_sample-{}epoch-train-{}.mp4".format(epoch, i_img), fps=24)
+            else:
+                export_to_video(image, "./output/text_to_video_sample-{}epoch-train.mp4".format(epoch), fps=24)
             assert validation_prompt is not None and validation_image is not None
-            for num_image in range(3):
+            for num_image in range(2):
                 prompt = validation_prompt[num_image]
                 img = validation_image[num_image][:,0].to(accelerator.device)
                 img = img.unsqueeze(0).unsqueeze(2)
@@ -183,9 +188,13 @@ def train_one_epoch_with_fsdp(
                     num_inference_steps=[20, 20, 20],
                     output_type="pil",
                     save_memory=True,
-                    guidance_scale=3.0
+                    guidance_scale=5.0
                 )
-                export_to_video(image, "./output/text_to_video_sample-{}epoch-{}.mp4".format(epoch, num_image), fps=12)
+                if save_intermediate_latents:
+                    for i_img, img in enumerate(image):
+                        export_to_video(img, "./output/text_to_video_sample-{}epoch-{}-{}.mp4".format(epoch, num_image, i_img), fps=24)
+                else:
+                    export_to_video(image, "./output/text_to_video_sample-{}epoch-{}.mp4".format(epoch, num_image), fps=24)
             print("Generated video for {} step/{} epoch".format(step, epoch))
             accelerator.wait_for_everyone()
             runner.dit.train()

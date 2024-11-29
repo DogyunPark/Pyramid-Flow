@@ -158,7 +158,7 @@ class PyramidDiTForVideoGeneration:
         corrupt_ratio=1/3, interp_condition_pos=True, stages=[1, 2, 4], video_sync_group=8, gradient_checkpointing_ratio=0.6, 
         temporal_autoregressive=False, deterministic_noise=False, condition_original_image=False, num_frames=49, height=256, width=384,
         trilinear_interpolation=False, temporal_downsample=False, downsample_latent=False, random_noise=False, 
-        delta_learning=False, use_perflow=False, use_gaussian_filter=True, **kwargs,
+        delta_learning=False, use_perflow=False, use_gaussian_filter=False, save_intermediate_latents=False, **kwargs,
     ):
         super().__init__()
 
@@ -263,6 +263,7 @@ class PyramidDiTForVideoGeneration:
         self.delta_learning = delta_learning
         self.use_perflow = use_perflow
         self.use_gaussian_filter = use_gaussian_filter
+        self.save_intermediate_latents = save_intermediate_latents
         if self.use_gaussian_filter:
             self.gaussian_filter = Gaussian2DFilter(kernel_size=(3, 3), sigma=(1.0, 1.0)).to(device=self.vae.device)
 
@@ -857,6 +858,42 @@ class PyramidDiTForVideoGeneration:
                 end_point_0 = torch.nn.functional.interpolate(end_point_0, size=(end_point_1.shape[-2], end_point_1.shape[-1]), mode='nearest')
                 end_point_0 = rearrange(end_point_0, '(b t) c h w -> b c t h w', t=t)
                 end_point = end_point_1 + end_point_0
+
+                while len(ratios.shape) < start_point.ndim:
+                    ratios = ratios.unsqueeze(-1)
+
+                noisy_latents = ratios * start_point + (1 - ratios) * end_point
+            
+            elif i_s == 2:
+                start_point_0 = laplacian_pyramid_noises[0][index::column_size]
+                start_point_1 = laplacian_pyramid_noises[1][index::column_size]
+                start_point_2 = laplacian_pyramid_noises[2][index::column_size]
+
+                end_point_0 = laplacian_pyramid_latents[0][index::column_size]
+                end_point_1 = laplacian_pyramid_latents[1][index::column_size]
+                end_point_2 = laplacian_pyramid_latents[2][index::column_size]
+
+                start_point_0 = end_point_0
+                start_point_1 = end_point_1
+                start_point_2 = start_point_2
+                start_point_0 = rearrange(start_point_0, 'b c t h w -> (b t) c h w')
+                start_point_0 = torch.nn.functional.interpolate(start_point_0, size=(start_point_1.shape[-2], start_point_1.shape[-1]), mode='nearest')
+                start_point_0 = rearrange(start_point_0, '(b t) c h w -> b c t h w', t=t)
+                start_point_1 = start_point_1 + start_point_0
+
+                start_point_1 = rearrange(start_point_1, 'b c t h w -> (b t) c h w')
+                start_point_1 = torch.nn.functional.interpolate(start_point_1, size=(start_point_2.shape[-2], start_point_2.shape[-1]), mode='nearest')
+                start_point_1 = rearrange(start_point_1, '(b t) c h w -> b c t h w', t=t)
+                start_point = start_point_2 + start_point_1
+
+                end_point_0 = rearrange(end_point_0, 'b c t h w -> (b t) c h w')
+                end_point_0 = torch.nn.functional.interpolate(end_point_0, size=(end_point_1.shape[-2], end_point_1.shape[-1]), mode='nearest')
+                end_point_0 = rearrange(end_point_0, '(b t) c h w -> b c t h w', t=t)
+                end_point_1 = end_point_1 + end_point_0
+                end_point_1 = rearrange(end_point_1, 'b c t h w -> (b t) c h w')
+                end_point_1 = torch.nn.functional.interpolate(end_point_1, size=(end_point_2.shape[-2], end_point_2.shape[-1]), mode='nearest')
+                end_point_1 = rearrange(end_point_1, '(b t) c h w -> b c t h w', t=t)
+                end_point = end_point_2 + end_point_1
 
                 while len(ratios.shape) < start_point.ndim:
                     ratios = ratios.unsqueeze(-1)
@@ -2460,8 +2497,6 @@ class PyramidDiTForVideoGeneration:
 
             generated_latents_list.append(latents.detach().clone())
 
-        latents = latents.to(torch.bfloat16)
-
         if output_type == "latent":
             image = latents
         else:
@@ -2470,12 +2505,17 @@ class PyramidDiTForVideoGeneration:
                     self.dit.to("cpu")
                 self.vae.to("cuda")
                 torch.cuda.empty_cache()
-            image = self.decode_latent(latents, save_memory=save_memory, inference_multigpu=inference_multigpu)
+            
+            if self.save_intermediate_latents:
+                image = []
+                for lts in generated_latents_list:
+                    image.append(self.decode_latent(lts, save_memory=save_memory, inference_multigpu=inference_multigpu))
+            else:
+                image = self.decode_latent(latents, save_memory=save_memory, inference_multigpu=inference_multigpu)
             if cpu_offloading:
                 self.vae.to("cpu")
                 torch.cuda.empty_cache()
                 # not technically necessary, but returns the pipeline to its original state
-
         return image
 
     @torch.no_grad()
