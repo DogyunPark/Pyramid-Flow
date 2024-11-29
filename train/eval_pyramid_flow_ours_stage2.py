@@ -240,6 +240,9 @@ def get_args():
     parser.add_argument('--trilinear_interpolation', action='store_true')
     parser.add_argument('--temporal_downsample', action='store_true')
     parser.add_argument('--downsample_latent', action='store_true')
+    parser.add_argument('--random_noise', action='store_true')
+    parser.add_argument('--delta_learning', action='store_true')
+    parser.add_argument('--use_perflow', action='store_true')
     return parser.parse_args()
 
 
@@ -250,7 +253,8 @@ def build_model_runner(args):
     model_variant = args.model_variant
 
     print(f"Load the {model_name} model checkpoint from path: {model_path}, using dtype {model_dtype}")
-    sample_ratios = [1, 2, 1]  # The sample_ratios of each stage
+    #sample_ratios = [1, 2, 1]  # The sample_ratios of each stage
+    sample_ratios = [1, 1]
     #sample_ratios = [1]  # The sample_ratios of each stage
     corrupt_ratio = [1/10, 1/5, 1/5]
     #corrupt_ratio = [1/3, 1/3, 1/2]
@@ -266,7 +270,8 @@ def build_model_runner(args):
         return_log=True,
         model_variant=model_variant,
         timestep_shift=args.schedule_shift,
-        stages=[1, 2, 4],      # using 3 stages
+        #stages=[1, 2, 4],      # using 3 stages
+        stages=[1, 2],      # using 1 stage
         #stages=[1],      # using 1 stage
         stage_range=[0, 1/3, 2/3, 1],
         sample_ratios=sample_ratios,     # The sample proportion in a training batch
@@ -287,6 +292,12 @@ def build_model_runner(args):
         trilinear_interpolation=args.trilinear_interpolation,
         temporal_downsample=args.temporal_downsample,
         downsample_latent=args.downsample_latent,
+        height=args.image_size[0],
+        width=args.image_size[1],
+        num_frames=args.num_frames,
+        random_noise=args.random_noise,
+        delta_learning=args.delta_learning,
+        use_perflow=args.use_perflow,
     )
     
     if args.dit_pretrained_weight:
