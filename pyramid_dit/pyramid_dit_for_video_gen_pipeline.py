@@ -860,9 +860,10 @@ class PyramidDiTForVideoGeneration:
                 start_point_0 = torch.nn.functional.interpolate(start_point_0, size=(start_point_1.shape[-2], start_point_1.shape[-1]), mode='nearest')
                 start_point_0 = rearrange(start_point_0, '(b t) c h w -> b c t h w', t=t)
                 start_point = start_point_1 + start_point_0
-                if self.temporal_differencing:
-                    start_point_diff = start_point[:,:,1:] - start_point[:,:,:1].repeat(1, 1, start_point.shape[2]-1, 1, 1)
-                    start_point[:,:,1:] = start_point_diff
+                
+                # if self.temporal_differencing:
+                #     start_point_diff = start_point[:,:,1:] - start_point[:,:,:1].repeat(1, 1, start_point.shape[2]-1, 1, 1)
+                #     start_point[:,:,1:] = start_point_diff
 
                 # end_point_0 = rearrange(end_point_0, 'b c t h w -> (b t) c h w')
                 # end_point_0 = torch.nn.functional.interpolate(end_point_0, size=(end_point_1.shape[-2], end_point_1.shape[-1]), mode='nearest')
@@ -870,9 +871,10 @@ class PyramidDiTForVideoGeneration:
                 # end_point = end_point_1 + end_point_0
 
                 end_point = latents_list[i_s+1][index::column_size]
-                if self.temporal_differencing:
-                    end_point_diff = end_point[:,:,1:] - end_point[:,:,:1].repeat(1, 1, end_point.shape[2]-1, 1, 1)
-                    end_point[:,:,1:] = end_point_diff
+                
+                # if self.temporal_differencing:
+                #     end_point_diff = end_point[:,:,1:] - end_point[:,:,:1].repeat(1, 1, end_point.shape[2]-1, 1, 1)
+                #     end_point[:,:,1:] = end_point_diff
 
                 while len(ratios.shape) < start_point.ndim:
                     ratios = ratios.unsqueeze(-1)
@@ -1466,6 +1468,15 @@ class PyramidDiTForVideoGeneration:
             # Compute the loss.
             loss_weight = torch.ones_like(target)
 
+            if self.temporal_differencing:
+                model_pred_diff = torch.zeros_like(model_pred)
+                for temp_idx in range(0, model_pred.shape[2]):
+                    if temp_idx == 0:
+                        model_pred_diff[:,:,temp_idx] = model_pred[:,:,temp_idx]
+                    else:
+                        model_pred_diff[:,:,temp_idx] = model_pred[:,:,0] + model_pred[:,:,temp_idx]
+                model_pred = model_pred_diff
+            
             loss = torch.mean(
                 (loss_weight.float() * (model_pred.float() - target.float()) ** 2).reshape(target.shape[0], -1),
                 1,
