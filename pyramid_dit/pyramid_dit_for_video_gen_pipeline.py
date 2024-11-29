@@ -42,7 +42,7 @@ from .flux_modules import (
     FluxTextEncoderWithMask,
 )
 
-import kornia
+#import kornia
 
 class Gaussian2DFilter(nn.Module):
     def __init__(self, kernel_size: tuple, sigma: tuple):
@@ -2474,7 +2474,7 @@ class PyramidDiTForVideoGeneration:
                 # noise = self.sample_block_noise(bs, ch, temp, height, width)
                 # noise = noise.to(device=device, dtype=dtype)
                 # latents = alpha * latents + beta * noise    # To fix the block artifact
-                
+
             for idx, t in enumerate(timesteps):
                 # expand the latents if we are doing classifier free guidance
                 latent_model_input = torch.cat([latents] * 2) if self.do_classifier_free_guidance else latents
