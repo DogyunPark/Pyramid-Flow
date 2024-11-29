@@ -2465,6 +2465,7 @@ class PyramidDiTForVideoGeneration:
                 # noise = noise.to(device=device, dtype=dtype)
                 # latents = alpha * latents + beta * noise    # To fix the block artifact
 
+            print(latents.shape)
             for idx, t in enumerate(timesteps):
                 # expand the latents if we are doing classifier free guidance
                 latent_model_input = torch.cat([latents] * 2) if self.do_classifier_free_guidance else latents
