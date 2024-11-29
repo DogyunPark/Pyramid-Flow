@@ -2529,7 +2529,7 @@ class PyramidDiTForVideoGeneration:
 
         if self.temporal_differencing:
             for temp_idx in range(1, latents.shape[2]):
-                latents[:,:,temp_idx] = latents[:,:,:1] - latents[:,:,temp_idx].unsqueeze(2)
+                latents[:,:,temp_idx] = latents[:,:,0] + latents[:,:,temp_idx]
 
         if output_type == "latent":
             image = latents
