@@ -2495,8 +2495,9 @@ class PyramidDiTForVideoGeneration:
                     generator=generator,
                 ).prev_sample
 
-            generated_latents_list.append(latents.detach().clone())
-
+            generated_latents_list.append(latents.detach().clone().to(torch.bfloat16))
+        latents = latents.to(torch.bfloat16)
+        
         if output_type == "latent":
             image = latents
         else:
