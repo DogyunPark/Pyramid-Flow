@@ -273,7 +273,8 @@ def build_model_runner(args):
         #stages=[1, 2, 4],      # using 3 stages
         stages=[1, 2],      # using 1 stage
         #stages=[1],      # using 1 stage
-        stage_range=[0, 1/3, 2/3, 1],
+        #stage_range=[0, 1/3, 2/3, 1],
+        stage_range=[0, 1/2, 1],
         sample_ratios=sample_ratios,     # The sample proportion in a training batch
         use_mixed_training=True,
         use_flash_attn=args.use_flash_attn,
