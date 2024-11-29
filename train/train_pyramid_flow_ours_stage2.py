@@ -247,6 +247,7 @@ def get_args():
     parser.add_argument('--use_perflow', action='store_true')
     parser.add_argument('--use_gaussian_filter', action='store_true')
     parser.add_argument('--save_intermediate_latents', action='store_true')
+    parser.add_argument('--temporal_differencing', action='store_true')
     return parser.parse_args()
 
 
@@ -305,6 +306,7 @@ def build_model_runner(args):
         use_perflow=args.use_perflow,
         use_gaussian_filter=args.use_gaussian_filter,
         save_intermediate_latents=args.save_intermediate_latents,
+        temporal_differencing=args.temporal_differencing,
     )
     
     if args.dit_pretrained_weight:
