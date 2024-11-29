@@ -58,4 +58,4 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 python \
     --num_frames 49 \
     --use_perflow \
     --downsample_latent \
-    --dit_pretrained_weight /data/cvpr25/Pyramid-Flow/result/stage3-downsample-noise-conditionoriginal5/checkpoint1999-2/pytorch_model_fsdp.bin \
+    --dit_pretrained_weight /data/cvpr25/Pyramid-Flow/result/stage3-downsample-noise-conditionoriginal5/checkpoint-1999-2/pytorch_model_fsdp.bin \
