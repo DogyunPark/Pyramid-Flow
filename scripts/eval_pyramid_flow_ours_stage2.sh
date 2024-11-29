@@ -55,9 +55,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 python \
     --save_ckpt_freq 1 \
     --load_vae \
     --gradient_checkpointing \
-    --downsample_latent \
-    --condition_original_image \
-    --temporal_downsample \
     --num_frames 49 \
-    --deterministic_noise \
-    --dit_pretrained_weight /data/cvpr25/Pyramid-Flow/result/stage3-downsample-noise-conditionoriginal/checkpoint-999-6/pytorch_model_fsdp.bin \
+    --use_perflow \
+    --downsample_latent \
+    --dit_pretrained_weight /data/cvpr25/Pyramid-Flow/result/stage3-downsample-noise-conditionoriginal5/checkpoint1999-2/pytorch_model_fsdp.bin \

@@ -549,7 +549,7 @@ def main(args):
         validation_image = validation_image.unsqueeze(0).unsqueeze(2)
 
         print("Generating video for %d epoch" % i)
-        image = runner.generate_video(
+        image = runner.generate_laplacian_video(
             prompt=validation_prompt,
             input_image=validation_image,
             num_inference_steps=[80, 80, 80],
