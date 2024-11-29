@@ -1402,8 +1402,6 @@ class PyramidDiTForVideoGeneration:
                     vae_latent_list = self.get_pyramid_latent_with_temporal_downsample(video, len(self.stages))
                     upsample_vae_latent_list = self.get_pyramid_latent_with_temporal_upsample(vae_latent_list)
 
-        import pdb; pdb.set_trace()
-        
         #if use_temporal_pyramid:
         #    noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_with_temporal_pyramid(vae_latent_list, self.sample_ratios)
         if self.use_perflow:
