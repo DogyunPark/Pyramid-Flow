@@ -60,4 +60,3 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 accelerate launch --multi_gpu --num_process
     --use_perflow \
     --downsample_latent \
     --save_intermediate_latents \
-    --use_gaussian_filter \

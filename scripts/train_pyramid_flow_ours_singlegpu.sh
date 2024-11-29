@@ -56,4 +56,5 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 python \
     --num_frames 49 \
     --use_perflow \
     --downsample_latent \
+    --save_intermediate_latents \
     
