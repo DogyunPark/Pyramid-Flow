@@ -158,7 +158,8 @@ class PyramidDiTForVideoGeneration:
         corrupt_ratio=1/3, interp_condition_pos=True, stages=[1, 2, 4], video_sync_group=8, gradient_checkpointing_ratio=0.6, 
         temporal_autoregressive=False, deterministic_noise=False, condition_original_image=False, num_frames=49, height=256, width=384,
         trilinear_interpolation=False, temporal_downsample=False, downsample_latent=False, random_noise=False, 
-        delta_learning=False, use_perflow=False, use_gaussian_filter=False, save_intermediate_latents=False, temporal_differencing=False, **kwargs,
+        delta_learning=False, use_perflow=False, use_gaussian_filter=False, save_intermediate_latents=False, temporal_differencing=False, 
+        continuous_flow=False, **kwargs,
     ):
         super().__init__()
 
@@ -237,10 +238,12 @@ class PyramidDiTForVideoGeneration:
             self.scheduler = PyramidFlowMatchEulerDiscreteScheduler_original(
                 shift=timestep_shift, stages=len(self.stages), 
                 stage_range=stage_range, gamma=scheduler_gamma,
+                continuous_flow=continuous_flow,
             )
             self.validation_scheduler = PyramidFlowMatchEulerDiscreteScheduler_original(
                 shift=timestep_shift, stages=len(self.stages), 
                 stage_range=stage_range, gamma=scheduler_gamma,
+                continuous_flow=continuous_flow,
             )
 
         print(f"The start sigmas and end sigmas of each stage is Start: {self.scheduler.start_sigmas}, End: {self.scheduler.end_sigmas}, Ori_start: {self.scheduler.ori_start_sigmas}")
@@ -265,6 +268,7 @@ class PyramidDiTForVideoGeneration:
         self.use_gaussian_filter = use_gaussian_filter
         self.save_intermediate_latents = save_intermediate_latents
         self.temporal_differencing = temporal_differencing
+        self.continuous_flow = continuous_flow
         if self.use_gaussian_filter:
             self.gaussian_filter = Gaussian2DFilter(kernel_size=(3, 3), sigma=(1.0, 1.0)).to(device=self.vae.device)
 
@@ -816,6 +820,15 @@ class PyramidDiTForVideoGeneration:
                 #start_point = start_point[:,:,temp_init].unsqueeze(2)
                 
                 end_point = laplacian_pyramid_latents[i_s][index::column_size]   # [bs, c, t, h, w]
+
+                if self.continuous_flow:
+                    end_point_temp = laplacian_pyramid_noises[i_s+1][index::column_size]
+                    end_point_temp_dim = end_point_temp.shape[2]
+                    end_point_temp = rearrange(end_point_temp, 'b c t h w -> (b t) c h w')
+                    end_point_temp = torch.nn.functional.interpolate(end_point_temp, size=(end_point.shape[-2], end_point.shape[-1]), mode='bilinear')
+                    end_point_temp = rearrange(end_point_temp, '(b t) c h w -> b c t h w', t=end_point_temp_dim)
+                    end_point += end_point_temp
+
                 if self.temporal_differencing:
                     end_point_diff = end_point[:,:,1:] - end_point[:,:,:1].repeat(1, 1, end_point.shape[2]-1, 1, 1)
                     end_point[:,:,1:] = end_point_diff
@@ -876,6 +889,15 @@ class PyramidDiTForVideoGeneration:
                 # end_point = end_point_1 + end_point_0
 
                 end_point = latents_list[i_s+1][index::column_size]
+
+                if self.continuous_flow:
+                    end_point_temp = laplacian_pyramid_noises[i_s+1][index::column_size]
+                    end_point_temp_dim = end_point_temp.shape[2]
+                    end_point_temp = rearrange(end_point_temp, 'b c t h w -> (b t) c h w')
+                    end_point_temp = torch.nn.functional.interpolate(end_point_temp, size=(end_point.shape[-2], end_point.shape[-1]), mode='bilinear')
+                    end_point_temp = rearrange(end_point_temp, '(b t) c h w -> b c t h w', t=end_point_temp_dim)
+                    end_point += end_point_temp
+                
                 if self.temporal_differencing:
                     end_point_diff = end_point[:,:,1:] - end_point[:,:,:1].repeat(1, 1, end_point.shape[2]-1, 1, 1)
                     end_point[:,:,1:] = end_point_diff
@@ -2514,18 +2536,19 @@ class PyramidDiTForVideoGeneration:
                 latents = F.interpolate(latents, size=(height, width), mode='nearest')
                 latents = rearrange(latents, '(b t) c h w -> b c t h w', t=temp)
 
-                latents = laplacian_latents[i_s] + latents
+                if self.continuous_flow:
+                    #Fix the stage
+                    ori_sigma = 1 - self.validation_scheduler.ori_start_sigmas[i_s]   # the original coeff of signal
+                    gamma = self.validation_scheduler.config.gamma
+                    alpha = 1 / (math.sqrt(1 + (1 / gamma)) * (1 - ori_sigma) + ori_sigma)
+                    beta = alpha * (1 - ori_sigma) / math.sqrt(gamma)
 
-                # Fix the stage
-                # ori_sigma = 1 - self.validation_scheduler.ori_start_sigmas[i_s]   # the original coeff of signal
-                # gamma = self.validation_scheduler.config.gamma
-                # alpha = 1 / (math.sqrt(1 + (1 / gamma)) * (1 - ori_sigma) + ori_sigma)
-                # beta = alpha * (1 - ori_sigma) / math.sqrt(gamma)
-
-                # bs, ch, temp, height, width = latents.shape
-                # noise = self.sample_block_noise(bs, ch, temp, height, width)
-                # noise = noise.to(device=device, dtype=dtype)
-                # latents = alpha * latents + beta * noise    # To fix the block artifact
+                    bs, ch, temp, height, width = latents.shape
+                    noise = self.sample_block_noise(bs, ch, temp, height, width)
+                    noise = noise.to(device=device, dtype=dtype)
+                    latents = alpha * latents + beta * noise    # To fix the block artifact
+                else:
+                    latents = laplacian_latents[i_s] + latents
 
             for idx, t in enumerate(timesteps):
                 # expand the latents if we are doing classifier free guidance
