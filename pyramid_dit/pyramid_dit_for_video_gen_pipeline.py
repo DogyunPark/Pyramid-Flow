@@ -2460,7 +2460,7 @@ class PyramidDiTForVideoGeneration:
         
         stages = self.stages
         stage_num = len(stages)
-        
+
         if self.temporal_autoregressive:
             original_latent_condition = (self.vae.encode(input_image.to(self.vae.device, dtype=self.vae.dtype), temporal_chunk=False, tile_sample_min_size=1024).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c t h w] 
             original_latent_condition_list = self.get_pyramid_latent_with_spatial_downsample(original_latent_condition, stage_num)
@@ -2561,7 +2561,7 @@ class PyramidDiTForVideoGeneration:
         if self.temporal_differencing:
             if self.temporal_autoregressive:
                 for temp_idx in range(latents.shape[2]):
-                    latents[:,:,temp_idx] += concat_latents_list[0]
+                    latents[:,:,temp_idx] += concat_latents_list[0].squeeze(2)
                 concat_latents_list.append(latents)
                 latents = torch.cat(concat_latents_list, dim=2)
             else:
