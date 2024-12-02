@@ -2458,13 +2458,14 @@ class PyramidDiTForVideoGeneration:
             pooled_prompt_embeds = torch.cat([negative_pooled_prompt_embeds, pooled_prompt_embeds], dim=0)
             prompt_attention_mask = torch.cat([negative_prompt_attention_mask, prompt_attention_mask], dim=0)
         
+        stages = self.stages
+        stage_num = len(stages)
+        
         if self.temporal_autoregressive:
             original_latent_condition = (self.vae.encode(input_image.to(self.vae.device, dtype=self.vae.dtype), temporal_chunk=False, tile_sample_min_size=1024).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c t h w] 
             original_latent_condition_list = self.get_pyramid_latent_with_spatial_downsample(original_latent_condition, stage_num)
 
         # Create the initial random noise
-        stages = self.stages
-        stage_num = len(stages)
         height, width = input_image.shape[-2:]
         latent_height = height // self.vae.config.downsample_scale
         latent_width = width // self.vae.config.downsample_scale
