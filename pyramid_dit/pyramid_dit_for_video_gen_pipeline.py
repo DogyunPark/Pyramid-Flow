@@ -825,8 +825,8 @@ class PyramidDiTForVideoGeneration:
                # end_point = end_point_t1 - end_point_t0
 
                 if self.temporal_autoregressive:
-                    start_point = start_point[:,:,temp_init:]
-                    end_point = end_point[:,:,temp_init:]
+                    start_point = start_point[:,:,temp_init+1:]
+                    end_point = end_point[:,:,temp_init+1:]
 
                 while len(ratios.shape) < start_point.ndim:
                     ratios = ratios.unsqueeze(-1)
@@ -884,8 +884,8 @@ class PyramidDiTForVideoGeneration:
                     ratios = ratios.unsqueeze(-1)
                 
                 if self.temporal_autoregressive:
-                    start_point = start_point[:,:,temp_init:]
-                    end_point = end_point[:,:,temp_init:]
+                    start_point = start_point[:,:,temp_init+1:]
+                    end_point = end_point[:,:,temp_init+1:]
 
                 noisy_latents = ratios * start_point + (1 - ratios) * end_point
             
@@ -943,8 +943,8 @@ class PyramidDiTForVideoGeneration:
                     ratios = ratios.unsqueeze(-1)
 
                 if self.temporal_autoregressive:
-                    start_point = start_point[:,:,temp_init:]
-                    end_point = end_point[:,:,temp_init:]
+                    start_point = start_point[:,:,temp_init+1:]
+                    end_point = end_point[:,:,temp_init+1:]
 
                 noisy_latents = ratios * start_point + (1 - ratios) * end_point
 
@@ -2167,6 +2167,8 @@ class PyramidDiTForVideoGeneration:
         latent_height = height // self.vae.config.downsample_scale
         latent_width = width // self.vae.config.downsample_scale
         latent_temp = int(self.num_frames // self.vae.config.downsample_scale + 1)
+        if self.temporal_autoregressive:
+            latent_temp += -1
 
         # Prepare the condition latents
         stage_latent_condition = (self.vae.encode(input_image.to(self.vae.device, dtype=self.vae.dtype), temporal_chunk=False, tile_sample_min_size=1024).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c t h w] 
