@@ -2167,8 +2167,6 @@ class PyramidDiTForVideoGeneration:
         latent_height = height // self.vae.config.downsample_scale
         latent_width = width // self.vae.config.downsample_scale
         latent_temp = int(self.num_frames // self.vae.config.downsample_scale + 1)
-        if self.temporal_autoregressive:
-            latent_temp += -1
 
         # Prepare the condition latents
         stage_latent_condition = (self.vae.encode(input_image.to(self.vae.device, dtype=self.vae.dtype), temporal_chunk=False, tile_sample_min_size=1024).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c t h w] 
@@ -2472,6 +2470,8 @@ class PyramidDiTForVideoGeneration:
         latent_height = height // self.vae.config.downsample_scale
         latent_width = width // self.vae.config.downsample_scale
         latent_temp = int(self.num_frames // self.vae.config.downsample_scale + 1)
+        if self.temporal_autoregressive:
+            latent_temp += -1
 
         num_channels_latents = (self.dit.config.in_channels // 4) if self.model_name == "pyramid_flux" else  self.dit.config.in_channels
         latents = self.prepare_latents(
