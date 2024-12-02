@@ -1482,14 +1482,14 @@ class PyramidDiTForVideoGeneration:
             # Compute the loss.
             loss_weight = torch.ones_like(target)
 
-            if self.temporal_differencing:
-                model_pred_diff = torch.zeros_like(model_pred)
-                for temp_idx in range(0, model_pred.shape[2]):
-                    if temp_idx == 0:
-                        model_pred_diff[:,:,temp_idx] = model_pred[:,:,temp_idx]
-                    else:
-                        model_pred_diff[:,:,temp_idx] = model_pred[:,:,0] + model_pred[:,:,temp_idx]
-                model_pred = model_pred_diff
+            # if self.temporal_differencing:
+            #     model_pred_diff = torch.zeros_like(model_pred)
+            #     for temp_idx in range(0, model_pred.shape[2]):
+            #         if temp_idx == 0:
+            #             model_pred_diff[:,:,temp_idx] = model_pred[:,:,temp_idx]
+            #         else:
+            #             model_pred_diff[:,:,temp_idx] = model_pred[:,:,0] + model_pred[:,:,temp_idx]
+            #     model_pred = model_pred_diff
             
             loss = torch.mean(
                 (loss_weight.float() * (model_pred.float() - target.float()) ** 2).reshape(target.shape[0], -1),
