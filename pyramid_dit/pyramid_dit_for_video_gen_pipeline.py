@@ -822,20 +822,26 @@ class PyramidDiTForVideoGeneration:
                 end_point = laplacian_pyramid_latents[i_s][index::column_size]   # [bs, c, t, h, w]
 
                 if self.continuous_flow:
-                    end_point_temp = laplacian_pyramid_noises[i_s+1][index::column_size]
+                    end_point = end_sigma * start_point + (1 - end_sigma) * end_point
+                    
+                    start_point_temp = laplacian_pyramid_noises[i_s+1][index::column_size]
+                    start_point_temp_dim = start_point_temp.shape[2]
+                    start_point_temp = rearrange(start_point_temp, 'b c t h w -> (b t) c h w')
+                    start_point_temp = torch.nn.functional.interpolate(start_point_temp, size=(start_point.shape[-2], start_point.shape[-1]), mode='bilinear')
+                    start_point_temp = rearrange(start_point_temp, '(b t) c h w -> b c t h w', t=start_point_temp_dim)
+
+                    end_point_temp = laplacian_pyramid_latents[i_s+1][index::column_size]
                     end_point_temp_dim = end_point_temp.shape[2]
                     end_point_temp = rearrange(end_point_temp, 'b c t h w -> (b t) c h w')
                     end_point_temp = torch.nn.functional.interpolate(end_point_temp, size=(end_point.shape[-2], end_point.shape[-1]), mode='bilinear')
                     end_point_temp = rearrange(end_point_temp, '(b t) c h w -> b c t h w', t=end_point_temp_dim)
+
+                    end_point_temp = end_sigma * start_point_temp + (1 - end_sigma) * end_point_temp
                     end_point += end_point_temp
 
                 if self.temporal_differencing:
                     end_point_diff = end_point[:,:,1:] - end_point[:,:,:1].repeat(1, 1, end_point.shape[2]-1, 1, 1)
                     end_point[:,:,1:] = end_point_diff
-                #end_point = end_sigma * start_point + (1 - end_sigma) * end_point
-                #end_point_t0 = end_point[:,:,temp_init]
-               # end_point_t1 = end_point[:,:,temp_init+1]
-               # end_point = end_point_t1 - end_point_t0
 
                 if self.temporal_autoregressive:
                     start_point = start_point[:,:,temp_init+1:]
@@ -864,7 +870,13 @@ class PyramidDiTForVideoGeneration:
                 #end_point_1 = end_point_1_t1 - end_point_1_t0
 
                 #start_point_0 = start_sigma * start_point_0 + (1 - start_sigma) * end_point_0
-                start_point_0 = end_point_0
+                if self.continuous_flow:
+                    start_point_0 = end_sigma * start_point_0 + (1 - end_sigma) * end_point_0
+                    start_point_1 = end_sigma * start_point_1 + (1 - end_sigma) * end_point_1
+                else:
+                    start_point_0 = end_point_0
+                    start_point_1 = end_point_1
+
                 if self.temporal_differencing:
                     start_point_diff = start_point_0[:,:,1:] - start_point_0[:,:,:1].repeat(1, 1, start_point_0.shape[2]-1, 1, 1)
                     #start_point_diff = start_point_0[:,:,1:] - start_point_0[:,:,:-1]
@@ -891,11 +903,21 @@ class PyramidDiTForVideoGeneration:
                 end_point = latents_list[i_s+1][index::column_size]
 
                 if self.continuous_flow:
-                    end_point_temp = laplacian_pyramid_noises[i_s+1][index::column_size]
+                    end_point = end_sigma * start_point + (1 - end_sigma) * end_point
+                    
+                    start_point_temp = laplacian_pyramid_noises[i_s+1][index::column_size]
+                    start_point_temp_dim = start_point_temp.shape[2]
+                    start_point_temp = rearrange(start_point_temp, 'b c t h w -> (b t) c h w')
+                    start_point_temp = torch.nn.functional.interpolate(start_point_temp, size=(start_point.shape[-2], start_point.shape[-1]), mode='bilinear')
+                    start_point_temp = rearrange(start_point_temp, '(b t) c h w -> b c t h w', t=start_point_temp_dim)
+
+                    end_point_temp = laplacian_pyramid_latents[i_s+1][index::column_size]
                     end_point_temp_dim = end_point_temp.shape[2]
                     end_point_temp = rearrange(end_point_temp, 'b c t h w -> (b t) c h w')
                     end_point_temp = torch.nn.functional.interpolate(end_point_temp, size=(end_point.shape[-2], end_point.shape[-1]), mode='bilinear')
                     end_point_temp = rearrange(end_point_temp, '(b t) c h w -> b c t h w', t=end_point_temp_dim)
+
+                    end_point_temp = end_sigma * start_point_temp + (1 - end_sigma) * end_point_temp
                     end_point += end_point_temp
                 
                 if self.temporal_differencing:
@@ -932,8 +954,13 @@ class PyramidDiTForVideoGeneration:
                 # start_point_1 = torch.nn.functional.interpolate(start_point_1, size=(start_point_2.shape[-2], start_point_2.shape[-1]), mode='nearest')
                 # start_point_1 = rearrange(start_point_1, '(b t) c h w -> b c t h w', t=t)
                 # start_point = start_point_2 + start_point_1
-
-                start_point_1 = latents_list[i_s][index::column_size]
+                if self.continuous_flow:
+                    start_point_1 = end_sigma * start_point_1 + (1 - end_sigma) * end_point_1
+                    start_point_2 = end_sigma * start_point_2 + (1 - end_sigma) * end_point_2
+                else:
+                    start_point_1 = latents_list[i_s][index::column_size]
+                    start_point_2 = start_point_2
+                    
                 if self.temporal_differencing:
                     start_point_diff = start_point_1[:,:,1:] - start_point_1[:,:,:1].repeat(1, 1, start_point_1.shape[2]-1, 1, 1)
                     #start_point_diff = start_point_1[:,:,1:] - start_point_1[:,:,:-1]
