@@ -2530,7 +2530,13 @@ class PyramidDiTForVideoGeneration:
             for idx, t in enumerate(timesteps):
                 # expand the latents if we are doing classifier free guidance
                 latent_model_input = torch.cat([latents] * 2) if self.do_classifier_free_guidance else latents
-                total_input = [latent_model_input]
+                
+                if self.temporal_autoregressive:
+                    stage_latent_condition_input = torch.cat([original_latent_condition_list[i_s]] * 2) if self.do_classifier_free_guidance else original_latent_condition_list[i_s]
+                    total_input = [stage_latent_condition_input, latent_model_input]
+                else:
+                    total_input = [latent_model_input]
+                    
             
                 # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
                 timestep = t.expand(latent_model_input.shape[0]).to(latent_model_input.dtype)
