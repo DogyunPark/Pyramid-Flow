@@ -951,9 +951,9 @@ class PyramidDiTForVideoGeneration:
             if self.temporal_autoregressive:
                 stage_latent_condition = latents_list[i_s][index::column_size]
                 stage_latent_condition = stage_latent_condition[:,:,:temp_init+1]
-                noise_ratio2 = torch.rand(size=(batch_size,), device=device) / 3
-                noise_ratio2 = noise_ratio2[:, None, None, None, None]
-                stage_latent_condition = noise_ratio2 * torch.randn_like(stage_latent_condition) + (1 - noise_ratio2) * stage_latent_condition
+                #noise_ratio2 = torch.rand(size=(batch_size,), device=device) / 3
+                #noise_ratio2 = noise_ratio2[:, None, None, None, None]
+                #stage_latent_condition = noise_ratio2 * torch.randn_like(stage_latent_condition) + (1 - noise_ratio2) * stage_latent_condition
                                                                                          
             if self.condition_original_image:
                 original_latent_condition = latents_list[i_s+1][index::column_size]
