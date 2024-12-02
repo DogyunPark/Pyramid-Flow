@@ -814,9 +814,6 @@ class PyramidDiTForVideoGeneration:
             if i_s == 0:
                 start_point = laplacian_pyramid_noises[i_s][index::column_size]
                 #start_point = start_point[:,:,temp_init].unsqueeze(2)
-                if self.temporal_differencing:
-                    start_point_diff = start_point[:,:,1:] - start_point[:,:,:1].repeat(1, 1, start_point.shape[2]-1, 1, 1)
-                    start_point[:,:,1:] = start_point_diff
                 
                 end_point = laplacian_pyramid_latents[i_s][index::column_size]   # [bs, c, t, h, w]
                 if self.temporal_differencing:
@@ -826,6 +823,10 @@ class PyramidDiTForVideoGeneration:
                 #end_point_t0 = end_point[:,:,temp_init]
                # end_point_t1 = end_point[:,:,temp_init+1]
                # end_point = end_point_t1 - end_point_t0
+
+                if self.temporal_autoregressive:
+                    start_point = start_point[:,:,temp_init:]
+                    end_point = end_point[:,:,temp_init:]
 
                 while len(ratios.shape) < start_point.ndim:
                     ratios = ratios.unsqueeze(-1)
@@ -851,6 +852,10 @@ class PyramidDiTForVideoGeneration:
 
                 #start_point_0 = start_sigma * start_point_0 + (1 - start_sigma) * end_point_0
                 start_point_0 = end_point_0
+                if self.temporal_differencing:
+                    start_point_diff = start_point_0[:,:,1:] - start_point_0[:,:,:1].repeat(1, 1, start_point_0.shape[2]-1, 1, 1)
+                    #start_point_diff = start_point_0[:,:,1:] - start_point_0[:,:,:-1]
+                    start_point_0[:,:,1:] = start_point_diff
                 #start_point_1 = start_sigma * start_point_1 + (1 - start_sigma) * end_point_1
                 #start_point = start_point_1 + latents_list[i_s][index::column_size]
                 #end_point_0 = end_sigma * start_point_0 + (1 - end_sigma) * end_point_0
@@ -871,13 +876,16 @@ class PyramidDiTForVideoGeneration:
                 # end_point = end_point_1 + end_point_0
 
                 end_point = latents_list[i_s+1][index::column_size]
-                
-                # if self.temporal_differencing:
-                #     end_point_diff = end_point[:,:,1:] - end_point[:,:,:1].repeat(1, 1, end_point.shape[2]-1, 1, 1)
-                #     end_point[:,:,1:] = end_point_diff
+                if self.temporal_differencing:
+                    end_point_diff = end_point[:,:,1:] - end_point[:,:,:1].repeat(1, 1, end_point.shape[2]-1, 1, 1)
+                    end_point[:,:,1:] = end_point_diff
 
                 while len(ratios.shape) < start_point.ndim:
                     ratios = ratios.unsqueeze(-1)
+                
+                if self.temporal_autoregressive:
+                    start_point = start_point[:,:,temp_init:]
+                    end_point = end_point[:,:,temp_init:]
 
                 noisy_latents = ratios * start_point + (1 - ratios) * end_point
             
@@ -904,13 +912,18 @@ class PyramidDiTForVideoGeneration:
                 # start_point = start_point_2 + start_point_1
 
                 start_point_1 = latents_list[i_s][index::column_size]
+                if self.temporal_differencing:
+                    start_point_diff = start_point_1[:,:,1:] - start_point_1[:,:,:1].repeat(1, 1, start_point_1.shape[2]-1, 1, 1)
+                    #start_point_diff = start_point_1[:,:,1:] - start_point_1[:,:,:-1]
+                    start_point_1[:,:,1:] = start_point_diff
+
                 start_point_1 = rearrange(start_point_1, 'b c t h w -> (b t) c h w')
                 start_point_1 = torch.nn.functional.interpolate(start_point_1, size=(start_point_2.shape[-2], start_point_2.shape[-1]), mode='nearest')
                 start_point_1 = rearrange(start_point_1, '(b t) c h w -> b c t h w', t=t)
                 start_point = start_point_2 + start_point_1
-                if self.temporal_differencing:
-                    start_point_diff = start_point[:,:,1:] - start_point[:,:,:1].repeat(1, 1, start_point.shape[2]-1, 1, 1)
-                    start_point[:,:,1:] = start_point_diff
+                # if self.temporal_differencing:
+                #     start_point_diff = start_point[:,:,1:] - start_point[:,:,:1].repeat(1, 1, start_point.shape[2]-1, 1, 1)
+                #     start_point[:,:,1:] = start_point_diff
 
                 # end_point_0 = rearrange(end_point_0, 'b c t h w -> (b t) c h w')
                 # end_point_0 = torch.nn.functional.interpolate(end_point_0, size=(end_point_1.shape[-2], end_point_1.shape[-1]), mode='nearest')
@@ -929,17 +942,18 @@ class PyramidDiTForVideoGeneration:
                 while len(ratios.shape) < start_point.ndim:
                     ratios = ratios.unsqueeze(-1)
 
+                if self.temporal_autoregressive:
+                    start_point = start_point[:,:,temp_init:]
+                    end_point = end_point[:,:,temp_init:]
+
                 noisy_latents = ratios * start_point + (1 - ratios) * end_point
 
             if self.temporal_autoregressive:
-                if temp_init > 0:
-                    stage_latent_condition = latents_list[i_s][index::column_size]
-                    stage_latent_condition = stage_latent_condition[:,:,:temp_init]
-                    noise_ratio2 = torch.rand(size=(batch_size,), device=device) / 3
-                    noise_ratio2 = noise_ratio2[:, None, None, None, None]
-                    stage_latent_condition = noise_ratio2 * torch.randn_like(stage_latent_condition) + (1 - noise_ratio2) * stage_latent_condition
-                else:
-                    stage_latent_condition = None
+                stage_latent_condition = latents_list[i_s][index::column_size]
+                stage_latent_condition = stage_latent_condition[:,:,:temp_init+1]
+                noise_ratio2 = torch.rand(size=(batch_size,), device=device) / 3
+                noise_ratio2 = noise_ratio2[:, None, None, None, None]
+                stage_latent_condition = noise_ratio2 * torch.randn_like(stage_latent_condition) + (1 - noise_ratio2) * stage_latent_condition
                                                                                          
             if self.condition_original_image:
                 original_latent_condition = latents_list[i_s+1][index::column_size]
@@ -2444,6 +2458,10 @@ class PyramidDiTForVideoGeneration:
             pooled_prompt_embeds = torch.cat([negative_pooled_prompt_embeds, pooled_prompt_embeds], dim=0)
             prompt_attention_mask = torch.cat([negative_prompt_attention_mask, prompt_attention_mask], dim=0)
         
+        if self.temporal_autoregressive:
+            original_latent_condition = (self.vae.encode(input_image.to(self.vae.device, dtype=self.vae.dtype), temporal_chunk=False, tile_sample_min_size=1024).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c t h w] 
+            original_latent_condition_list = self.get_pyramid_latent_with_spatial_downsample(original_latent_condition, stage_num)
+
         # Create the initial random noise
         stages = self.stages
         stage_num = len(stages)
@@ -2470,7 +2488,6 @@ class PyramidDiTForVideoGeneration:
         upsample_latents = self.get_pyramid_noise_with_spatial_upsample(latents_list, stage_num)
         laplacian_latents = self.get_laplacian_pyramid_noises(latents_list, upsample_latents)
         
-
         # latents = rearrange(latents, 'b c t h w -> (b t) c h w')
         # for _ in range(len(self.stages)-1):
         #     height //= 2;width //= 2
@@ -2481,6 +2498,8 @@ class PyramidDiTForVideoGeneration:
         height, width = latents.shape[-2:]
         
         generated_latents_list = []    # The generated results
+        if self.temporal_autoregressive:
+            concat_latents_list = [original_latent_condition_list[-1]]
 
         for i_s in range(len(stages)):
             self.validation_scheduler.set_timesteps(num_inference_steps[i_s], i_s, device=device)
@@ -2539,8 +2558,14 @@ class PyramidDiTForVideoGeneration:
         latents = latents.to(torch.bfloat16)
 
         if self.temporal_differencing:
-            for temp_idx in range(1, latents.shape[2]):
-                latents[:,:,temp_idx] = latents[:,:,0] + latents[:,:,temp_idx]
+            if self.temporal_autoregressive:
+                for temp_idx in range(latents.shape[2]):
+                    latents[:,:,temp_idx] += concat_latents_list[0]
+                concat_latents_list.append(latents)
+                latents = torch.cat(concat_latents_list, dim=2)
+            else:
+                for temp_idx in range(1, latents.shape[2]):
+                    latents[:,:,temp_idx] = latents[:,:,0] + latents[:,:,temp_idx]
 
         if output_type == "latent":
             image = latents
