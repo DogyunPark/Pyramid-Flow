@@ -169,7 +169,7 @@ def train_one_epoch_with_fsdp(
                 num_inference_steps=[20, 20, 20],
                 output_type="pil",
                 save_memory=True,
-                guidance_scale=5.0
+                guidance_scale=3.0
             )
             if save_intermediate_latents:
                 for i_img, img in enumerate(image):
@@ -188,7 +188,7 @@ def train_one_epoch_with_fsdp(
                     num_inference_steps=[20, 20, 20],
                     output_type="pil",
                     save_memory=True,
-                    guidance_scale=5.0
+                    guidance_scale=3.0
                 )
                 if save_intermediate_latents:
                     for i_img, img in enumerate(image):
