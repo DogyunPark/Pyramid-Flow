@@ -485,8 +485,8 @@ def main(args):
             root=args.root,
         )   
 
-    train_dataloader = create_image_text_dataloaders(dataset, args.batch_size, args.num_workers, multi_aspect_ratio=True, epoch=0, sizes=[(512, 512), (384, 640), (640, 384)], use_distributed=True, world_size=accelerator.num_processes, rank=accelerator.process_index)
-    # train_dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, drop_last=True)
+    #train_dataloader = create_image_text_dataloaders(dataset, args.batch_size, args.num_workers, multi_aspect_ratio=True, epoch=0, sizes=[(512, 512), (384, 640), (640, 384)], use_distributed=True, world_size=accelerator.num_processes, rank=accelerator.process_index)
+    train_dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, drop_last=True)
     
     accelerator.wait_for_everyone()
 
@@ -570,9 +570,9 @@ def main(args):
         print('accelerator.state.fsdp_plugin.backward_prefetch', accelerator.state.fsdp_plugin.backward_prefetch)
 
     # Only wrapping the trained dit and huge text encoder
-    #runner.dit, optimizer, train_dataloader = accelerator.prepare(runner.dit, optimizer, train_dataloader)
-    runner.dit, optimizer = accelerator.prepare(runner.dit, optimizer)
-    #train_dataloader = cycle(train_dataloader)
+    runner.dit, optimizer, train_dataloader = accelerator.prepare(runner.dit, optimizer, train_dataloader)
+    #runner.dit, optimizer = accelerator.prepare(runner.dit, optimizer)
+    train_dataloader = cycle(train_dataloader)
 
     # Load the VAE and EMAmodel to GPU
     if runner.vae:
