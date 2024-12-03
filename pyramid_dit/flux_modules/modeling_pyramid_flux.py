@@ -282,8 +282,8 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
             if not isinstance(sample_, list):
                 sample_ = [sample_]
             
-            train_height = sample_[-1][-1].shape[-2] // self.patch_size
-            train_width = sample_[-1][-1].shape[-1] // self.patch_size
+            train_height = sample_[-1].shape[-2] // self.patch_size
+            train_width = sample_[-1].shape[-1] // self.patch_size
 
             cur_image_ids = []
             start_time_stamp = 0
