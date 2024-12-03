@@ -303,6 +303,10 @@ def build_model_runner(args):
         random_noise=args.random_noise,
         delta_learning=args.delta_learning,
         use_perflow=args.use_perflow,
+        save_intermediate_latents=args.save_intermediate_latents,
+        temporal_differencing=args.temporal_differencing,
+        continuous_flow=args.continuous_flow,
+        use_gaussian_filter=args.use_gaussian_filter,
     )
     
     if args.dit_pretrained_weight:
@@ -558,7 +562,7 @@ def main(args):
     start_time = time.time()
     accelerator.wait_for_everyone()
     runner.dit.eval()
-    NFE = 50
+    NFE = 20
     for i in range(len(validation_prompts)):
         validation_prompt = validation_prompts[i]
         print('validation_prompt:', validation_prompt)
