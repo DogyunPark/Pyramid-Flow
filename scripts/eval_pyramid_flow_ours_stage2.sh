@@ -55,7 +55,7 @@ CUDA_VISIBLE_DEVICES=7 python \
     --save_ckpt_freq 1 \
     --load_vae \
     --gradient_checkpointing \
-    --num_frames 49 \
+    --num_frames 1 \
     --use_perflow \
     --downsample_latent \
     --dit_pretrained_weight /data/cvpr25/Pyramid-Flow/result/stage3-laplacian-image/checkpoint-999-1/pytorch_model_fsdp.bin \
