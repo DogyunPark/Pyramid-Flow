@@ -566,7 +566,7 @@ def main(args):
 
         print("Generating video for %d epoch" % i)
         if 1:
-            image = runner.generate_laplacian_video(
+            images = runner.generate_laplacian_video(
                 prompt=validation_prompt,
                 input_image=validation_image,
                 num_inference_steps=[20, 20, 20],
