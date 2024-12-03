@@ -278,12 +278,16 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
     def _prepare_pyramid_image_ids_ours(self, sample, batch_size, device):
         image_ids_list = []
         
+        if not isinstance(sample[-1], list):
+            train_height = sample[-1].shape[-2] // self.patch_size
+            train_width = sample[-1].shape[-1] // self.patch_size
+        else:
+            train_height = sample[-1][-1].shape[-2] // self.patch_size
+            train_width = sample[-1][-1].shape[-1] // self.patch_size
+
         for i_b, sample_ in enumerate(sample):
             if not isinstance(sample_, list):
                 sample_ = [sample_]
-            
-            train_height = sample_[-1].shape[-2] // self.patch_size
-            train_width = sample_[-1].shape[-1] // self.patch_size
 
             cur_image_ids = []
             start_time_stamp = 0
@@ -328,8 +332,8 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
             trainable_token_list.append(height * width * temp)
 
         # prepare the RoPE IDs, 
-        image_ids_list = self._prepare_pyramid_image_ids(sample, pad_batch_size, device)
-        #image_ids_list = self._prepare_pyramid_image_ids_ours(sample, pad_batch_size, device)
+        #image_ids_list = self._prepare_pyramid_image_ids(sample, pad_batch_size, device)
+        image_ids_list = self._prepare_pyramid_image_ids_ours(sample, pad_batch_size, device)
         text_ids = torch.zeros(pad_batch_size, encoder_attention_mask.shape[1], 3).to(device=device)
         input_ids_list = [torch.cat([text_ids, image_ids], dim=1) for image_ids in image_ids_list]
         image_rotary_emb = [self.pos_embed(input_ids) for input_ids in input_ids_list]  # [bs, seq_len, 1, head_dim // 2, 2, 2]
