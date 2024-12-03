@@ -569,6 +569,7 @@ def main(args):
         validation_image = data_list[i][:,0].to(accelerator.device)
         validation_image = validation_image.unsqueeze(0).unsqueeze(2)
 
+        validation_prompt = "a panda reading a book in a library"
         print("Generating video for %d epoch" % i)
         if 1:
             images = runner.generate_laplacian_video(

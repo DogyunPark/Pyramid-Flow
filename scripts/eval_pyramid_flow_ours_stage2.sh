@@ -57,5 +57,4 @@ CUDA_VISIBLE_DEVICES=7 python \
     --num_frames 1 \
     --use_perflow \
     --downsample_latent \
-    --continuous_flow \
-    --dit_pretrained_weight /data/cvpr25/Pyramid-Flow/result/stage3-laplacian-image2/checkpoint-999-0/pytorch_model_fsdp.bin \
+    --dit_pretrained_weight /data/cvpr25/Pyramid-Flow/result/pytorch_model_fsdp.bin \
