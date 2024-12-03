@@ -28,16 +28,13 @@ from PIL import Image
 import random
 
 
-def get_transform(width, height, new_width=None, new_height=None, resize=True):
+def get_transform(size, new_width=None, new_height=None, resize=True):
     transform_list = []
     transform_list.append(video_transforms.RandomHorizontalFlipVideo())
     if resize:
         # rescale according to the largest ratio
-        scale = max(new_width / width, new_height / height)
-        resized_width = round(width * scale)
-        resized_height = round(height * scale)
         
-        transform_list.append(transforms.Resize((resized_height, resized_width), InterpolationMode.BICUBIC, antialias=True))
+        transform_list.append(transforms.Resize(size, InterpolationMode.BICUBIC, antialias=True))
         transform_list.append(transforms.CenterCrop((new_height, new_width)))
     
     transform_list.extend([
@@ -345,7 +342,7 @@ class DatasetFromCSVAndJSON2(torch.utils.data.Dataset):
         
         size = self.get_closest_size(width, height)
         resize_size = self.get_resize_size((width, height), size)
-        video_transform = get_transform(width, height, resize_size[0], resize_size[1], resize=True)
+        video_transform = get_transform(resize_size, size[0], size[1], resize=True)
 
         filtered_frames = video_transform(filtered_frames)
         video = filtered_frames.permute(1, 0, 2, 3)
@@ -353,14 +350,14 @@ class DatasetFromCSVAndJSON2(torch.utils.data.Dataset):
         return {"video": video, "text": text}
 
     def __getitem__(self, index):
-        # for _ in range(10):
-        #     try:
-        #         return self.getitem(index)
-        #     except Exception as e:
-        #         print(e)
-        #         index = np.random.randint(len(self))
-        # raise RuntimeError("Too many bad data.")
-        return self.getitem(index)
+        for _ in range(10):
+            try:
+                return self.getitem(index)
+            except Exception as e:
+                print(e)
+                index = np.random.randint(len(self))
+        raise RuntimeError("Too many bad data.")
+        #return self.getitem(index)
 
     def __len__(self):
         return len(self.samples)
