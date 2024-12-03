@@ -2509,8 +2509,8 @@ class PyramidDiTForVideoGeneration:
 
         # Create the initial random noise
         # height, width = input_image.shape[-2:]
-        latent_height = height // self.vae.config.downsample_scale
-        latent_width = width // self.vae.config.downsample_scale
+        #latent_height = height // self.vae.config.downsample_scale
+        #latent_width = width // self.vae.config.downsample_scale
         latent_temp = int(self.num_frames // self.vae.config.downsample_scale + 1)
         if self.temporal_autoregressive:
             latent_temp += -1
@@ -2520,8 +2520,8 @@ class PyramidDiTForVideoGeneration:
             batch_size * num_images_per_prompt,
             num_channels_latents,
             latent_temp,
-            height, 
-            width,
+            generation_height, 
+            generation_width,
             prompt_embeds.dtype,
             device,
             generator,
