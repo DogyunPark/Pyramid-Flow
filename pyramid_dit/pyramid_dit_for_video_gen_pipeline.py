@@ -1545,6 +1545,8 @@ class PyramidDiTForVideoGeneration:
     def __call__(self, video, text, identifier, use_temporal_pyramid=False, accelerator: Accelerator=None):
         xdim = video.ndim
         device = video.device
+        fixed_heights = video.shape[-2] // self.vae.config.downsample_scale
+        fixed_widths = video.shape[-1] // self.vae.config.downsample_scale
 
         # TODO: now have 3 stages, firstly get the vae latents
         with torch.no_grad(), accelerator.autocast():
@@ -1566,6 +1568,8 @@ class PyramidDiTForVideoGeneration:
             encoder_hidden_states=prompt_embeds,
             encoder_attention_mask=prompt_attention_mask,
             pooled_projections=pooled_prompt_embeds,
+            heights=fixed_heights,
+            widths=fixed_widths,
         )
 
         # calculate the loss
@@ -2438,8 +2442,8 @@ class PyramidDiTForVideoGeneration:
         inference_multigpu: bool = False,
         callback: Optional[Callable[[int, int, Dict], None]] = None,
         sampling_scheduler: PyramidFlowMatchEulerDiscreteScheduler = None,
-        height: int = 512,
-        width: int = 512,
+        generation_height: int = 512,
+        generation_width: int = 512,
     ):
         if self.sequential_offload_enabled and not cpu_offloading:
             print("Warning: overriding cpu_offloading set to false, as it's needed for sequential cpu offload")
@@ -2537,6 +2541,7 @@ class PyramidDiTForVideoGeneration:
 
         latents = laplacian_latents[0]
         height, width = latents.shape[-2:]
+        fixed_heights, fixed_widths = generation_height // self.vae.config.downsample_scale, generation_width // self.vae.config.downsample_scale
         
         generated_latents_list = []    # The generated results
         if self.temporal_autoregressive:
@@ -2587,6 +2592,8 @@ class PyramidDiTForVideoGeneration:
                     encoder_hidden_states=prompt_embeds,
                     encoder_attention_mask=prompt_attention_mask,
                     pooled_projections=pooled_prompt_embeds,
+                    heights=fixed_heights,
+                    widths=fixed_widths,
                 )
                 noise_pred = noise_pred[0]
                     
