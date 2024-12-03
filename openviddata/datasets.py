@@ -353,13 +353,14 @@ class DatasetFromCSVAndJSON2(torch.utils.data.Dataset):
         return {"video": video, "text": text}
 
     def __getitem__(self, index):
-        for _ in range(10):
-            try:
-                return self.getitem(index)
-            except Exception as e:
-                print(e)
-                index = np.random.randint(len(self))
-        raise RuntimeError("Too many bad data.")
+        # for _ in range(10):
+        #     try:
+        #         return self.getitem(index)
+        #     except Exception as e:
+        #         print(e)
+        #         index = np.random.randint(len(self))
+        # raise RuntimeError("Too many bad data.")
+        return self.getitem(index)
 
     def __len__(self):
         return len(self.samples)
