@@ -562,7 +562,7 @@ def main(args):
     start_time = time.time()
     accelerator.wait_for_everyone()
     runner.dit.eval()
-    NFE = 50
+    NFE = 20
     for i in range(len(validation_prompts)):
         validation_prompt = validation_prompts[i]
         print('validation_prompt:', validation_prompt)
