@@ -20,7 +20,7 @@ import gc
 
 from einops import rearrange
 
-from openviddata.datasets import DatasetFromCSV, get_transforms_video, load_data_prompts, DatasetFromCSVAndJSON
+from openviddata.datasets import DatasetFromCSV, get_transforms_video, load_data_prompts, DatasetFromCSVAndJSON, DatasetFromCSVAndJSON2
 from diffusers.utils import export_to_video
 
 from dataset import (
@@ -229,6 +229,7 @@ def get_args():
 
     # Added by us
     parser.add_argument('--num_frames', default=49, type=int, help='number of frames in a video')
+    parser.add_argument('--sample_fps', default=24, type=int, help='sample fps')
     parser.add_argument('--frame_interval', default=1, type=int, help='frame interval')
     parser.add_argument('--image_size', default=(256, 384), type=tuple, help='image size')
     parser.add_argument('--data_root', default='./train_data/data/train/OpenVid-1M.csv', type=str, help='The data root')
@@ -449,16 +450,27 @@ def main(args):
     # For video generation training
     if os.path.exists(args.json_path):
         print('Loading the dataset from both OpenVid-1M and VidGen-1M')
-        dataset = DatasetFromCSVAndJSON(
+        # dataset = DatasetFromCSVAndJSON(
+        #     args.data_root,
+        #     args.json_path,
+        #     num_frames=args.num_frames,
+        #     frame_interval=args.frame_interval,
+        #     transform=(
+        #         get_transforms_video(args.image_size)
+        #     ),
+        #     csv_root=args.root,
+        #     json_root=args.json_root,
+        # )
+        
+        dataset = DatasetFromCSVAndJSON2(
             args.data_root,
             args.json_path,
             num_frames=args.num_frames,
-            frame_interval=args.frame_interval,
-            transform=(
-                get_transforms_video(args.image_size)
-            ),
+            sample_fps=args.sample_fps,
             csv_root=args.root,
             json_root=args.json_root,
+            sizes=[(512, 512), (384, 640), (640, 384)],
+            ratios=[1/1, 3/5, 5/3],
         )
     else:
         print('Loading the dataset only from OpenVid-1M')
