@@ -243,6 +243,10 @@ def get_args():
     parser.add_argument('--random_noise', action='store_true')
     parser.add_argument('--delta_learning', action='store_true')
     parser.add_argument('--use_perflow', action='store_true')
+    parser.add_argument('--use_gaussian_filter', action='store_true')
+    parser.add_argument('--save_intermediate_latents', action='store_true')
+    parser.add_argument('--temporal_differencing', action='store_true')
+    parser.add_argument('--continuous_flow', action='store_true')
     return parser.parse_args()
 
 
@@ -253,8 +257,8 @@ def build_model_runner(args):
     model_variant = args.model_variant
 
     print(f"Load the {model_name} model checkpoint from path: {model_path}, using dtype {model_dtype}")
-    #sample_ratios = [1, 2, 1]  # The sample_ratios of each stage
-    sample_ratios = [1, 1]
+    sample_ratios = [1, 2, 1]  # The sample_ratios of each stage
+    #sample_ratios = [1, 1]
     #sample_ratios = [1]  # The sample_ratios of each stage
     corrupt_ratio = [1/10, 1/5, 1/5]
     #corrupt_ratio = [1/3, 1/3, 1/2]
@@ -270,11 +274,11 @@ def build_model_runner(args):
         return_log=True,
         model_variant=model_variant,
         timestep_shift=args.schedule_shift,
-        #stages=[1, 2, 4],      # using 3 stages
-        stages=[1, 2],      # using 1 stage
+        stages=[1, 2, 4],      # using 3 stages
+        #stages=[1, 2],      # using 1 stage
         #stages=[1],      # using 1 stage
-        #stage_range=[0, 1/3, 2/3, 1],
-        stage_range=[0, 1/2, 1],
+        stage_range=[0, 1/3, 2/3, 1],
+        #stage_range=[0, 1/2, 1],
         sample_ratios=sample_ratios,     # The sample proportion in a training batch
         use_mixed_training=True,
         use_flash_attn=args.use_flash_attn,
@@ -564,7 +568,7 @@ def main(args):
         image = runner.generate_laplacian_video(
             prompt=validation_prompt,
             input_image=validation_image,
-            num_inference_steps=[80, 80, 80],
+            num_inference_steps=[20, 20, 20],
             output_type="pil",
             guidance_scale=5.0,
             save_memory=True, 
