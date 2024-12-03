@@ -593,7 +593,7 @@ def main(args):
 
         if args.save_intermediate_latents:
             for i_img, img in enumerate(images):
-                img.save("./output/eval_video_NFE%d_%d_%d.png" % (NFE, i, i_img))
+                img[0].save("./output/eval_video_NFE%d_%d_%d.png" % (NFE, i, i_img))
         else:
             images[0].save("./output/eval_video_NFE%d_%d.png" % (NFE, i))
         #export_to_video(image, "./output/eval_video_%d.mp4" % i, fps=24)
