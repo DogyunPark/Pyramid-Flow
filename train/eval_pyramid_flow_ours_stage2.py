@@ -565,15 +565,29 @@ def main(args):
         validation_image = validation_image.unsqueeze(0).unsqueeze(2)
 
         print("Generating video for %d epoch" % i)
-        image = runner.generate_laplacian_video(
-            prompt=validation_prompt,
-            input_image=validation_image,
-            num_inference_steps=[20, 20, 20],
-            output_type="pil",
-            guidance_scale=5.0,
-            save_memory=True, 
-        )
-        export_to_video(image, "./output/eval_video_%d.mp4" % i, fps=24)
+        if 1:
+            image = runner.generate_laplacian_video(
+                prompt=validation_prompt,
+                input_image=validation_image,
+                num_inference_steps=[20, 20, 20],
+                output_type="pil",
+                guidance_scale=9.0,
+                save_memory=False, 
+            )
+        else:
+            images = runner.generate(
+                prompt=validation_prompt,
+                num_inference_steps=[20, 20, 20],
+                height=args.image_size[1],
+                width=args.image_size[0],
+                temp=1,
+                guidance_scale=9.0,        
+                output_type="pil",
+                save_memory=False, 
+            )
+
+        images[0].save("./output/eval_video_%d.png" % i)
+        #export_to_video(image, "./output/eval_video_%d.mp4" % i, fps=24)
 
     runner.dit.train()
     accelerator.end_training()

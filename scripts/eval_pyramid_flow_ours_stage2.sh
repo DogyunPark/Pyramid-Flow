@@ -21,7 +21,7 @@ NUM_FRAMES=16         # e.g., 16 for 5s, 32 for 10s
 # For the 768p version, make sure to add the args:  --gradient_checkpointing
 
 #CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 python \
-CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 python \
+CUDA_VISIBLE_DEVICES=7 python \
     train/eval_pyramid_flow_ours_stage2.py \
     --num_workers 8 \
     --task t2v \
@@ -58,4 +58,4 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 python \
     --num_frames 49 \
     --use_perflow \
     --downsample_latent \
-    --dit_pretrained_weight /data/cvpr25/Pyramid-Flow/result/stage3-downsample-noise-conditionoriginal5/checkpoint-1999-2/pytorch_model_fsdp.bin \
+    --dit_pretrained_weight /data/cvpr25/Pyramid-Flow/result/stage3-laplacian-image/checkpoint-999-1/pytorch_model_fsdp.bin \
