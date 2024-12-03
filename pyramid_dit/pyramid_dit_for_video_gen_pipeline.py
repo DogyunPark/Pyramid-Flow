@@ -2111,6 +2111,7 @@ class PyramidDiTForVideoGeneration:
             last_generated_latents = intermed_latents
 
         generated_latents = torch.cat(generated_latents_list, dim=2)
+        generated_latents = generated_latents.to(torch.bfloat16)
 
         if output_type == "latent":
             image = generated_latents
