@@ -170,8 +170,8 @@ def train_one_epoch_with_fsdp(
                 output_type="pil",
                 save_memory=True,
                 guidance_scale=9.0,
-                height=512,
-                width=512
+                generation_height=512,
+                generation_width=512
             )
             if save_intermediate_latents:
                 for i_img, img in enumerate(image):
@@ -191,8 +191,8 @@ def train_one_epoch_with_fsdp(
                     output_type="pil",
                     save_memory=True,
                     guidance_scale=9.0,
-                    height=512,
-                    width=512
+                    generation_height=512,
+                    generation_width=512
                 )
                 if save_intermediate_latents:
                     for i_img, img in enumerate(image):
