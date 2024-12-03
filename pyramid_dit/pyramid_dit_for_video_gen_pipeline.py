@@ -869,7 +869,7 @@ class PyramidDiTForVideoGeneration:
                     start_point_1 = start_sigma * start_point_1 + (1 - start_sigma) * end_point_1
                 else:
                     start_point_0 = end_point_0
-                    start_point_1 = end_point_1
+                    start_point_1 = start_point_1
 
                 if self.temporal_differencing:
                     start_point_diff = start_point_0[:,:,1:] - start_point_0[:,:,:1].repeat(1, 1, start_point_0.shape[2]-1, 1, 1)
@@ -2552,17 +2552,15 @@ class PyramidDiTForVideoGeneration:
 
                 if self.continuous_flow:
                     #Fix the stage
-                    # ori_sigma = 1 - self.validation_scheduler.ori_start_sigmas[i_s]   # the original coeff of signal
-                    # gamma = self.validation_scheduler.config.gamma
-                    # alpha = 1 / (math.sqrt(1 + (1 / gamma)) * (1 - ori_sigma) + ori_sigma)
-                    # beta = alpha * (1 - ori_sigma) / math.sqrt(gamma)
+                    ori_sigma = 1 - self.validation_scheduler.ori_start_sigmas[i_s]   # the original coeff of signal
+                    gamma = self.validation_scheduler.config.gamma
+                    alpha = 1 / (math.sqrt(1 + (1 / gamma)) * (1 - ori_sigma) + ori_sigma)
+                    beta = alpha * (1 - ori_sigma) / math.sqrt(gamma)
 
-                    # bs, ch, temp, height, width = latents.shape
-                    # noise = self.sample_block_noise(bs, ch, temp, height, width)
-                    # noise = noise.to(device=device, dtype=dtype)
-                    # latents = alpha * latents + beta * noise    # To fix the block artifact
-
-                    latents = latents
+                    bs, ch, temp, height, width = latents.shape
+                    noise = self.sample_block_noise(bs, ch, temp, height, width)
+                    noise = noise.to(device=device, dtype=dtype)
+                    latents = alpha * latents + beta * noise    # To fix the block artifact
                 else:
                     latents = laplacian_latents[i_s] + latents
 
