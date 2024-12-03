@@ -10,7 +10,7 @@ SHARD_STRATEGY=zero2   # zero2 or zero3
 MODEL_NAME=pyramid_flux     # The model name, `pyramid_flux` or `pyramid_mmdit`
 MODEL_PATH=/data/cvpr25/Pyramid-Flow/output/pyramid-flow-miniflux  # The downloaded ckpt dir. IMPORTANT: It should match with model_name, flux or mmdit (sd3)
 VARIANT=diffusion_transformer_image  # The DiT Variant
-OUTPUT_DIR=/data/cvpr25/Pyramid-Flow/result/stage3-laplacian-image2    # The checkpoint saving dir
+OUTPUT_DIR=/data/cvpr25/Pyramid-Flow/result/stage3-laplacian-video    # The checkpoint saving dir
 
 BATCH_SIZE=24    # It should satisfy batch_size % 4 == 0
 GRAD_ACCU_STEPS=2
@@ -26,6 +26,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 accelerate launch --multi_gpu --num_process
     --num_workers 4 \
     --task t2v \
     --use_fsdp \
+    --use_temporal_causal \
     --fsdp_shard_strategy $SHARD_STRATEGY \
     --interp_condition_pos \
     --load_text_encoder \
@@ -56,7 +57,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 accelerate launch --multi_gpu --num_process
     --save_ckpt_freq 1 \
     --load_vae \
     --gradient_checkpointing \
-    --num_frames 1 \
+    --num_frames 49 \
     --use_perflow \
     --downsample_latent \
-    --continuous_flow \
+    --dit_pretrained_weight /data/cvpr25/Pyramid-Flow/result/pytorch_model_fsdp.bin
