@@ -1427,9 +1427,9 @@ class PyramidDiTForVideoGeneration:
                         for idx, video in enumerate(video_list):
                             if idx == 0:
                                 # The first stage is not temporal chunked
-                                video = self.vae.encode(video, temporal_chunk=False, tile_sample_min_size=512).latent_dist.sample() # [b c t h w]
+                                video = self.vae.encode(video, temporal_chunk=False, tile_sample_min_size=1024).latent_dist.sample() # [b c t h w]
                             else:
-                                video = self.vae.encode(video, temporal_chunk=True, window_size=8, tile_sample_min_size=512).latent_dist.sample() # [b c t h w]
+                                video = self.vae.encode(video, temporal_chunk=True, window_size=8, tile_sample_min_size=1024).latent_dist.sample() # [b c t h w]
                             #video = self.vae.encode(video, temporal_chunk=False, window_size=8, tile_sample_min_size=256).latent_dist.sample() # [b c t h w]
 
                             if video.shape[2] == 1:
@@ -1444,7 +1444,7 @@ class PyramidDiTForVideoGeneration:
 
                             vae_latent_list.append(video)
                     else:
-                        video = self.vae.encode(video, temporal_chunk=True, window_size=8, tile_sample_min_size=512).latent_dist.sample() # [b c t h w]
+                        video = self.vae.encode(video, temporal_chunk=True, window_size=8, tile_sample_min_size=1024).latent_dist.sample() # [b c t h w]
                         if video.shape[2] == 1:
                             # is image
                             video = (video - self.vae_shift_factor) * self.vae_scale_factor
@@ -2438,6 +2438,8 @@ class PyramidDiTForVideoGeneration:
         inference_multigpu: bool = False,
         callback: Optional[Callable[[int, int, Dict], None]] = None,
         sampling_scheduler: PyramidFlowMatchEulerDiscreteScheduler = None,
+        height: int = 512,
+        width: int = 512,
     ):
         if self.sequential_offload_enabled and not cpu_offloading:
             print("Warning: overriding cpu_offloading set to false, as it's needed for sequential cpu offload")
@@ -2502,7 +2504,7 @@ class PyramidDiTForVideoGeneration:
             original_latent_condition_list = self.get_pyramid_latent_with_spatial_downsample(original_latent_condition, stage_num)
 
         # Create the initial random noise
-        height, width = input_image.shape[-2:]
+        # height, width = input_image.shape[-2:]
         latent_height = height // self.vae.config.downsample_scale
         latent_width = width // self.vae.config.downsample_scale
         latent_temp = int(self.num_frames // self.vae.config.downsample_scale + 1)
