@@ -565,7 +565,7 @@ def main(args):
         validation_image = validation_image.unsqueeze(0).unsqueeze(2)
 
         print("Generating video for %d epoch" % i)
-        if 1:
+        if 0:
             images = runner.generate_laplacian_video(
                 prompt=validation_prompt,
                 input_image=validation_image,
