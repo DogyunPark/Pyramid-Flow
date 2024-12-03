@@ -558,6 +558,7 @@ def main(args):
     start_time = time.time()
     accelerator.wait_for_everyone()
     runner.dit.eval()
+    NFE = 50
     for i in range(len(validation_prompts)):
         validation_prompt = validation_prompts[i]
         print('validation_prompt:', validation_prompt)
@@ -569,7 +570,7 @@ def main(args):
             images = runner.generate_laplacian_video(
                 prompt=validation_prompt,
                 input_image=validation_image,
-                num_inference_steps=[20, 20, 20],
+                num_inference_steps=[NFE, NFE, NFE],
                 output_type="pil",
                 guidance_scale=9.0,
                 save_memory=False, 
@@ -577,7 +578,7 @@ def main(args):
         else:
             images = runner.generate(
                 prompt=validation_prompt,
-                num_inference_steps=[20, 20, 20],
+                num_inference_steps=[NFE, NFE, NFE],
                 height=args.image_size[1],
                 width=args.image_size[0],
                 temp=1,
@@ -586,7 +587,7 @@ def main(args):
                 save_memory=False, 
             )
 
-        images[0].save("./output/eval_video_%d.png" % i)
+        images[0].save("./output/eval_video_NFE%d_%d.png" % (NFE, i))
         #export_to_video(image, "./output/eval_video_%d.mp4" % i, fps=24)
 
     runner.dit.train()
