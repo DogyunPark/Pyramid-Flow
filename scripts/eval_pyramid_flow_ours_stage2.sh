@@ -25,7 +25,6 @@ CUDA_VISIBLE_DEVICES=7 python \
     train/eval_pyramid_flow_ours_stage2.py \
     --num_workers 8 \
     --task t2v \
-    --use_temporal_causal \
     --interp_condition_pos \
     --load_text_encoder \
     --model_name $MODEL_NAME \
@@ -58,4 +57,4 @@ CUDA_VISIBLE_DEVICES=7 python \
     --num_frames 1 \
     --use_perflow \
     --downsample_latent \
-    --continuous_flow \
+    --dit_pretrained_weight /data/cvpr25/Pyramid-Flow/result/pytorch_model_fsdp.bin \

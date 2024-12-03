@@ -566,7 +566,7 @@ def main(args):
         validation_image = validation_image.unsqueeze(0).unsqueeze(2)
 
         print("Generating video for %d epoch" % i)
-        if 0:
+        if 1:
             images = runner.generate_laplacian_video(
                 prompt=validation_prompt,
                 input_image=validation_image,
@@ -587,7 +587,11 @@ def main(args):
                 save_memory=False, 
             )
 
-        images[0].save("./output/eval_video_NFE%d_%d.png" % (NFE, i))
+        if args.save_intermediate_latents:
+            for i_img, img in enumerate(images):
+                img.save("./output/eval_video_NFE%d_%d_%d.png" % (NFE, i, i_img))
+        else:
+            images[0].save("./output/eval_video_NFE%d_%d.png" % (NFE, i))
         #export_to_video(image, "./output/eval_video_%d.mp4" % i, fps=24)
 
     runner.dit.train()
