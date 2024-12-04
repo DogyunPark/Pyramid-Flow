@@ -755,7 +755,7 @@ def create_webdataset(
             resize_size = get_resize_size((width, height), size)
             image_transform = get_image_transform(resize_size, size[1], size[0])
             image = image_transform(image)
-            import pdb; pdb.set_trace()
+            print(image)
             output["image_filename"] = item["__key__"]
             output["image_tensor"] = image
 
