@@ -89,7 +89,6 @@ def train_one_epoch_with_fsdp(
                 # To fetch the data sample and Move the input to device
                 samples = next(data_loader)
                 video =  samples['video'].to(accelerator.device)
-                import pdb; pdb.set_trace()
                 text = samples['text']
 
                 loss, log_loss = runner(video, text, identifier=None, accelerator=accelerator)
