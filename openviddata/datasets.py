@@ -780,6 +780,11 @@ def dataset_to_dataloader(dataset, batch_size, num_prepro_workers, input_format)
     def collate_fn(batch):
         batch = list(filter(lambda x: x is not None, batch))
         return default_collate(batch)
+    
+    def custom_collate_fn(batch):
+        images = torch.stack([item['image_tensor'] for item in batch])
+        texts = [item['text'] for item in batch]
+        return {'image_tensor': images, 'text': texts}
 
     data = DataLoader(
         dataset,
@@ -788,7 +793,7 @@ def dataset_to_dataloader(dataset, batch_size, num_prepro_workers, input_format)
         num_workers=num_prepro_workers,
         pin_memory=True,
         prefetch_factor=2,
-        collate_fn=collate_fn if input_format == "files" else None,
+        collate_fn=collate_fn if input_format == "files" else custom_collate_fn,
     )
     return data
 
