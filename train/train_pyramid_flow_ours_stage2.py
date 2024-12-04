@@ -21,7 +21,7 @@ import glob
 
 from einops import rearrange
 
-from openviddata.datasets import DatasetFromCSV, get_transforms_video, load_data_prompts, DatasetFromCSVAndJSON, DatasetFromCSVAndJSON2, DatasetFromCSV2, create_webdataset
+from openviddata.datasets import DatasetFromCSV, get_transforms_video, load_data_prompts, DatasetFromCSVAndJSON, DatasetFromCSVAndJSON2, DatasetFromCSV2, create_webdataset, dataset_to_dataloader
 from diffusers.utils import export_to_video
 
 from dataset import (
@@ -498,7 +498,7 @@ def main(args):
 
     if args.task == 't2i':
         train_dataloader = create_image_text_dataloaders(dataset, args.batch_size, args.num_workers, multi_aspect_ratio=True, epoch=0, sizes=[(512, 512), (384, 640), (640, 384)], use_distributed=True, world_size=accelerator.num_processes, rank=accelerator.process_index)
-        laion_dataloader = create_image_text_dataloaders(laion_dataset, args.batch_size, args.num_workers, multi_aspect_ratio=True, epoch=0, sizes=[(512, 512), (384, 640), (640, 384)], use_distributed=True, world_size=accelerator.num_processes, rank=accelerator.process_index)
+        laion_dataloader = dataset_to_dataloader(laion_dataset, args.batch_size, args.num_workers, input_format='webdataset')
     elif args.task == 't2v':
         train_dataloader = create_video_text_dataloaders(dataset, args.batch_size, args.num_workers, multi_aspect_ratio=True, epoch=0, sizes=[(512, 512), (384, 640), (640, 384)], use_distributed=True, world_size=accelerator.num_processes, rank=accelerator.process_index)
     # train_dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, drop_last=True)
@@ -586,8 +586,8 @@ def main(args):
 
     # Only wrapping the trained dit and huge text encoder
     #runner.dit, optimizer, train_dataloader = accelerator.prepare(runner.dit, optimizer, train_dataloader)
-    runner.dit, optimizer = accelerator.prepare(runner.dit, optimizer)
-    train_dataloader = cycle(train_dataloader)
+    runner.dit, optimizer, laion_dataloader = accelerator.prepare(runner.dit, optimizer, laion_dataloader)
+    laion_dataloader = cycle(laion_dataloader)
 
     # Load the VAE and EMAmodel to GPU
     if runner.vae:
