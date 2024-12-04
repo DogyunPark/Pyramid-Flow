@@ -295,6 +295,7 @@ class DatasetFromCSVAndJSON2(torch.utils.data.Dataset):
         self.sample_fps = sample_fps
         self.mix_laion_ratio = mix_laion_ratio
         self.laion_folder = laion_folder
+        self.totensor = transforms.ToTensor()
     
     def get_resize_size(self, orig_size, tgt_size):
         if (tgt_size[1]/tgt_size[0] - 1) * (orig_size[1]/orig_size[0] - 1) >= 0:
@@ -313,8 +314,9 @@ class DatasetFromCSVAndJSON2(torch.utils.data.Dataset):
         if random.random() < self.mix_laion_ratio and self.mix_laion_ratio > 0:
             img_name = self.image_files[index]
             img_path = os.path.join(self.laion_folder, img_name)
-            image = Image.open(img_path).convert('RGB') / 255.
-            height, width = image.size
+            image = Image.open(img_path).convert('RGB')
+            image = self.totensor(image)
+            height, width = image.shape[-2:]
             size = self.get_closest_size(width, height)
             resize_size = self.get_resize_size((width, height), size)
             video_transform = get_transform(resize_size, size[0], size[1], resize=True)
