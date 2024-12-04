@@ -312,7 +312,7 @@ class DatasetFromCSVAndJSON2(torch.utils.data.Dataset):
     def getitem(self, index):
         if random.random() < self.mix_laion_ratio and self.mix_laion_ratio > 0:
             img_name = self.image_files[index]
-            img_path = os.path.join(self.root_dir, img_name)
+            img_path = os.path.join(self.laion_folder, img_name)
             image = Image.open(img_path).convert('RGB') / 255.
             height, width = image.size
             size = self.get_closest_size(width, height)
