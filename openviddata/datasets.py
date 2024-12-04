@@ -773,7 +773,7 @@ def create_webdataset(
     return transformed_dataset
 
 
-def dataset_to_dataloader(dataset, batch_size, num_prepro_workers, input_format, multi_aspect_ratio=True, sizes=[(512, 512), (384, 640), (640, 384)], epoch=0):
+def dataset_to_dataloader(dataset, batch_size, num_prepro_workers, input_format):
     """Create a pytorch dataloader from a dataset"""
 
     def collate_fn(batch):
@@ -789,16 +789,7 @@ def dataset_to_dataloader(dataset, batch_size, num_prepro_workers, input_format,
         prefetch_factor=2,
         collate_fn=collate_fn if input_format == "files" else None,
     )
-    if multi_aspect_ratio:
-        dataloader_iterator = Bucketeer(
-                data,
-            sizes=sizes,
-            is_infinite=True, epoch=epoch,
-        )
-    else:
-        dataloader_iterator = iter(data)
-    loader = IterLoader(dataloader_iterator, use_distributed=False, epoch=epoch)
-    return loader
+    return data
 
 
 class WebdatasetReader:

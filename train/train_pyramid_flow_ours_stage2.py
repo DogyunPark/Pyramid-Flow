@@ -467,7 +467,7 @@ def main(args):
             
             search_pattern = os.path.join(args.laion_data_root, '*.tar')
             tar_files = glob.glob(search_pattern)
-            laion_dataset = create_webdataset(tar_files, cache_path='/data/cvpr25/laion_cache/', sizes=[(512, 512), (384, 640), (640, 384)], ratios=[1/1, 3/5, 5/3])
+            laion_dataset = create_webdataset(tar_files, cache_path='/data/cvpr25/laion_cache/', sizes=[(512, 512)], ratios=[1/1])
 
         elif args.task == 't2v':
             dataset = DatasetFromCSVAndJSON2(
