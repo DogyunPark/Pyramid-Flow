@@ -720,7 +720,6 @@ def create_webdataset(
     ratios=[1/1, 3/5, 5/3],
 ):
     """Create a WebDataset reader, it can read a webdataset of image, text and json"""
-    import clip  # pylint: disable=import-outside-toplevel
     import webdataset as wds  # pylint: disable=import-outside-toplevel
 
     def get_image_transform(desired_size):
