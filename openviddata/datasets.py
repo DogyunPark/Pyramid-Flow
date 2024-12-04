@@ -12,9 +12,10 @@ import io
 from torchvision.transforms.functional import InterpolationMode
 from . import video_transforms
 from .utils import center_crop_arr
+import torch.distributed as dist
 
 import json
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Sampler
 from torch.utils.data.distributed import DistributedSampler
 import ipdb
 
@@ -771,6 +772,39 @@ def create_webdataset(
     transformed_dataset = filtered_dataset.map(preprocess_dataset, handler=wds.handlers.warn_and_continue)
     return transformed_dataset
 
+# Function to count the number of samples in the dataset
+def count_samples(dataset):
+    count = 0
+    for _ in dataset:
+        count += 1
+    return count
+
+# Custom sampler for WebDataset
+class WebDatasetSampler(Sampler):
+    def __init__(self, dataset, num_replicas=None, rank=None, shuffle=True):
+        if num_replicas is None:
+            if not dist.is_available():
+                raise RuntimeError("Requires distributed package to be available")
+            num_replicas = dist.get_world_size()
+        if rank is None:
+            if not dist.is_available():
+                raise RuntimeError("Requires distributed package to be available")
+            rank = dist.get_rank()
+        self.dataset = dataset
+        self.num_replicas = num_replicas
+        self.rank = rank
+        self.shuffle = shuffle
+        self.num_samples = count_samples(dataset)  # Count samples dynamically
+
+    def __iter__(self):
+        indices = list(range(self.num_samples))
+        if self.shuffle:
+            indices = torch.randperm(self.num_samples).tolist()
+        indices = indices[self.rank::self.num_replicas]
+        return iter(indices)
+
+    def __len__(self):
+        return self.num_samples // self.num_replicas
 
 def dataset_to_dataloader(dataset, batch_size, num_prepro_workers, input_format, sampler=None):
     """Create a pytorch dataloader from a dataset"""

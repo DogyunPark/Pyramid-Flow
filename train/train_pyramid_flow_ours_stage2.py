@@ -21,7 +21,7 @@ import glob
 
 from einops import rearrange
 
-from openviddata.datasets import DatasetFromCSV, get_transforms_video, load_data_prompts, DatasetFromCSVAndJSON, DatasetFromCSVAndJSON2, DatasetFromCSV2, create_webdataset, dataset_to_dataloader
+from openviddata.datasets import DatasetFromCSV, get_transforms_video, load_data_prompts, DatasetFromCSVAndJSON, DatasetFromCSVAndJSON2, DatasetFromCSV2, create_webdataset, dataset_to_dataloader, WebDatasetSampler
 from diffusers.utils import export_to_video
 from torch.utils.data.distributed import DistributedSampler
 
@@ -469,12 +469,11 @@ def main(args):
             search_pattern = os.path.join(args.laion_data_root, '*.tar')
             tar_files = glob.glob(search_pattern)
             laion_dataset = create_webdataset(tar_files, cache_path='/data/cvpr25/laion_cache/', sizes=[(512, 512)], ratios=[1/1])
-            laion_sampler = DistributedSampler(
+            laion_sampler = WebDatasetSampler(
                 laion_dataset,
                 shuffle=True,
                 num_replicas=accelerator.num_processes,
                 rank=accelerator.process_index,
-                seed=0,
                 )
 
         elif args.task == 't2v':
