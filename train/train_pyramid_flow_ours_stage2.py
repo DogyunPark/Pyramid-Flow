@@ -474,6 +474,7 @@ def main(args):
                 shuffle=True,
                 num_replicas=accelerator.num_processes,
                 rank=accelerator.process_index,
+                num_samples=8000000,
                 )
 
         elif args.task == 't2v':

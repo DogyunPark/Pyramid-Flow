@@ -781,7 +781,7 @@ def count_samples(dataset):
 
 # Custom sampler for WebDataset
 class WebDatasetSampler(Sampler):
-    def __init__(self, dataset, num_replicas=None, rank=None, shuffle=True):
+    def __init__(self, dataset, num_replicas=None, rank=None, shuffle=True, num_samples=None):
         if num_replicas is None:
             if not dist.is_available():
                 raise RuntimeError("Requires distributed package to be available")
@@ -794,7 +794,7 @@ class WebDatasetSampler(Sampler):
         self.num_replicas = num_replicas
         self.rank = rank
         self.shuffle = shuffle
-        self.num_samples = count_samples(dataset)  # Count samples dynamically
+        self.num_samples = num_samples  # Count samples dynamically
 
     def __iter__(self):
         indices = list(range(self.num_samples))
