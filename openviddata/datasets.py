@@ -316,12 +316,13 @@ class DatasetFromCSVAndJSON2(torch.utils.data.Dataset):
             img_path = os.path.join(self.laion_folder, img_name)
             image = Image.open(img_path).convert('RGB')
             image = self.totensor(image)
+            image = image.unsqueeze(0)
             height, width = image.shape[-2:]
             size = self.get_closest_size(width, height)
             resize_size = self.get_resize_size((width, height), size)
             video_transform = get_transform(resize_size, size[0], size[1], resize=True)
             image = video_transform(image)
-            video = image.unsqueeze(0)
+            video = image.permute(1, 0, 2, 3)
             
             text_name = img_name.rsplit('.', 1)[0] + '.txt'
             text_path = os.path.join(self.laion_folder, text_name)
