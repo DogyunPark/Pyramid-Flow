@@ -294,6 +294,7 @@ class DatasetFromCSVAndJSON2(torch.utils.data.Dataset):
         self.num_frames = num_frames
         self.sample_fps = sample_fps
         self.mix_laion_ratio = mix_laion_ratio
+        self.laion_folder = laion_folder
     
     def get_resize_size(self, orig_size, tgt_size):
         if (tgt_size[1]/tgt_size[0] - 1) * (orig_size[1]/orig_size[0] - 1) >= 0:
@@ -321,7 +322,7 @@ class DatasetFromCSVAndJSON2(torch.utils.data.Dataset):
             video = image.unsqueeze(0)
             
             text_name = img_name.rsplit('.', 1)[0] + '.txt'
-            text_path = os.path.join(self.root_dir, text_name)
+            text_path = os.path.join(self.laion_folder, text_name)
             with open(text_path, 'r') as file:
                 text = file.read().strip()
         else:
