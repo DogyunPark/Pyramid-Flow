@@ -755,14 +755,12 @@ def create_webdataset(
             resize_size = get_resize_size((width, height), size)
             image_transform = get_image_transform(resize_size, size[1], size[0])
             image = image_transform(image)
-            print(type(image))
             output["image_tensor"] = image
 
         if enable_text:
             text = item[caption_key]
             caption = text.decode("utf-8")
             output["text"] = caption
-            print(caption)
 
         if enable_metadata:
             metadata_file = item["json"]
@@ -774,7 +772,7 @@ def create_webdataset(
     return transformed_dataset
 
 
-def dataset_to_dataloader(dataset, batch_size, num_prepro_workers, input_format):
+def dataset_to_dataloader(dataset, batch_size, num_prepro_workers, input_format, sampler=None):
     """Create a pytorch dataloader from a dataset"""
 
     def collate_fn(batch):
@@ -789,7 +787,7 @@ def dataset_to_dataloader(dataset, batch_size, num_prepro_workers, input_format)
     data = DataLoader(
         dataset,
         batch_size=batch_size,
-        shuffle=False,
+        sampler=sampler,
         num_workers=num_prepro_workers,
         pin_memory=True,
         prefetch_factor=2,

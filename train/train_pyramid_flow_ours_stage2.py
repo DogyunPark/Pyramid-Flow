@@ -23,6 +23,7 @@ from einops import rearrange
 
 from openviddata.datasets import DatasetFromCSV, get_transforms_video, load_data_prompts, DatasetFromCSVAndJSON, DatasetFromCSVAndJSON2, DatasetFromCSV2, create_webdataset, dataset_to_dataloader
 from diffusers.utils import export_to_video
+from torch.utils.data.distributed import DistributedSampler
 
 from dataset import (
     ImageTextDataset,
@@ -468,6 +469,13 @@ def main(args):
             search_pattern = os.path.join(args.laion_data_root, '*.tar')
             tar_files = glob.glob(search_pattern)
             laion_dataset = create_webdataset(tar_files, cache_path='/data/cvpr25/laion_cache/', sizes=[(512, 512)], ratios=[1/1])
+            laion_sampler = DistributedSampler(
+                laion_dataset,
+                shuffle=True,
+                num_replicas=accelerator.num_processes,
+                rank=accelerator.process_index,
+                seed=0,
+                )
 
         elif args.task == 't2v':
             dataset = DatasetFromCSVAndJSON2(
@@ -498,7 +506,7 @@ def main(args):
 
     if args.task == 't2i':
         train_dataloader = create_image_text_dataloaders(dataset, args.batch_size, args.num_workers, multi_aspect_ratio=True, epoch=0, sizes=[(512, 512), (384, 640), (640, 384)], use_distributed=True, world_size=accelerator.num_processes, rank=accelerator.process_index)
-        laion_dataloader = dataset_to_dataloader(laion_dataset, args.batch_size, args.num_workers, input_format='webdataset')
+        laion_dataloader = dataset_to_dataloader(laion_dataset, args.batch_size, args.num_workers, input_format='webdataset', sampler=laion_sampler)
     elif args.task == 't2v':
         train_dataloader = create_video_text_dataloaders(dataset, args.batch_size, args.num_workers, multi_aspect_ratio=True, epoch=0, sizes=[(512, 512), (384, 640), (640, 384)], use_distributed=True, world_size=accelerator.num_processes, rank=accelerator.process_index)
     # train_dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, drop_last=True)
