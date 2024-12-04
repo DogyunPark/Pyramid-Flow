@@ -17,10 +17,11 @@ from pathlib import Path
 from packaging import version
 from copy import deepcopy
 import gc
+import glob
 
 from einops import rearrange
 
-from openviddata.datasets import DatasetFromCSV, get_transforms_video, load_data_prompts, DatasetFromCSVAndJSON, DatasetFromCSVAndJSON2
+from openviddata.datasets import DatasetFromCSV, get_transforms_video, load_data_prompts, DatasetFromCSVAndJSON, DatasetFromCSVAndJSON2, DatasetFromCSV2, create_webdataset
 from diffusers.utils import export_to_video
 
 from dataset import (
@@ -250,6 +251,8 @@ def get_args():
     parser.add_argument('--save_intermediate_latents', action='store_true')
     parser.add_argument('--temporal_differencing', action='store_true')
     parser.add_argument('--continuous_flow', action='store_true')
+    parser.add_argument('--laion_data_root', default='/data/cvpr25/laion/laion-high-resolution-output/', type=str, help='The laion data root')
+    parser.add_argument('--mix_laion_ratio', default=0.0, type=float, help='The ratio of laion data in the training batch')
     return parser.parse_args()
 
 
@@ -450,19 +453,39 @@ def main(args):
     # For video generation training
     if os.path.exists(args.json_path):
         print('Loading the dataset from both OpenVid-1M and VidGen-1M')
-        # dataset = DatasetFromCSVAndJSON(
-        #     args.data_root,
-        #     args.json_path,
-        #     num_frames=args.num_frames,
-        #     frame_interval=args.frame_interval,
-        #     transform=(
-        #         get_transforms_video(args.image_size)
-        #     ),
-        #     csv_root=args.root,
-        #     json_root=args.json_root,
-        # )
-        
-        dataset = DatasetFromCSVAndJSON2(
+        if args.task == 't2i':
+            dataset = DatasetFromCSVAndJSON2(
+                args.data_root,
+                args.json_path,
+                num_frames=args.num_frames,
+                sample_fps=args.sample_fps,
+                csv_root=args.root,
+                json_root=args.json_root,
+                sizes=[(512, 512), (384, 640), (640, 384)],
+                ratios=[1/1, 3/5, 5/3],
+            )
+            
+            search_pattern = os.path.join(args.laion_data_root, '*.tar')
+            tar_files = glob.glob(search_pattern)
+            laion_dataset = create_webdataset(tar_files, cache_path='/data/cvpr25/laion_cache/', sizes=[(512, 512), (384, 640), (640, 384)], ratios=[1/1, 3/5, 5/3])
+
+        elif args.task == 't2v':
+            dataset = DatasetFromCSVAndJSON2(
+                args.data_root,
+                args.json_path,
+                num_frames=args.num_frames,
+                sample_fps=args.sample_fps,
+                csv_root=args.root,
+                json_root=args.json_root,
+                sizes=[(640, 384)],
+                ratios=[5/3],
+            )
+        else:
+            raise NotImplementedError(f"Not Implemented for task {args.task}")
+
+    else:
+        print('Loading the dataset only from OpenVid-1M')
+        dataset = DatasetFromCSV2(
             args.data_root,
             args.json_path,
             num_frames=args.num_frames,
@@ -471,21 +494,13 @@ def main(args):
             json_root=args.json_root,
             sizes=[(512, 512), (384, 640), (640, 384)],
             ratios=[1/1, 3/5, 5/3],
-        )
-    else:
-        print('Loading the dataset only from OpenVid-1M')
-        dataset = DatasetFromCSV(
-            args.data_root,
-            # TODO: change transforms
-            transform=(
-                get_transforms_video(args.image_size)
-            ),
-            num_frames=args.num_frames,
-            frame_interval=args.frame_interval,
-            root=args.root,
         )   
 
-    train_dataloader = create_image_text_dataloaders(dataset, args.batch_size, args.num_workers, multi_aspect_ratio=True, epoch=0, sizes=[(512, 512), (384, 640), (640, 384)], use_distributed=True, world_size=accelerator.num_processes, rank=accelerator.process_index)
+    if args.task == 't2i':
+        train_dataloader = create_image_text_dataloaders(dataset, args.batch_size, args.num_workers, multi_aspect_ratio=True, epoch=0, sizes=[(512, 512), (384, 640), (640, 384)], use_distributed=True, world_size=accelerator.num_processes, rank=accelerator.process_index)
+        laion_dataloader = create_image_text_dataloaders(laion_dataset, args.batch_size, args.num_workers, multi_aspect_ratio=True, epoch=0, sizes=[(512, 512), (384, 640), (640, 384)], use_distributed=True, world_size=accelerator.num_processes, rank=accelerator.process_index)
+    elif args.task == 't2v':
+        train_dataloader = create_video_text_dataloaders(dataset, args.batch_size, args.num_workers, multi_aspect_ratio=True, epoch=0, sizes=[(512, 512), (384, 640), (640, 384)], use_distributed=True, world_size=accelerator.num_processes, rank=accelerator.process_index)
     # train_dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, drop_last=True)
     
     accelerator.wait_for_everyone()
@@ -638,6 +653,8 @@ def main(args):
             validation_prompt=validation_prompts,
             validation_image=validation_images,
             save_intermediate_latents=args.save_intermediate_latents,
+            laion_dataloader=laion_dataloader,
+            mix_laion_ratio=args.mix_laion_ratio,
         )
 
         log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},

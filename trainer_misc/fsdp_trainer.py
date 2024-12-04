@@ -9,7 +9,7 @@ import accelerate
 from einops import rearrange
 from .utils import MetricLogger, SmoothedValue
 from diffusers.utils import export_to_video
-
+import random
 
 def update_ema_for_dit(model, model_ema, accelerator, decay):
     """Apply exponential moving average update.
@@ -65,6 +65,8 @@ def train_one_epoch_with_fsdp(
     validation_prompt=None,
     validation_image=None,
     save_intermediate_latents=False,
+    laion_dataloader=None,
+    mix_laion_ratio=0.0,
 ):
     runner.dit.train()
     metric_logger = MetricLogger(delimiter="  ")
@@ -87,9 +89,15 @@ def train_one_epoch_with_fsdp(
 
             with accelerator.accumulate(runner.dit):
                 # To fetch the data sample and Move the input to device
-                samples = next(data_loader)
-                video =  samples['video'].to(accelerator.device)
-                text = samples['text']
+                if mix_laion_ratio > 0.0 and random.random() < mix_laion_ratio:
+                    assert laion_dataloader is not None
+                    samples = next(laion_dataloader)
+                    video = samples['image_tensor'].to(accelerator.device)
+                    text = samples['text']
+                else:
+                    samples = next(data_loader)
+                    video =  samples['video'].to(accelerator.device)
+                    text = samples['text']
 
                 loss, log_loss = runner(video, text, identifier=None, accelerator=accelerator)
 
