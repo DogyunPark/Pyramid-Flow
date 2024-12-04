@@ -7,6 +7,7 @@ import torchvision
 import torchvision.transforms as transforms
 from torchvision.datasets.folder import IMG_EXTENSIONS, pil_loader
 import cv2
+import io
 
 from torchvision.transforms.functional import InterpolationMode
 from . import video_transforms
@@ -26,6 +27,7 @@ from collections import OrderedDict
 
 from PIL import Image
 import random
+from dataset.dataloaders import IterLoader, Bucketeer
 
 
 def get_transform(size, new_width=None, new_height=None, resize=True):
@@ -722,9 +724,10 @@ def create_webdataset(
     """Create a WebDataset reader, it can read a webdataset of image, text and json"""
     import webdataset as wds  # pylint: disable=import-outside-toplevel
 
-    def get_image_transform(desired_size):
+    def get_image_transform(desired_size, new_height, new_width):
         image_transform = transforms.Compose([
             transforms.Resize(desired_size, interpolation=transforms.InterpolationMode.BICUBIC, antialias=True),  # Resize to the desired size
+            transforms.CenterCrop((new_height, new_width)),
             transforms.ToTensor(),
             transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
         ])
@@ -750,7 +753,7 @@ def create_webdataset(
             width, height = image.size
             size = get_closest_size(width, height, sizes, ratios)
             resize_size = get_resize_size((width, height), size)
-            image_transform = get_image_transform(resize_size)
+            image_transform = get_image_transform(resize_size, size[1], size[0])
             image = image_transform(image)
             output["image_filename"] = item["__key__"]
             output["image_tensor"] = image
@@ -770,7 +773,7 @@ def create_webdataset(
     return transformed_dataset
 
 
-def dataset_to_dataloader(dataset, batch_size, num_prepro_workers, input_format):
+def dataset_to_dataloader(dataset, batch_size, num_prepro_workers, input_format, multi_aspect_ratio=True, sizes=[(512, 512), (384, 640), (640, 384)], epoch=0):
     """Create a pytorch dataloader from a dataset"""
 
     def collate_fn(batch):
@@ -786,7 +789,16 @@ def dataset_to_dataloader(dataset, batch_size, num_prepro_workers, input_format)
         prefetch_factor=2,
         collate_fn=collate_fn if input_format == "files" else None,
     )
-    return data
+    if multi_aspect_ratio:
+        dataloader_iterator = Bucketeer(
+                data,
+            sizes=sizes,
+            is_infinite=True, epoch=epoch,
+        )
+    else:
+        dataloader_iterator = iter(data)
+    loader = IterLoader(dataloader_iterator, use_distributed=False, epoch=epoch)
+    return loader
 
 
 class WebdatasetReader:

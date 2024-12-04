@@ -94,6 +94,7 @@ def train_one_epoch_with_fsdp(
                     samples = next(laion_dataloader)
                     video = samples['image_tensor'].to(accelerator.device)
                     text = samples['text']
+                    import pdb; pdb.set_trace()
                 else:
                     samples = next(data_loader)
                     video =  samples['video'].to(accelerator.device)
