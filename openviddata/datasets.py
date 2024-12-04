@@ -755,7 +755,7 @@ def create_webdataset(
             resize_size = get_resize_size((width, height), size)
             image_transform = get_image_transform(resize_size, size[1], size[0])
             image = image_transform(image)
-            print(image.shape)
+            print(type(image))
             output["image_tensor"] = image
 
         if enable_text:
