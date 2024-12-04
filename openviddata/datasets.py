@@ -821,7 +821,7 @@ def dataset_to_dataloader(dataset, batch_size, num_prepro_workers, input_format,
     data = DataLoader(
         dataset,
         batch_size=batch_size,
-        sampler=sampler,
+        shuffle=False,
         num_workers=num_prepro_workers,
         pin_memory=True,
         prefetch_factor=2,

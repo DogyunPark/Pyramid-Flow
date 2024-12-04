@@ -469,13 +469,13 @@ def main(args):
             search_pattern = os.path.join(args.laion_data_root, '*.tar')
             tar_files = glob.glob(search_pattern)
             laion_dataset = create_webdataset(tar_files, cache_path='/data/cvpr25/laion_cache/', sizes=[(512, 512)], ratios=[1/1])
-            laion_sampler = WebDatasetSampler(
-                laion_dataset,
-                shuffle=True,
-                num_replicas=accelerator.num_processes,
-                rank=accelerator.process_index,
-                num_samples=8000000,
-                )
+            # laion_sampler = WebDatasetSampler(
+            #     laion_dataset,
+            #     shuffle=True,
+            #     num_replicas=accelerator.num_processes,
+            #     rank=accelerator.process_index,
+            #     num_samples=8000000,
+            #     )
 
         elif args.task == 't2v':
             dataset = DatasetFromCSVAndJSON2(
@@ -506,7 +506,7 @@ def main(args):
 
     if args.task == 't2i':
         train_dataloader = create_image_text_dataloaders(dataset, args.batch_size, args.num_workers, multi_aspect_ratio=True, epoch=0, sizes=[(512, 512), (384, 640), (640, 384)], use_distributed=True, world_size=accelerator.num_processes, rank=accelerator.process_index)
-        laion_dataloader = dataset_to_dataloader(laion_dataset, args.batch_size, args.num_workers, input_format='webdataset', sampler=laion_sampler)
+        laion_dataloader = dataset_to_dataloader(laion_dataset, args.batch_size, args.num_workers, input_format='webdataset')
     elif args.task == 't2v':
         train_dataloader = create_video_text_dataloaders(dataset, args.batch_size, args.num_workers, multi_aspect_ratio=True, epoch=0, sizes=[(512, 512), (384, 640), (640, 384)], use_distributed=True, world_size=accelerator.num_processes, rank=accelerator.process_index)
     # train_dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, drop_last=True)
