@@ -60,4 +60,4 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 accelerate launch --multi_gpu --num_process
     --use_perflow \
     --downsample_latent \
     --mix_laion_ratio 0.1 \
-    --dit_pretrained_weight /data/cvpr25/Pyramid-Flow/result/stage3-laplacian-image2/checkpoint-999-0/pytorch_model_fsdp.bin
+    --dit_pretrained_weight /data/cvpr25/Pyramid-Flow/result/stage3-laplacian-image-multiratio/checkpoint-999-1/pytorch_model_fsdp.bin
