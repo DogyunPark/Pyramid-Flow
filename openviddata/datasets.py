@@ -293,6 +293,7 @@ class DatasetFromCSVAndJSON2(torch.utils.data.Dataset):
         self.ratios = ratios
         self.num_frames = num_frames
         self.sample_fps = sample_fps
+        self.mix_laion_ratio = mix_laion_ratio
     
     def get_resize_size(self, orig_size, tgt_size):
         if (tgt_size[1]/tgt_size[0] - 1) * (orig_size[1]/orig_size[0] - 1) >= 0:

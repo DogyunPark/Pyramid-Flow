@@ -650,8 +650,6 @@ def main(args):
             validation_prompt=validation_prompts,
             validation_image=validation_images,
             save_intermediate_latents=args.save_intermediate_latents,
-            laion_dataloader=laion_dataloader,
-            mix_laion_ratio=args.mix_laion_ratio,
         )
 
         log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
