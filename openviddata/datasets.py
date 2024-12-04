@@ -762,6 +762,7 @@ def create_webdataset(
             text = item[caption_key]
             caption = text.decode("utf-8")
             output["text"] = caption
+            print(caption)
 
         if enable_metadata:
             metadata_file = item["json"]
