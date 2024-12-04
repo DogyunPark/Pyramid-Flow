@@ -795,7 +795,9 @@ def dataset_to_dataloader(dataset, batch_size, num_prepro_workers, input_format)
         prefetch_factor=2,
         collate_fn=collate_fn if input_format == "files" else custom_collate_fn,
     )
-    return data
+    dataloader_iterator = iter(data)
+    loader = IterLoader(dataloader_iterator, use_distributed=False, epoch=0)
+    return loader
 
 
 class WebdatasetReader:

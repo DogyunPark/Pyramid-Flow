@@ -467,6 +467,7 @@ def main(args):
             
             search_pattern = os.path.join(args.laion_data_root, '*.tar')
             tar_files = glob.glob(search_pattern)
+            import pd
             laion_dataset = create_webdataset(tar_files, cache_path='/data/cvpr25/laion_cache/', sizes=[(512, 512)], ratios=[1/1])
 
         elif args.task == 't2v':
@@ -586,8 +587,7 @@ def main(args):
 
     # Only wrapping the trained dit and huge text encoder
     #runner.dit, optimizer, train_dataloader = accelerator.prepare(runner.dit, optimizer, train_dataloader)
-    runner.dit, optimizer, laion_dataloader = accelerator.prepare(runner.dit, optimizer, laion_dataloader)
-    laion_dataloader = cycle(laion_dataloader)
+    runner.dit, optimizer = accelerator.prepare(runner.dit, optimizer)
 
     # Load the VAE and EMAmodel to GPU
     if runner.vae:
