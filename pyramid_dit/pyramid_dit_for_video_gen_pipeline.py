@@ -2606,6 +2606,21 @@ class PyramidDiTForVideoGeneration:
         # latents = rearrange(latents, '(b t) c h w -> b c t h w', t=temp)
 
         latents = laplacian_latents[0]
+        if self.continuous_flow:
+            latents1 = laplacian_latents[1]
+            latents1_temp_dim = latents1.shape[2]
+            latents1 = rearrange(latents1, 'b c t h w -> (b t) c h w')
+            latents1 = torch.nn.functional.interpolate(latents1, size=(latents.shape[-2], latents.shape[-1]), mode='bilinear')
+            latents1 = rearrange(latents1, '(b t) c h w -> b c t h w', t=latents1_temp_dim)
+            
+            latents2 = laplacian_latents[2]
+            latents2_temp_dim = latents2.shape[2]
+            latents2 = rearrange(latents2, 'b c t h w -> (b t) c h w')
+            latents2 = torch.nn.functional.interpolate(latents2, size=(latents.shape[-2], latents.shape[-1]), mode='bilinear')
+            latents2 = rearrange(latents2, '(b t) c h w -> b c t h w', t=latents2_temp_dim)
+
+            latents = latents1 + latents2 + latents
+
         height, width = latents.shape[-2:]
         fixed_heights, fixed_widths = generation_height // self.vae.config.downsample_scale, generation_width // self.vae.config.downsample_scale
         
