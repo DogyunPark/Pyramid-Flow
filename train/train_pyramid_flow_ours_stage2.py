@@ -486,11 +486,9 @@ def main(args):
         print('Loading the dataset only from OpenVid-1M')
         dataset = DatasetFromCSV2(
             args.data_root,
-            args.json_path,
             num_frames=args.num_frames,
             sample_fps=args.sample_fps,
             csv_root=args.root,
-            json_root=args.json_root,
             sizes=[(512, 512), (384, 640), (640, 384)],
             ratios=[1/1, 3/5, 5/3],
         )   
