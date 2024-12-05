@@ -23,7 +23,7 @@ NUM_FRAMES=16         # e.g., 16 for 5s, 32 for 10s
 #CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 python \
 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 accelerate launch --multi_gpu --num_processes $GPUS \
     train/train_pyramid_flow_ours_stage2.py \
-    --num_workers 8 \
+    --num_workers 4 \
     --task t2i \
     --use_fsdp \
     --fsdp_shard_strategy $SHARD_STRATEGY \
@@ -56,9 +56,8 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 accelerate launch --multi_gpu --num_process
     --save_ckpt_freq 1 \
     --load_vae \
     --gradient_checkpointing \
-    --num_frames 49 \
+    --num_frames 1 \
     --use_perflow \
     --downsample_latent \
     --continuous_flow \
-    --mix_laion_ratio 0.4 \
-    --dit_pretrained_weight /data/cvpr25/Pyramid-Flow/result/stage3-laplacian-image-multiratio/checkpoint-999-1/pytorch_model_fsdp.bin
+    --dit_pretrained_weight /data/cvpr25/Pyramid-Flow/result/pytorch_model_fsdp.bin
