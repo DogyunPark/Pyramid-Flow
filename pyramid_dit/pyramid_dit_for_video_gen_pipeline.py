@@ -820,6 +820,7 @@ class PyramidDiTForVideoGeneration:
                 #start_point = start_point[:,:,temp_init].unsqueeze(2)
                 
                 end_point = laplacian_pyramid_latents[i_s][index::column_size]   # [bs, c, t, h, w]
+                end_point = end_sigma * start_point + (1 - end_sigma) * end_point
 
                 if self.continuous_flow:
                     end_point = end_sigma * start_point + (1 - end_sigma) * end_point
@@ -867,6 +868,18 @@ class PyramidDiTForVideoGeneration:
                 if self.continuous_flow:
                     start_point_0 = start_sigma * start_point_0 + (1 - start_sigma) * end_point_0
                     start_point_1 = start_sigma * start_point_1 + (1 - start_sigma) * end_point_1
+
+                    start_point_1_dim = start_point_1.shape[2]
+                    start_point_1 = rearrange(start_point_1, 'b c t h w -> (b t) c h w')
+                    start_point_1 = torch.nn.functional.interpolate(start_point_1, size=(start_point_0.shape[-2], start_point_0.shape[-1]), mode='bilinear')
+                    start_point_1 = rearrange(start_point_1, '(b t) c h w -> b c t h w', t=start_point_1_dim)
+
+                    start_point = start_point_1 + start_point_0
+
+                    start_point_dim = start_point.shape[2]
+                    start_point = rearrange(start_point, 'b c t h w -> (b t) c h w')
+                    start_point = torch.nn.functional.interpolate(start_point, size=(end_point_1.shape[-2], end_point_1.shape[-1]), mode='nearest')
+                    start_point = rearrange(start_point, '(b t) c h w -> b c t h w', t=start_point_dim)
                 else:
                     start_point_0 = end_point_0
                     start_point_1 = start_point_1
@@ -879,11 +892,6 @@ class PyramidDiTForVideoGeneration:
                 #start_point = start_point_1 + latents_list[i_s][index::column_size]
                 #end_point_0 = end_sigma * start_point_0 + (1 - end_sigma) * end_point_0
                 #end_point_1 = end_sigma * start_point_1 + (1 - end_sigma) * end_point_1
-                
-                start_point_0 = rearrange(start_point_0, 'b c t h w -> (b t) c h w')
-                start_point_0 = torch.nn.functional.interpolate(start_point_0, size=(start_point_1.shape[-2], start_point_1.shape[-1]), mode='nearest')
-                start_point_0 = rearrange(start_point_0, '(b t) c h w -> b c t h w', t=t)
-                start_point = start_point_1 + start_point_0
                 
                 # if self.temporal_differencing:
                 #     start_point_diff = start_point[:,:,1:] - start_point[:,:,:1].repeat(1, 1, start_point.shape[2]-1, 1, 1)
@@ -945,6 +953,18 @@ class PyramidDiTForVideoGeneration:
                 if self.continuous_flow:
                     start_point_1 = start_sigma * start_point_1 + (1 - start_sigma) * end_point_1
                     start_point_2 = start_sigma * start_point_2 + (1 - start_sigma) * end_point_2
+
+                    start_point_2_dim = start_point_2.shape[2]
+                    start_point_2 = rearrange(start_point_2, 'b c t h w -> (b t) c h w')
+                    start_point_2 = torch.nn.functional.interpolate(start_point_2, size=(start_point_1.shape[-2], start_point_1.shape[-1]), mode='bilinear')
+                    start_point_2 = rearrange(start_point_2, '(b t) c h w -> b c t h w', t=start_point_2_dim)
+
+                    start_point = start_point_2 + start_point_1
+
+                    start_point_dim = start_point.shape[2]
+                    start_point = rearrange(start_point, 'b c t h w -> (b t) c h w')
+                    start_point = torch.nn.functional.interpolate(start_point, size=(end_point_2.shape[-2], end_point_2.shape[-1]), mode='nearest')
+                    start_point = rearrange(start_point, '(b t) c h w -> b c t h w', t=start_point_dim)
                 else:
                     start_point_1 = latents_list[i_s][index::column_size]
                     start_point_2 = start_point_2
@@ -954,10 +974,6 @@ class PyramidDiTForVideoGeneration:
                     #start_point_diff = start_point_1[:,:,1:] - start_point_1[:,:,:-1]
                     start_point_1[:,:,1:] = start_point_diff
 
-                start_point_1 = rearrange(start_point_1, 'b c t h w -> (b t) c h w')
-                start_point_1 = torch.nn.functional.interpolate(start_point_1, size=(start_point_2.shape[-2], start_point_2.shape[-1]), mode='nearest')
-                start_point_1 = rearrange(start_point_1, '(b t) c h w -> b c t h w', t=t)
-                start_point = start_point_2 + start_point_1
                 # if self.temporal_differencing:
                 #     start_point_diff = start_point[:,:,1:] - start_point[:,:,:1].repeat(1, 1, start_point.shape[2]-1, 1, 1)
                 #     start_point[:,:,1:] = start_point_diff

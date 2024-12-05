@@ -565,7 +565,7 @@ def main(args):
     runner.dit.eval()
 
     #validation_prompts = ["shoulder and full head portrait of a beautiful 19 year old girl, brunette, smiling, stunning, highly detailed, glamour lighting, HDR, photorealistic, hyperrealism, octane render, unreal engine"]
-    NFE = 20
+    NFE = 50
     for i in range(len(validation_prompts)):
         validation_prompt = validation_prompts[i]
         print('validation_prompt:', validation_prompt)
