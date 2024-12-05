@@ -867,7 +867,7 @@ class PyramidDiTForVideoGeneration:
                 #start_point_0 = start_sigma * start_point_0 + (1 - start_sigma) * end_point_0
                 if self.continuous_flow:
                     start_point_0 = start_sigma * start_point_0 + (1 - start_sigma) * end_point_0
-                    start_point_1 = start_sigma * start_point_1 + (1 - start_sigma) * end_point_1
+                    #start_point_1 = start_sigma * start_point_1 + (1 - start_sigma) * end_point_1
 
                     # start_point_1_dim = start_point_1.shape[2]
                     # start_point_1 = rearrange(start_point_1, 'b c t h w -> (b t) c h w')
@@ -954,7 +954,7 @@ class PyramidDiTForVideoGeneration:
                 # start_point = start_point_2 + start_point_1
                 if self.continuous_flow:
                     start_point_1 = start_sigma * start_point_1 + (1 - start_sigma) * end_point_1
-                    start_point_2 = start_sigma * start_point_2 + (1 - start_sigma) * end_point_2
+                    #start_point_2 = start_sigma * start_point_2 + (1 - start_sigma) * end_point_2
 
                     # start_point_2_dim = start_point_2.shape[2]
                     # start_point_2 = rearrange(start_point_2, 'b c t h w -> (b t) c h w')
