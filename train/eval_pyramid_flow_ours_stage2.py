@@ -247,7 +247,7 @@ def get_args():
     parser.add_argument('--save_intermediate_latents', action='store_true')
     parser.add_argument('--temporal_differencing', action='store_true')
     parser.add_argument('--continuous_flow', action='store_true')
-    parser.add_argument('--test_image_size', default=(768, 1280), type=tuple, help='image size')
+    parser.add_argument('--test_image_size', default=(512, 512), type=tuple, help='image size')
     return parser.parse_args()
 
 
@@ -563,6 +563,8 @@ def main(args):
     start_time = time.time()
     accelerator.wait_for_everyone()
     runner.dit.eval()
+
+    #validation_prompts = ["shoulder and full head portrait of a beautiful 19 year old girl, brunette, smiling, stunning, highly detailed, glamour lighting, HDR, photorealistic, hyperrealism, octane render, unreal engine"]
     NFE = 20
     for i in range(len(validation_prompts)):
         validation_prompt = validation_prompts[i]
@@ -570,7 +572,6 @@ def main(args):
         validation_image = data_list[i][:,0].to(accelerator.device)
         validation_image = validation_image.unsqueeze(0).unsqueeze(2)
 
-        validation_prompt = "shoulder and full head portrait of a beautiful 19 year old girl, brunette, smiling, stunning, highly detailed, glamour lighting, HDR, photorealistic, hyperrealism, octane render, unreal engine"
         print("Generating video for %d epoch" % i)
         if 1:
             images = runner.generate_laplacian_video(
@@ -579,7 +580,9 @@ def main(args):
                 num_inference_steps=[NFE, NFE, NFE],
                 output_type="pil",
                 guidance_scale=9.0,
-                save_memory=False, 
+                save_memory=False,
+                generation_height=args.image_size[0],
+                generation_width=args.image_size[1],
             )
         else:
             images = runner.generate(
