@@ -377,7 +377,7 @@ class DatasetFromCSVAndJSON2(torch.utils.data.Dataset):
         return {"video": video, "text": text}
 
     def __getitem__(self, index):
-        for _ in range(10):
+        for _ in range(20):
             try:
                 return self.getitem(index)
             except Exception as e:

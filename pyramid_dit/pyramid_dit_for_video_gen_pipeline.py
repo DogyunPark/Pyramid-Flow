@@ -933,11 +933,13 @@ class PyramidDiTForVideoGeneration:
             
             elif i_s == 2:
                 start_point_0 = laplacian_pyramid_noises[0][index::column_size]
-                start_point_1 = laplacian_pyramid_noises[1][index::column_size]
+                #start_point_1 = laplacian_pyramid_noises[1][index::column_size]
+                start_point_1 = noise_list[i_s][index::column_size]
                 start_point_2 = laplacian_pyramid_noises[2][index::column_size]
 
                 end_point_0 = laplacian_pyramid_latents[0][index::column_size]
-                end_point_1 = laplacian_pyramid_latents[1][index::column_size]
+                #end_point_1 = laplacian_pyramid_latents[1][index::column_size]
+                end_point_1 = latents_list[i_s][index::column_size]
                 end_point_2 = laplacian_pyramid_latents[2][index::column_size]
 
                 # start_point_0 = end_point_0
