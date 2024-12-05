@@ -820,7 +820,7 @@ class PyramidDiTForVideoGeneration:
                 #start_point = start_point[:,:,temp_init].unsqueeze(2)
                 
                 end_point = laplacian_pyramid_latents[i_s][index::column_size]   # [bs, c, t, h, w]
-                end_point = end_sigma * start_point + (1 - end_sigma) * end_point
+                #end_point = end_sigma * start_point + (1 - end_sigma) * end_point
 
                 if self.continuous_flow:
                     end_point = end_sigma * start_point + (1 - end_sigma) * end_point
@@ -905,7 +905,8 @@ class PyramidDiTForVideoGeneration:
                 end_point = latents_list[i_s+1][index::column_size]
 
                 if self.continuous_flow:
-                    end_point = end_sigma * start_point + (1 - end_sigma) * end_point
+                    start_point_for_end = noise_list[i_s][index::column_size]
+                    end_point = end_sigma * start_point_for_end + (1 - end_sigma) * end_point
                     
                     start_point_temp = laplacian_pyramid_noises[i_s+1][index::column_size]
                     end_point_temp = laplacian_pyramid_latents[i_s+1][index::column_size]
