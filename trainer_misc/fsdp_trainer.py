@@ -159,25 +159,26 @@ def train_one_epoch_with_fsdp(
 
         accelerator.wait_for_everyone()
 
+        validation_prompt = ["a Emu, focused yet playful, ready for a competitive matchup, photorealistic quality with cartoon vibes","real beautiful woman, Chinese", "marvel movie character, iron man, dress up to match movie character, full body photo, American apartment, lying down, life in distress, messy, lost hope, food, wine, hd, 8k, real, reality, super detail, 8k post photo manipulation, real photo"]
         # Generate the video for validation
         if step % 20 == 0:
             runner.dit.eval()
-            print("Generating the video for text: {}".format(text[0]))
-            image = runner.generate_laplacian_video(
-                prompt=text[0],
-                input_image=video[:1, :, :1],
-                num_inference_steps=[20, 20, 20],
-                output_type="pil",
-                save_memory=True,
-                guidance_scale=9.0,
-                generation_height=512,
-                generation_width=512
-            )
-            if save_intermediate_latents:
-                for i_img, img in enumerate(image):
-                    export_to_video(img, "./output/text_to_video_sample-{}epoch-train-{}.mp4".format(epoch, i_img), fps=24)
-            else:
-                export_to_video(image, "./output/text_to_video_sample-{}epoch-train.mp4".format(epoch), fps=24)
+            # print("Generating the video for text: {}".format(text[0]))
+            # image = runner.generate_laplacian_video(
+            #     prompt=text[0],
+            #     input_image=video[:1, :, :1],
+            #     num_inference_steps=[10, 10, 10],
+            #     output_type="pil",
+            #     save_memory=True,
+            #     guidance_scale=9.0,
+            #     generation_height=512,
+            #     generation_width=512
+            # )
+            # if save_intermediate_latents:
+            #     for i_img, img in enumerate(image):
+            #         export_to_video(img, "./output/text_to_video_sample-{}epoch-train-{}.mp4".format(epoch, i_img), fps=24)
+            # else:
+            #     export_to_video(image, "./output/text_to_video_sample-{}epoch-train.mp4".format(epoch), fps=24)
             assert validation_prompt is not None and validation_image is not None
             for num_image in range(2):
                 prompt = validation_prompt[num_image]
@@ -187,7 +188,7 @@ def train_one_epoch_with_fsdp(
                 image = runner.generate_laplacian_video(
                     prompt=prompt,
                     input_image=img,
-                    num_inference_steps=[20, 20, 20],
+                    num_inference_steps=[10, 10, 10],
                     output_type="pil",
                     save_memory=True,
                     guidance_scale=9.0,

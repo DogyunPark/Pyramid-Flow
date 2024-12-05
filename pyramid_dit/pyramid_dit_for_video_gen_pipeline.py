@@ -2598,7 +2598,6 @@ class PyramidDiTForVideoGeneration:
                 else:
                     total_input = [latent_model_input]
                     
-            
                 # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
                 timestep = t.expand(latent_model_input.shape[0]).to(latent_model_input.dtype)
 
