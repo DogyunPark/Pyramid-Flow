@@ -180,7 +180,7 @@ def train_one_epoch_with_fsdp(
             # else:
             #     export_to_video(image, "./output/text_to_video_sample-{}epoch-train.mp4".format(epoch), fps=24)
             assert validation_prompt is not None and validation_image is not None
-            for num_image in range(2):
+            for num_image in range(3):
                 prompt = validation_prompt[num_image]
                 img = validation_image[num_image][:,0].to(accelerator.device)
                 img = img.unsqueeze(0).unsqueeze(2)
