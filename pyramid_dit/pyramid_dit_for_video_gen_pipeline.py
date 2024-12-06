@@ -2642,6 +2642,35 @@ class PyramidDiTForVideoGeneration:
 
                 if self.continuous_flow:
                     #Fix the stage
+                    ori_sigma = self.validation_scheduler.ori_start_sigmas[i_s]
+                    if i_s == 1:
+                        latents_add_1 = laplacian_latents[i_s]
+                        latents_add_2 = laplacian_latents[i_s+1]
+                        latents_add_2_temp_dim = latents_add_2.shape[2]
+                        latents_add_2 = rearrange(latents_add_2, 'b c t h w -> (b t) c h w')
+                        latents_add_2 = torch.nn.functional.interpolate(latents_add_2, size=(latents.shape[-2], latents.shape[-1]), mode='nearest')
+                        latents_add_2 = rearrange(latents_add_2, '(b t) c h w -> b c t h w', t=latents_add_2_temp_dim)
+                        
+                        latents1_temp_dim = latents1.shape[2]
+                        latents1 = rearrange(latents1, 'b c t h w -> (b t) c h w')
+                        latents1 = torch.nn.functional.interpolate(latents1, size=(latents.shape[-2], latents.shape[-1]), mode='nearest')
+                        latents1 = rearrange(latents1, '(b t) c h w -> b c t h w', t=latents1_temp_dim)
+
+                        latents2_temp_dim = latents2.shape[2]
+                        latents2 = rearrange(latents2, 'b c t h w -> (b t) c h w')
+                        latents2 = torch.nn.functional.interpolate(latents2, size=(latents.shape[-2], latents.shape[-1]), mode='nearest')
+                        latents2 = rearrange(latents2, '(b t) c h w -> b c t h w', t=latents2_temp_dim)
+
+                        latents = latents + ori_sigma * (- latents1 - latents2 + latents_add_2 + latents_add_1)
+                    else:
+                        latents_add_2 = laplacian_latents[i_s+1]
+                        latents2_temp_dim = latents2.shape[2]
+                        latents2 = rearrange(latents2, 'b c t h w -> (b t) c h w')
+                        latents2 = torch.nn.functional.interpolate(latents2, size=(latents.shape[-2], latents.shape[-1]), mode='nearest')
+                        latents2 = rearrange(latents2, '(b t) c h w -> b c t h w', t=latents2_temp_dim)
+
+                        latents = latents + ori_sigma * (- latents2 + latents_add_2)
+
                     # ori_sigma = 1 - self.validation_scheduler.ori_start_sigmas[i_s]   # the original coeff of signal
                     # gamma = self.validation_scheduler.config.gamma
                     # alpha = 1 / (math.sqrt(1 + (1 / gamma)) * (1 - ori_sigma) + ori_sigma)
@@ -2651,6 +2680,7 @@ class PyramidDiTForVideoGeneration:
                     # noise = self.sample_block_noise(bs, ch, temp, height, width)
                     # noise = noise.to(device=device, dtype=dtype)
                     # latents = alpha * latents + beta * noise    # To fix the block artifact
+
                     latents = latents
                 else:
                     latents = laplacian_latents[i_s] + latents
