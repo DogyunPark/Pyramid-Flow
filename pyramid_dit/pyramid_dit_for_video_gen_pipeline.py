@@ -1444,7 +1444,7 @@ class PyramidDiTForVideoGeneration:
         for i_s in range(stage_num-1):
             height //= 2;width //= 2
             cur_noise = rearrange(cur_noise, 'b c t h w -> (b t) c h w')
-            cur_noise = F.interpolate(cur_noise, size=(height, width), mode='bilinear') * 2
+            cur_noise = F.interpolate(cur_noise, size=(height, width), mode='bilinear')
             cur_noise = rearrange(cur_noise, '(b t) c h w -> b c t h w', t=t)
             noise_list.append(cur_noise)
 
@@ -1462,7 +1462,7 @@ class PyramidDiTForVideoGeneration:
             height_next = noise_list[next_idx].shape[3]
             width_next = noise_list[next_idx].shape[4]
 
-            current_noise = noise_list[idx]
+            current_noise = noise_list[idx] * 2
             x = rearrange(current_noise, 'b c t h w -> (b t) c h w')
             x = torch.nn.functional.interpolate(x, size=(height_next, width_next), mode='nearest')
             #if self.use_gaussian_filter:
@@ -2648,7 +2648,7 @@ class PyramidDiTForVideoGeneration:
                         latents_add_2 = laplacian_latents[i_s+1]
                         latents_add_2_temp_dim = latents_add_2.shape[2]
                         latents_add_2 = rearrange(latents_add_2, 'b c t h w -> (b t) c h w')
-                        latents_add_2 = torch.nn.functional.interpolate(latents_add_2, size=(latents.shape[-2], latents.shape[-1]), mode='nearest')
+                        latents_add_2 = torch.nn.functional.interpolate(latents_add_2, size=(latents.shape[-2], latents.shape[-1]), mode='bilinear') * 2
                         latents_add_2 = rearrange(latents_add_2, '(b t) c h w -> b c t h w', t=latents_add_2_temp_dim)
                         
                         latents1_temp_dim = latents1.shape[2]
@@ -2661,15 +2661,15 @@ class PyramidDiTForVideoGeneration:
                         latents2 = torch.nn.functional.interpolate(latents2, size=(latents.shape[-2], latents.shape[-1]), mode='nearest')
                         latents2 = rearrange(latents2, '(b t) c h w -> b c t h w', t=latents2_temp_dim)
 
-                        latents = latents + ori_sigma * (- latents1 - latents2 + latents_add_2 + latents_add_1)
+                        latents = latents + ori_sigma * (-latents1 - latents2 + latents_add_2 + latents_add_1)
                     else:
-                        latents_add_2 = laplacian_latents[i_s+1]
+                        latents_add_2 = laplacian_latents[i_s]
                         latents2_temp_dim = latents2.shape[2]
                         latents2 = rearrange(latents2, 'b c t h w -> (b t) c h w')
                         latents2 = torch.nn.functional.interpolate(latents2, size=(latents.shape[-2], latents.shape[-1]), mode='nearest')
                         latents2 = rearrange(latents2, '(b t) c h w -> b c t h w', t=latents2_temp_dim)
 
-                        latents = latents + ori_sigma * (- latents2 + latents_add_2)
+                        latents = latents + ori_sigma * (-latents2 + latents_add_2)
 
                     # ori_sigma = 1 - self.validation_scheduler.ori_start_sigmas[i_s]   # the original coeff of signal
                     # gamma = self.validation_scheduler.config.gamma
