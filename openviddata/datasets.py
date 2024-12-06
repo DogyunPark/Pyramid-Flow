@@ -277,14 +277,14 @@ class DatasetFromCSVAndJSON2(torch.utils.data.Dataset):
                 video_samples.append([vid_path, vid_caption])
 
         # Load from JSON
-        with open(json_path, 'r') as f:
-            json_data = json.load(f)
-        for entry in json_data:
-            vid_name = entry['vid']
-            vid_path = os.path.join(json_root, f"{vid_name}.mp4")
-            vid_caption = entry['caption']
-            if os.path.exists(vid_path):
-                video_samples.append([vid_path, vid_caption])
+        # with open(json_path, 'r') as f:
+        #     json_data = json.load(f)
+        # for entry in json_data:
+        #     vid_name = entry['vid']
+        #     vid_path = os.path.join(json_root, f"{vid_name}.mp4")
+        #     vid_caption = entry['caption']
+        #     if os.path.exists(vid_path):
+        #         video_samples.append([vid_path, vid_caption])
         
         self.image_files = [f for f in os.listdir(laion_folder) if f.endswith('.jpg') or f.endswith('.png')]
         self.samples = video_samples
