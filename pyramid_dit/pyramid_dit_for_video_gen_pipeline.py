@@ -926,8 +926,14 @@ class PyramidDiTForVideoGeneration:
                     # start_point_0 = rearrange(start_point_0, '(b t) c h w -> b c t h w', t=start_point_dim)
                     # start_point = start_point_1 + start_point_0
                 else:
-                    start_point_0 = end_point_0
-                    start_point_1 = start_point_1
+                    start_point_0 = latents_list[1][index::column_size]
+                    start_point_0_dim = start_point_0.shape[2]
+                    start_point_0 = rearrange(start_point_0, 'b c t h w -> (b t) c h w')
+                    start_point_0 = torch.nn.functional.interpolate(start_point_0, size=(end_point_0.shape[-2], end_point_0.shape[-1]), mode='nearest')
+                    start_point_0 = rearrange(start_point_0, '(b t) c h w -> b c t h w', t=start_point_0_dim)
+                    start_point_1 = laplacian_pyramid_noises[1][index::column_size] * 2
+                    start_point = start_point_1 + start_point_0
+                    end_point = end_point_0
 
                 if self.temporal_differencing:
                     start_point_diff = start_point_0[:,:,1:] - start_point_0[:,:,:1].repeat(1, 1, start_point_0.shape[2]-1, 1, 1)
@@ -1018,7 +1024,13 @@ class PyramidDiTForVideoGeneration:
                     # start_point = start_point_2 + start_point_1
                 else:
                     start_point_1 = latents_list[i_s][index::column_size]
-                    start_point_2 = start_point_2
+                    start_point_1_dim = start_point_1.shape[2]
+                    start_point_1 = rearrange(start_point_1, 'b c t h w -> (b t) c h w')
+                    start_point_1 = torch.nn.functional.interpolate(start_point_1, size=(start_point_2.shape[-2], start_point_2.shape[-1]), mode='bilinear')
+                    start_point_1 = rearrange(start_point_1, '(b t) c h w -> b c t h w', t=start_point_1_dim)
+                    start_point_2 = laplacian_pyramid_noises[2][index::column_size] * 2
+                    start_point = start_point_2 + start_point_1
+                    end_point = end_point_2
 
                 if self.temporal_differencing:
                     start_point_diff = start_point_1[:,:,1:] - start_point_1[:,:,:1].repeat(1, 1, start_point_1.shape[2]-1, 1, 1)
@@ -2683,7 +2695,7 @@ class PyramidDiTForVideoGeneration:
 
                     latents = latents
                 else:
-                    latents = laplacian_latents[i_s] + latents
+                    latents = laplacian_latents[i_s] * 2 + latents
 
             for idx, t in enumerate(timesteps):
                 # expand the latents if we are doing classifier free guidance
