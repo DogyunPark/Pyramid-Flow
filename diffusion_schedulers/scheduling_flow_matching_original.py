@@ -111,8 +111,6 @@ class PyramidFlowMatchEulerDiscreteScheduler(SchedulerMixin, ConfigMixin):
             end_sigma = self.sigmas[end_indice].item() if end_indice < training_steps else 0.0
             self.ori_start_sigmas[i_s] = start_sigma
 
-            import pdb; pdb.set_trace()
-
             if self.continuous_flow:
                 if i_s != 0:
                     ori_sigma = 1 - start_sigma
@@ -124,8 +122,6 @@ class PyramidFlowMatchEulerDiscreteScheduler(SchedulerMixin, ConfigMixin):
             stage_distance.append(start_sigma - end_sigma)
             self.start_sigmas[i_s] = start_sigma
             self.end_sigmas[i_s] = end_sigma
-
-            import pdb; pdb.set_trace()
 
         # Determine the ratio of each stage according to flow length
         tot_distance = sum(stage_distance)
@@ -154,8 +150,6 @@ class PyramidFlowMatchEulerDiscreteScheduler(SchedulerMixin, ConfigMixin):
                 1, 0, training_steps + 1,
             )
             self.sigmas_per_stage[i_s] = torch.from_numpy(stage_sigmas[:-1])
-        
-        import pdb; pdb.set_trace()
 
     @property
     def step_index(self):
