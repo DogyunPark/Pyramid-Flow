@@ -2618,7 +2618,7 @@ class PyramidDiTForVideoGeneration:
 
             latents1_temp_dim = latents1.shape[2]
             latents1 = rearrange(latents1, 'b c t h w -> (b t) c h w')
-            latents1 = torch.nn.functional.interpolate(latents1, size=(latents.shape[-2], latents.shape[-1]), mode='bilinear')
+            latents1 = torch.nn.functional.interpolate(latents1, size=(latents.shape[-2], latents.shape[-1]), mode='bilinear') * 2
             latents1 = rearrange(latents1, '(b t) c h w -> b c t h w', t=latents1_temp_dim)
 
             latents = latents1 + latents2 + latents
