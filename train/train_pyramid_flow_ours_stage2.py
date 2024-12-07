@@ -254,6 +254,7 @@ def get_args():
     parser.add_argument('--continuous_flow', action='store_true')
     parser.add_argument('--laion_data_root', default='/data/cvpr25/laion/laion-hq/', type=str, help='The laion data root')
     parser.add_argument('--mix_laion_ratio', default=0.0, type=float, help='The ratio of laion data in the training batch')
+    parser.add_argument('--initialize_weights', action='store_true')
     return parser.parse_args()
 
 
@@ -514,6 +515,10 @@ def main(args):
         model_ema.to(dtype=weight_dtype)
         for param in model_ema.parameters():
             param.requires_grad = False
+
+
+    if args.initialize_weights:
+        runner.dit.initialize_weights()
 
     # report model details
     n_learnable_parameters = sum(p.numel() for p in runner.dit.parameters() if p.requires_grad)
