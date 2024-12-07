@@ -631,6 +631,18 @@ def main(args):
     gc.collect()
     torch.cuda.empty_cache() 
 
+    num_channels_latents = (runner.dit.config.in_channels // 4)
+    fix_latents = runner.prepare_latents(
+            1,
+            num_channels_latents,
+            1,
+            512,
+            512,
+            torch.bfloat16,
+            device,
+            None,
+        )
+
     print("Start training...")
     for epoch in range(first_epoch, args.epochs):
         train_stats = train_one_epoch_with_fsdp(
@@ -653,6 +665,7 @@ def main(args):
             validation_prompt=validation_prompts,
             validation_image=validation_images,
             save_intermediate_latents=args.save_intermediate_latents,
+            fix_latents=fix_latents,
         )
 
         log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},

@@ -91,6 +91,7 @@ def train_one_epoch_with_fsdp(
     validation_prompt=None,
     validation_image=None,
     save_intermediate_latents=False,
+    fix_latents=None,
 ):
     runner.dit.train()
     metric_logger = MetricLogger(delimiter="  ")
@@ -101,18 +102,6 @@ def train_one_epoch_with_fsdp(
 
     topil = transforms.ToPILImage()
     print("Start training epoch {}, {} iters per inner epoch. Training dtype {}".format(epoch, iters_per_epoch, model_dtype))
-
-    num_channels_latents = (runner.dit.config.in_channels // 4)
-    fix_latents = runner.prepare_latents(
-            1,
-            num_channels_latents,
-            1,
-            512,
-            512,
-            torch.bfloat16,
-            device,
-            None,
-        )
     
     for step in metric_logger.log_every(range(iters_per_epoch), print_freq, header):
         if step >= iters_per_epoch:
