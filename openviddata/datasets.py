@@ -40,9 +40,6 @@ def get_transform(size, new_width=None, new_height=None, resize=True):
         transform_list.append(transforms.Resize(size, InterpolationMode.BICUBIC, antialias=True))
         transform_list.append(transforms.CenterCrop((new_height, new_width)))
     
-    transform_list.extend([
-        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-    ])
     transform_list = transforms.Compose(transform_list)
 
     return transform_list
@@ -312,7 +309,8 @@ class DatasetFromCSVAndJSON2(torch.utils.data.Dataset):
     
     def getitem(self, index):
         if random.random() < self.mix_laion_ratio and self.mix_laion_ratio > 0:
-            img_name = self.image_files[index]
+            random_index = random.randint(0, len(self.image_files)-1)
+            img_name = self.image_files[random_index]
             img_path = os.path.join(self.laion_folder, img_name)
             image = Image.open(img_path).convert('RGB')
             image = self.totensor(image)
@@ -373,6 +371,9 @@ class DatasetFromCSVAndJSON2(torch.utils.data.Dataset):
 
             filtered_frames = video_transform(filtered_frames)
             video = filtered_frames.permute(1, 0, 2, 3)
+
+        video = video * 2 - 1.0
+        video = video.clamp(-1.0, 1.0)
 
         return {"video": video, "text": text}
 

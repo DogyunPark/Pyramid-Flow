@@ -33,6 +33,7 @@ def save_video_batch_to_png(video_tensor, output_dir, prefix="video"):
         os.makedirs(batch_dir, exist_ok=True)
         for t in range(video_tensor.size(2)):  # Iterate over frames
             frame = video_tensor[b, :, t, :, :]
+            frame = (frame + 1.0) / 2.0
             image = to_pil(frame)
             image.save(os.path.join(batch_dir, f"frame_{t:04d}.png"))
 
