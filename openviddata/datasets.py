@@ -332,7 +332,7 @@ class DatasetFromCSVAndJSON2(torch.utils.data.Dataset):
             image_transform = get_image_transform()
             image = image_transform(image)
             #image = image / 255
-            video = image.unsqueeze(0).repeat(self.num_frames, 1, 1, 1)
+            video = image.unsqueeze(1).repeat(1, self.num_frames, 1, 1)
             
             text_name = img_name.rsplit('.', 1)[0] + '.txt'
             text_path = os.path.join(self.laion_folder, text_name)
