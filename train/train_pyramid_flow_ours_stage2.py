@@ -633,7 +633,7 @@ def main(args):
 
     num_channels_latents = (runner.dit.config.in_channels // 4)
     fix_latents = runner.prepare_latents(
-            1,
+            3,
             num_channels_latents,
             1,
             512,

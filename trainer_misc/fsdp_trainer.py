@@ -221,7 +221,7 @@ def train_one_epoch_with_fsdp(
                     guidance_scale=9.0,
                     generation_height=512,
                     generation_width=512,
-                    fix_latents=fix_latents,
+                    fix_latents=fix_latents[num_image].unsqueeze(0),
                 )
                 if save_intermediate_latents:
                     for i_img, img in enumerate(image):
