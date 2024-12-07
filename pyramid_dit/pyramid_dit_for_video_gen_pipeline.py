@@ -816,7 +816,7 @@ class PyramidDiTForVideoGeneration:
             temp_init = 0
 
             if i_s == 0:
-                start_point = laplacian_pyramid_noises[0][index::column_size] * 4
+                start_point = laplacian_pyramid_noises[0][index::column_size]
                 #start_point = start_point[:,:,temp_init].unsqueeze(2)
                 
                 end_point = laplacian_pyramid_latents[0][index::column_size]   # [bs, c, t, h, w]
@@ -826,7 +826,7 @@ class PyramidDiTForVideoGeneration:
                     start_point_1 = laplacian_pyramid_noises[1][index::column_size]
                     start_point_1_dim = start_point_1.shape[2]
                     start_point_1 = rearrange(start_point_1, 'b c t h w -> (b t) c h w')
-                    start_point_1 = torch.nn.functional.interpolate(start_point_1, size=(start_point.shape[-2], start_point.shape[-1]), mode='bilinear')
+                    start_point_1 = torch.nn.functional.interpolate(start_point_1, size=(start_point.shape[-2], start_point.shape[-1]), mode='bilinear') * 2
                     start_point_1 = rearrange(start_point_1, '(b t) c h w -> b c t h w', t=start_point_1_dim)
                     
                     end_point_1 = laplacian_pyramid_latents[1][index::column_size]
@@ -838,14 +838,15 @@ class PyramidDiTForVideoGeneration:
                     start_point_2 = laplacian_pyramid_noises[2][index::column_size]
                     start_point_2_dim = start_point_2.shape[2]
                     start_point_2 = rearrange(start_point_2, 'b c t h w -> (b t) c h w')
-                    start_point_2 = torch.nn.functional.interpolate(start_point_2, size=(start_point_2.shape[-2]//2, start_point_2.shape[-1]//2), mode='bilinear')
-                    start_point_2 = torch.nn.functional.interpolate(start_point_2, size=(start_point_2.shape[-2]//2, start_point_2.shape[-1]//2), mode='bilinear')
+                    start_point_2 = torch.nn.functional.interpolate(start_point_2, size=(start_point_2.shape[-2]//2, start_point_2.shape[-1]//2), mode='bilinear') * 2
+                    start_point_2 = torch.nn.functional.interpolate(start_point_2, size=(start_point_2.shape[-2]//2, start_point_2.shape[-1]//2), mode='bilinear') * 2
                     start_point_2 = rearrange(start_point_2, '(b t) c h w -> b c t h w', t=start_point_2_dim)
 
                     end_point_2 = laplacian_pyramid_latents[2][index::column_size]
                     end_point_2_dim = end_point_2.shape[2]
                     end_point_2 = rearrange(end_point_2, 'b c t h w -> (b t) c h w')
-                    end_point_2 = torch.nn.functional.interpolate(end_point_2, size=(end_point.shape[-2], end_point.shape[-1]), mode='bilinear')
+                    end_point_2 = torch.nn.functional.interpolate(end_point_2, size=(end_point_2.shape[-2]//2, end_point_2.shape[-1]//2), mode='bilinear')
+                    end_point_2 = torch.nn.functional.interpolate(end_point_2, size=(end_point_2.shape[-2]//2, end_point_2.shape[-1]//2), mode='bilinear')
                     end_point_2 = rearrange(end_point_2, '(b t) c h w -> b c t h w', t=end_point_2_dim)
 
                     start_point = start_point_2 + start_point_1 + start_point
@@ -876,55 +877,49 @@ class PyramidDiTForVideoGeneration:
                 noisy_latents = ratios * start_point + (1 - ratios) * end_point
 
             elif i_s == 1:
-                # Get the upsampled latent
-                start_point_0 = noise_list[1][index::column_size] * 2
-                #start_point_0 = start_point_0[:,:,temp_init].unsqueeze(2)
-                start_point_1 = laplacian_pyramid_noises[2][index::column_size]
-                #start_point_1 = start_point_1[:,:,temp_init].unsqueeze(2)
-
-                end_point_0 = latents_list[2][index::column_size]   # [bs, c, t, h, w]
-                #end_point_0_t0 = end_point_0[:,:,temp_init]
-                #end_point_0_t1 = end_point_0[:,:,temp_init+1]
-                #end_point_0 = end_point_0_t1 - end_point_0_t0
-
-                end_point_1 = laplacian_pyramid_latents[2][index::column_size]   # [bs, c, t, h, w]
-                #end_point_1_t0 = end_point_1[:,:,temp_init]
-                #end_point_1_t1 = end_point_1[:,:,temp_init+1]
-                #end_point_1 = end_point_1_t1 - end_point_1_t0
-
-                #start_point_0 = start_sigma * start_point_0 + (1 - start_sigma) * end_point_0
                 if self.continuous_flow:
-                    start_point_1_dim = start_point_1.shape[2]
-                    start_point_1 = rearrange(start_point_1, 'b c t h w -> (b t) c h w')
-                    start_point_1 = torch.nn.functional.interpolate(start_point_1, size=(start_point_0.shape[-2], start_point_0.shape[-1]), mode='bilinear')
-                    start_point_1 = rearrange(start_point_1, '(b t) c h w -> b c t h w', t=start_point_1_dim)
+                    last_clean_latent = latents_list[1][index::column_size]
+                    #downsample the last clean latent
+                    last_clean_latent_1 = laplacian_pyramid_latents[1][index::column_size]
+                    last_clean_latent_1_dim = last_clean_latent_1.shape[2]
+                    last_clean_latent_1 = rearrange(last_clean_latent_1, 'b c t h w -> (b t) c h w')
+                    last_clean_latent_1 = torch.nn.functional.interpolate(last_clean_latent_1, size=(last_clean_latent_1.shape[-2]//2, last_clean_latent_1.shape[-1]//2), mode='bilinear')
+                    last_clean_latent_1 = rearrange(last_clean_latent_1, '(b t) c h w -> b c t h w', t=last_clean_latent_1_dim)
+                    #downsample the last clean latent
+                    last_clean_latent_2 = laplacian_pyramid_latents[2][index::column_size]
+                    last_clean_latent_2_dim = last_clean_latent_2.shape[2]
+                    last_clean_latent_2 = rearrange(last_clean_latent_2, 'b c t h w -> (b t) c h w')
+                    last_clean_latent_2 = torch.nn.functional.interpolate(last_clean_latent_2, size=(last_clean_latent_2.shape[-2]//2, last_clean_latent_2.shape[-1]//2), mode='bilinear')
+                    last_clean_latent_2 = torch.nn.functional.interpolate(last_clean_latent_2, size=(last_clean_latent_2.shape[-2]//2, last_clean_latent_2.shape[-1]//2), mode='bilinear')
+                    last_clean_latent_2 = rearrange(last_clean_latent_2, '(b t) c h w -> b c t h w', t=last_clean_latent_2_dim)
+                    #upsample the last clean latent
+                    last_clean_latent = last_clean_latent_2 + last_clean_latent_1 + last_clean_latent
+                    last_clean_latent_dim = last_clean_latent.shape[2]
+                    last_clean_latent = rearrange(last_clean_latent, 'b c t h w -> (b t) c h w')
+                    last_clean_latent = torch.nn.functional.interpolate(last_clean_latent, size=(last_clean_latent.shape[-2] * 2, last_clean_latent.shape[-1] * 2), mode='nearest')
+                    last_clean_latent = rearrange(last_clean_latent, '(b t) c h w -> b c t h w', t=last_clean_latent_dim)
 
-                    end_point_1_dim = end_point_1.shape[2]
-                    end_point_1 = rearrange(end_point_1, 'b c t h w -> (b t) c h w')
-                    end_point_1 = torch.nn.functional.interpolate(end_point_1, size=(end_point_0.shape[-2], end_point_0.shape[-1]), mode='bilinear')
-                    end_point_1 = rearrange(end_point_1, '(b t) c h w -> b c t h w', t=end_point_1_dim)
+                    start_noise = noise_list[1][index::column_size]
+                    start_noise_1 = laplacian_pyramid_noises[2][index::column_size]
+                    start_noise_1_dim = start_noise_1.shape[2]
+                    start_noise_1 = rearrange(start_noise_1, 'b c t h w -> (b t) c h w')
+                    start_noise_1 = torch.nn.functional.interpolate(start_noise_1, size=(start_noise_1.shape[-2]//2, start_noise_1.shape[-1]//2), mode='bilinear') * 2
+                    start_noise_1 = rearrange(start_noise_1, '(b t) c h w -> b c t h w', t=start_noise_1_dim)
+                    start_noise = start_noise + start_noise_1
 
-                    start_point_1 = start_point_1 + start_point_0
-                    end_point_1 = end_point_1 + end_point_0
+                    start_point = start_sigma * start_noise + (1 - start_sigma) * last_clean_latent
 
-                    start_point = start_sigma * start_point_1 + (1 - start_sigma) * end_point_1
-                    end_point = end_sigma * start_point_1 + (1 - end_sigma) * end_point_1
+                    end_point_1 = latents_list[2][index::column_size]
+                    end_point_2 = laplacian_pyramid_latents[2][index::column_size]
+                    end_point_2_dim = end_point_2.shape[2]
+                    end_point_2 = rearrange(end_point_2, 'b c t h w -> (b t) c h w')
+                    end_point_2 = torch.nn.functional.interpolate(end_point_2, size=(end_point_2.shape[-2]//2, end_point_2.shape[-1]//2), mode='bilinear')
+                    end_point_2 = rearrange(end_point_2, '(b t) c h w -> b c t h w', t=end_point_2_dim)
+                    end_point = end_point_2 + end_point_1
 
-                    #start_point_0 = start_sigma * start_point_0 + (1 - start_sigma) * end_point_0
-                    #start_point_1 = start_sigma * start_point_1 + (1 - start_sigma) * end_point_1
+                    end_point = end_sigma * start_noise + (1 - end_sigma) * end_point
 
-                    # start_point_1_dim = start_point_1.shape[2]
-                    # start_point_1 = rearrange(start_point_1, 'b c t h w -> (b t) c h w')
-                    # start_point_1 = torch.nn.functional.interpolate(start_point_1, size=(start_point_0.shape[-2], start_point_0.shape[-1]), mode='bilinear')
-                    # start_point_1 = rearrange(start_point_1, '(b t) c h w -> b c t h w', t=start_point_1_dim)
 
-                    # start_point = start_point_1 + start_point_0
-
-                    # start_point_dim = start_point_0.shape[2]
-                    # start_point_0 = rearrange(start_point_0, 'b c t h w -> (b t) c h w')
-                    # start_point_0 = torch.nn.functional.interpolate(start_point_0, size=(start_point_1.shape[-2], start_point_1.shape[-1]), mode='nearest')
-                    # start_point_0 = rearrange(start_point_0, '(b t) c h w -> b c t h w', t=start_point_dim)
-                    # start_point = start_point_1 + start_point_0
                 else:
                     start_point_0 = latents_list[1][index::column_size]
                     start_point_0_dim = start_point_0.shape[2]
@@ -939,34 +934,6 @@ class PyramidDiTForVideoGeneration:
                     start_point_diff = start_point_0[:,:,1:] - start_point_0[:,:,:1].repeat(1, 1, start_point_0.shape[2]-1, 1, 1)
                     #start_point_diff = start_point_0[:,:,1:] - start_point_0[:,:,:-1]
                     start_point_0[:,:,1:] = start_point_diff
-                #start_point_1 = start_sigma * start_point_1 + (1 - start_sigma) * end_point_1
-                #start_point = start_point_1 + latents_list[i_s][index::column_size]
-                #end_point_0 = end_sigma * start_point_0 + (1 - end_sigma) * end_point_0
-                #end_point_1 = end_sigma * start_point_1 + (1 - end_sigma) * end_point_1
-                
-                # if self.temporal_differencing:
-                #     start_point_diff = start_point[:,:,1:] - start_point[:,:,:1].repeat(1, 1, start_point.shape[2]-1, 1, 1)
-                #     start_point[:,:,1:] = start_point_diff
-
-                # end_point_0 = rearrange(end_point_0, 'b c t h w -> (b t) c h w')
-                # end_point_0 = torch.nn.functional.interpolate(end_point_0, size=(end_point_1.shape[-2], end_point_1.shape[-1]), mode='nearest')
-                # end_point_0 = rearrange(end_point_0, '(b t) c h w -> b c t h w', t=t)
-                # end_point = end_point_1 + end_point_0
-
-                # end_point = latents_list[i_s+1][index::column_size]
-
-                # if self.continuous_flow:
-                #     start_point_for_end = noise_list[i_s][index::column_size]
-                #     end_point = end_sigma * start_point_for_end + (1 - end_sigma) * end_point
-                    
-                    # start_point_temp = laplacian_pyramid_noises[i_s+1][index::column_size]
-                    # end_point_temp = laplacian_pyramid_latents[i_s+1][index::column_size]
-                    # end_point_temp = end_sigma * start_point_temp + (1 - end_sigma) * end_point_temp
-                    # end_point_temp_dim = end_point_temp.shape[2]
-                    # end_point_temp = rearrange(end_point_temp, 'b c t h w -> (b t) c h w')
-                    # end_point_temp = torch.nn.functional.interpolate(end_point_temp, size=(end_point.shape[-2], end_point.shape[-1]), mode='bilinear')
-                    # end_point_temp = rearrange(end_point_temp, '(b t) c h w -> b c t h w', t=end_point_temp_dim)
-                    # end_point += end_point_temp
                 
                 if self.temporal_differencing:
                     end_point_diff = end_point[:,:,1:] - end_point[:,:,:1].repeat(1, 1, end_point.shape[2]-1, 1, 1)
@@ -982,46 +949,25 @@ class PyramidDiTForVideoGeneration:
                 noisy_latents = ratios * start_point + (1 - ratios) * end_point
             
             elif i_s == 2:
-                start_point_2 = noise_list[2][index::column_size]
-                #start_point_1 = laplacian_pyramid_noises[1][index::column_size]
-                #start_point_1 = noise_list[i_s-1][index::column_size]
-                #start_point_2 = laplacian_pyramid_noises[2][index::column_size]
-
-                end_point_2 = latents_list[3][index::column_size]
-                #end_point_1 = laplacian_pyramid_latents[1][index::column_size]
-                #end_point_1 = latents_list[i_s][index::column_size]
-                #end_point_2 = laplacian_pyramid_latents[2][index::column_size]
-
-                # start_point_0 = end_point_0
-                # start_point_1 = end_point_1
-                # start_point_2 = start_point_2
-                # start_point_0 = rearrange(start_point_0, 'b c t h w -> (b t) c h w')
-                # start_point_0 = torch.nn.functional.interpolate(start_point_0, size=(start_point_1.shape[-2], start_point_1.shape[-1]), mode='nearest')
-                # start_point_0 = rearrange(start_point_0, '(b t) c h w -> b c t h w', t=t)
-                # start_point_1 = start_point_1 + start_point_0
-
-                # start_point_1 = rearrange(start_point_1, 'b c t h w -> (b t) c h w')
-                # start_point_1 = torch.nn.functional.interpolate(start_point_1, size=(start_point_2.shape[-2], start_point_2.shape[-1]), mode='nearest')
-                # start_point_1 = rearrange(start_point_1, '(b t) c h w -> b c t h w', t=t)
-                # start_point = start_point_2 + start_point_1
                 if self.continuous_flow:
-                    start_point = start_sigma * start_point_2 + (1 - start_sigma) * end_point_2
-                    end_point = end_point_2
-                    #start_point_1 = start_sigma * start_point_1 + (1 - start_sigma) * end_point_1
-                    #start_point_2 = start_sigma * start_point_2 + (1 - start_sigma) * end_point_2
+                    last_clean_latent = latents_list[2][index::column_size]
+                    last_clean_latent_1 = laplacian_pyramid_latents[2][index::column_size]
+                    last_clean_latent_1_dim = last_clean_latent_1.shape[2]
+                    last_clean_latent_1 = rearrange(last_clean_latent_1, 'b c t h w -> (b t) c h w')
+                    last_clean_latent_1 = torch.nn.functional.interpolate(last_clean_latent_1, size=(last_clean_latent_1.shape[-2]//2, last_clean_latent_1.shape[-1]//2), mode='bilinear')
+                    last_clean_latent_1 = rearrange(last_clean_latent_1, '(b t) c h w -> b c t h w', t=last_clean_latent_1_dim)
+                    last_clean_latent = last_clean_latent + last_clean_latent_1
 
-                    # start_point_2_dim = start_point_2.shape[2]
-                    # start_point_2 = rearrange(start_point_2, 'b c t h w -> (b t) c h w')
-                    # start_point_2 = torch.nn.functional.interpolate(start_point_2, size=(start_point_1.shape[-2], start_point_1.shape[-1]), mode='bilinear')
-                    # start_point_2 = rearrange(start_point_2, '(b t) c h w -> b c t h w', t=start_point_2_dim)
+                    last_clean_latent_dim = last_clean_latent.shape[2]
+                    last_clean_latent = rearrange(last_clean_latent, 'b c t h w -> (b t) c h w')
+                    last_clean_latent = torch.nn.functional.interpolate(last_clean_latent, size=(last_clean_latent.shape[-2] * 2, last_clean_latent.shape[-1] * 2), mode='nearest')
+                    last_clean_latent = rearrange(last_clean_latent, '(b t) c h w -> b c t h w', t=last_clean_latent_dim)
 
-                    # start_point = start_point_2 + start_point_1
+                    start_noise = noise_list[2][index::column_size]
+                    
+                    start_point = start_sigma * start_noise + (1 - start_sigma) * last_clean_latent
 
-                    # start_point_dim = start_point_1.shape[2]
-                    # start_point_1 = rearrange(start_point_1, 'b c t h w -> (b t) c h w')
-                    # start_point_1 = torch.nn.functional.interpolate(start_point_1, size=(start_point_2.shape[-2], start_point_2.shape[-1]), mode='nearest')
-                    # start_point_1 = rearrange(start_point_1, '(b t) c h w -> b c t h w', t=start_point_dim)
-                    # start_point = start_point_2 + start_point_1
+                    end_point = latents_list[3][index::column_size]
                 else:
                     start_point_1 = latents_list[i_s][index::column_size]
                     start_point_1_dim = start_point_1.shape[2]
@@ -1037,20 +983,7 @@ class PyramidDiTForVideoGeneration:
                     #start_point_diff = start_point_1[:,:,1:] - start_point_1[:,:,:-1]
                     start_point_1[:,:,1:] = start_point_diff
 
-                # if self.temporal_differencing:
-                #     start_point_diff = start_point[:,:,1:] - start_point[:,:,:1].repeat(1, 1, start_point.shape[2]-1, 1, 1)
-                #     start_point[:,:,1:] = start_point_diff
-
-                # end_point_0 = rearrange(end_point_0, 'b c t h w -> (b t) c h w')
-                # end_point_0 = torch.nn.functional.interpolate(end_point_0, size=(end_point_1.shape[-2], end_point_1.shape[-1]), mode='nearest')
-                # end_point_0 = rearrange(end_point_0, '(b t) c h w -> b c t h w', t=t)
-                # end_point_1 = end_point_1 + end_point_0
-                # end_point_1 = rearrange(end_point_1, 'b c t h w -> (b t) c h w')
-                # end_point_1 = torch.nn.functional.interpolate(end_point_1, size=(end_point_2.shape[-2], end_point_2.shape[-1]), mode='nearest')
-                # end_point_1 = rearrange(end_point_1, '(b t) c h w -> b c t h w', t=t)
-                # end_point = end_point_2 + end_point_1
-
-                # end_point = latents_list[i_s+1][index::column_size]
+               
                 if self.temporal_differencing:
                     end_point_diff = end_point[:,:,1:] - end_point[:,:,:1].repeat(1, 1, end_point.shape[2]-1, 1, 1)
                     end_point[:,:,1:] = end_point_diff
@@ -2618,19 +2551,19 @@ class PyramidDiTForVideoGeneration:
         #     latents = F.interpolate(latents, size=(height, width), mode='bilinear') * 2
         # latents = rearrange(latents, '(b t) c h w -> b c t h w', t=temp)
 
-        latents = laplacian_latents[0] * 4
+        latents = laplacian_latents[0]
         if self.continuous_flow:
             latents2 = laplacian_latents[2]
             latents1 = laplacian_latents[1]
             latents2_temp_dim = latents2.shape[2]
             latents2 = rearrange(latents2, 'b c t h w -> (b t) c h w')
-            latents2 = torch.nn.functional.interpolate(latents2, size=(latents1.shape[-2], latents1.shape[-1]), mode='bilinear')
-            latents2 = torch.nn.functional.interpolate(latents2, size=(latents.shape[-2], latents.shape[-1]), mode='bilinear')
+            latents2 = torch.nn.functional.interpolate(latents2, size=(latents2.shape[-2]//2, latents2.shape[-1]//2), mode='bilinear') * 2
+            latents2 = torch.nn.functional.interpolate(latents2, size=(latents2.shape[-2]//2, latents2.shape[-1]//2), mode='bilinear') * 2
             latents2 = rearrange(latents2, '(b t) c h w -> b c t h w', t=latents2_temp_dim)
 
             latents1_temp_dim = latents1.shape[2]
             latents1 = rearrange(latents1, 'b c t h w -> (b t) c h w')
-            latents1 = torch.nn.functional.interpolate(latents1, size=(latents.shape[-2], latents.shape[-1]), mode='bilinear')
+            latents1 = torch.nn.functional.interpolate(latents1, size=(latents1.shape[-2]//2, latents1.shape[-1]//2), mode='bilinear') * 2
             latents1 = rearrange(latents1, '(b t) c h w -> b c t h w', t=latents1_temp_dim)
 
             latents = latents1 + latents2 + latents
@@ -2656,11 +2589,11 @@ class PyramidDiTForVideoGeneration:
                     #Fix the stage
                     ori_sigma = self.validation_scheduler.ori_start_sigmas[i_s]
                     if i_s == 1:
-                        latents_add_1 = laplacian_latents[i_s] * 2
-                        latents_add_2 = laplacian_latents[i_s+1]
+                        latents_add_1 = laplacian_latents[1]
+                        latents_add_2 = laplacian_latents[2]
                         latents_add_2_temp_dim = latents_add_2.shape[2]
                         latents_add_2 = rearrange(latents_add_2, 'b c t h w -> (b t) c h w')
-                        latents_add_2 = torch.nn.functional.interpolate(latents_add_2, size=(latents.shape[-2], latents.shape[-1]), mode='bilinear')
+                        latents_add_2 = torch.nn.functional.interpolate(latents_add_2, size=(latents_add_2.shape[-2]//2, latents_add_2.shape[-1]//2), mode='bilinear') * 2
                         latents_add_2 = rearrange(latents_add_2, '(b t) c h w -> b c t h w', t=latents_add_2_temp_dim)
                         
                         latents1_temp_dim = latents1.shape[2]
@@ -2675,7 +2608,7 @@ class PyramidDiTForVideoGeneration:
 
                         latents = latents + ori_sigma * (-latents1 - latents2 + latents_add_2 + latents_add_1)
                     else:
-                        latents_add_2 = laplacian_latents[i_s] * (2**(3-i_s))
+                        latents_add_2 = laplacian_latents[i_s]
                         latents2_temp_dim = latents2.shape[2]
                         latents2 = rearrange(latents2, 'b c t h w -> (b t) c h w')
                         latents2 = torch.nn.functional.interpolate(latents2, size=(latents.shape[-2], latents.shape[-1]), mode='nearest')

@@ -12,8 +12,8 @@ MODEL_PATH=/data/cvpr25/Pyramid-Flow/output/pyramid-flow-miniflux  # The downloa
 VARIANT=diffusion_transformer_image  # The DiT Variant
 OUTPUT_DIR=/data/cvpr25/Pyramid-Flow/result/stage3-laplacian-image-multiratio-continuous    # The checkpoint saving dir
 
-BATCH_SIZE=24    # It should satisfy batch_size % 4 == 0
-GRAD_ACCU_STEPS=2
+BATCH_SIZE=16    # It should satisfy batch_size % 4 == 0
+GRAD_ACCU_STEPS=1
 RESOLUTION="384p"     # 384p or 768p
 NUM_FRAMES=16         # e.g., 16 for 5s, 32 for 10s
 #ANNO_FILE=annotation/video_text.jsonl   # The video annotation file path
