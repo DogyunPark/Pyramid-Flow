@@ -2456,6 +2456,7 @@ class PyramidDiTForVideoGeneration:
         sampling_scheduler: PyramidFlowMatchEulerDiscreteScheduler = None,
         generation_height: int = 512,
         generation_width: int = 512,
+        fix_latents: Optional[torch.Tensor] = None,
     ):
         if self.sequential_offload_enabled and not cpu_offloading:
             print("Warning: overriding cpu_offloading set to false, as it's needed for sequential cpu offload")
@@ -2524,20 +2525,24 @@ class PyramidDiTForVideoGeneration:
         #latent_height = height // self.vae.config.downsample_scale
         #latent_width = width // self.vae.config.downsample_scale
         latent_temp = int(self.num_frames // self.vae.config.downsample_scale + 1)
+        #latent_temp = 1
         if self.temporal_autoregressive:
             latent_temp += -1
 
         num_channels_latents = (self.dit.config.in_channels // 4) if self.model_name == "pyramid_flux" else  self.dit.config.in_channels
-        latents = self.prepare_latents(
-            batch_size * num_images_per_prompt,
-            num_channels_latents,
-            latent_temp,
-            generation_height, 
-            generation_width,
-            prompt_embeds.dtype,
-            device,
-            generator,
-        )
+        if fix_latents is None:
+            latents = self.prepare_latents(
+                batch_size * num_images_per_prompt,
+                num_channels_latents,
+                latent_temp,
+                generation_height, 
+                generation_width,
+                prompt_embeds.dtype,
+                device,
+                generator,
+            )
+        else:
+            latents = fix_latents
 
         temp, height, width = latents.shape[-3], latents.shape[-2], latents.shape[-1]
         # by defalut, we needs to start from the block noise
