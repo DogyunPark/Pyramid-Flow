@@ -931,7 +931,7 @@ class PyramidDiTForVideoGeneration:
                     start_point_0 = rearrange(start_point_0, 'b c t h w -> (b t) c h w')
                     start_point_0 = torch.nn.functional.interpolate(start_point_0, size=(end_point_0.shape[-2], end_point_0.shape[-1]), mode='nearest')
                     start_point_0 = rearrange(start_point_0, '(b t) c h w -> b c t h w', t=start_point_0_dim)
-                    start_point_1 = laplacian_pyramid_noises[1][index::column_size] * 2
+                    start_point_1 = laplacian_pyramid_noises[1][index::column_size] * 4
                     start_point = start_point_1 + start_point_0
                     end_point = end_point_0
 
@@ -2675,7 +2675,7 @@ class PyramidDiTForVideoGeneration:
 
                         latents = latents + ori_sigma * (-latents1 - latents2 + latents_add_2 + latents_add_1)
                     else:
-                        latents_add_2 = laplacian_latents[i_s] * 2
+                        latents_add_2 = laplacian_latents[i_s] * (2**(3-i_s))
                         latents2_temp_dim = latents2.shape[2]
                         latents2 = rearrange(latents2, 'b c t h w -> (b t) c h w')
                         latents2 = torch.nn.functional.interpolate(latents2, size=(latents.shape[-2], latents.shape[-1]), mode='nearest')
@@ -2695,7 +2695,7 @@ class PyramidDiTForVideoGeneration:
 
                     latents = latents
                 else:
-                    latents = laplacian_latents[i_s] * 2 + latents
+                    latents = laplacian_latents[i_s] * (2**(3-i_s)) + latents
 
             for idx, t in enumerate(timesteps):
                 # expand the latents if we are doing classifier free guidance
