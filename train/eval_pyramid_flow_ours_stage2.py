@@ -564,7 +564,8 @@ def main(args):
     accelerator.wait_for_everyone()
     runner.dit.eval()
 
-    validation_prompts = ["shoulder and full head portrait of a beautiful 19 year old girl, brunette, smiling, stunning, highly detailed, glamour lighting, HDR, photorealistic, hyperrealism, octane render, unreal engine", "A female painter with a brush in hand, white background, painting, looking very powerful.",
+    validation_prompts = ["shoulder and full head portrait of a beautiful 19 year old girl, brunette, smiling, stunning, highly detailed, glamour lighting, HDR, photorealistic, hyperrealism, octane render, unreal engine", 
+                          "A female painter with a brush in hand, white background, painting, looking very powerful.",
                           "Half human, half robot, repaired human, human flesh warrior, mech display, man in mech, cyberpunk.",
                           "A baby painter trying to draw very simple picture, white background",
                           "A vibrant yellow banana-shaped couch sits in a cozy living room, its curve cradling a pile of colorful cushions. on the wooden floor, a patterned rug adds a touch of eclectic charm, and a potted plant sits in the corner, reaching towards the sunlight filtering through the window.",
@@ -578,7 +579,7 @@ def main(args):
     for i in range(len(validation_prompts)):
         validation_prompt = validation_prompts[i]
         print('validation_prompt:', validation_prompt)
-        validation_image = data_list[i][:,0].to(accelerator.device)
+        validation_image = data_list[0][:,0].to(accelerator.device)
         validation_image = validation_image.unsqueeze(0).unsqueeze(2)
 
         print("Generating video for %d epoch" % i)

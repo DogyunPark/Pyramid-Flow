@@ -60,3 +60,4 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 accelerate launch --multi_gpu --num_process
     --use_perflow \
     --downsample_latent \
     --continuous_flow \
+    --mix_laion_ratio 0.4 \

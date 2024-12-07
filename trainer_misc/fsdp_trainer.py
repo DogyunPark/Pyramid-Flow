@@ -10,6 +10,31 @@ from einops import rearrange
 from .utils import MetricLogger, SmoothedValue
 from diffusers.utils import export_to_video
 import random
+import torchvision.transforms as transforms
+from PIL import Image
+
+
+def save_video_batch_to_png(video_tensor, output_dir, prefix="video"):
+    """
+    Save each frame of each video in a batch as PNG images.
+
+    Args:
+        video_tensor (torch.Tensor): The video tensor of shape (B, C, T, H, W),
+                                     where B is the batch size, C is the number of channels,
+                                     T is the number of frames, H is the height, and W is the width.
+        output_dir (str): The directory where the PNG images will be saved.
+        prefix (str): The prefix for the saved image filenames.
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    to_pil = transforms.ToPILImage()
+
+    for b in range(video_tensor.size(0)):  # Iterate over batch
+        batch_dir = os.path.join(output_dir, f"{prefix}_{b}")
+        os.makedirs(batch_dir, exist_ok=True)
+        for t in range(video_tensor.size(2)):  # Iterate over frames
+            frame = video_tensor[b, :, t, :, :]
+            image = to_pil(frame)
+            image.save(os.path.join(batch_dir, f"frame_{t:04d}.png"))
 
 def update_ema_for_dit(model, model_ema, accelerator, decay):
     """Apply exponential moving average update.
@@ -73,6 +98,7 @@ def train_one_epoch_with_fsdp(
     header = 'Epoch: [{}]'.format(epoch)
     train_loss = 0.0
 
+    topil = transforms.ToPILImage()
     print("Start training epoch {}, {} iters per inner epoch. Training dtype {}".format(epoch, iters_per_epoch, model_dtype))
 
     for step in metric_logger.log_every(range(iters_per_epoch), print_freq, header):
@@ -89,6 +115,9 @@ def train_one_epoch_with_fsdp(
                 # To fetch the data sample and Move the input to device
                 samples = next(data_loader)
                 video =  samples['video'].to(accelerator.device)
+
+                save_video_batch_to_png(video, "./output/video_batch", prefix="video_batch")
+
                 text = samples['text']
 
                 loss, log_loss = runner(video, text, identifier=None, accelerator=accelerator)
