@@ -33,7 +33,7 @@ from dataset.dataloaders import IterLoader, Bucketeer
 
 def get_transform(size, new_width=None, new_height=None, resize=True):
     transform_list = []
-    transform_list.append(video_transforms.RandomHorizontalFlipVideo())
+    #transform_list.append(video_transforms.RandomHorizontalFlipVideo())
     if resize:
         # rescale according to the largest ratio
         
@@ -44,6 +44,15 @@ def get_transform(size, new_width=None, new_height=None, resize=True):
 
     return transform_list
 
+def get_image_transform():
+    transform_list = []
+    #transform_list.append(video_transforms.RandomHorizontalFlipVideo())
+    transform_list.append(transforms.ToTensor())
+    #transform_list.append(transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5], inplace=True))
+    
+    transform_list = transforms.Compose(transform_list)
+
+    return transform_list
 
 def get_transforms_video(resolution=256):
     transform_video = transforms.Compose(
@@ -313,14 +322,17 @@ class DatasetFromCSVAndJSON2(torch.utils.data.Dataset):
             img_name = self.image_files[random_index]
             img_path = os.path.join(self.laion_folder, img_name)
             image = Image.open(img_path).convert('RGB')
-            image = self.totensor(image)
-            image = image.unsqueeze(0)
-            height, width = image.shape[-2:]
+            width, height = image.size
+            
             size = self.get_closest_size(width, height)
             resize_size = self.get_resize_size((width, height), size)
-            video_transform = get_transform(resize_size, size[0], size[1], resize=True)
-            image = video_transform(image)
-            video = image.permute(1, 0, 2, 3)
+            image = transforms.functional.resize(image, resize_size, interpolation=transforms.InterpolationMode.BICUBIC, antialias=True)
+            image = transforms.functional.center_crop(image, (size[1], size[0]))
+
+            image_transform = get_image_transform()
+            #image = image_transform(image)
+            image = image / 255
+            video = image.unsqueeze(0).repeat(self.num_frames, 1, 1, 1)
             
             text_name = img_name.rsplit('.', 1)[0] + '.txt'
             text_path = os.path.join(self.laion_folder, text_name)
