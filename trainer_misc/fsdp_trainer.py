@@ -227,7 +227,8 @@ def train_one_epoch_with_fsdp(
                     for i_img, img in enumerate(image):
                         export_to_video(img, "./output/text_to_video_sample-{}epoch-{}-{}.mp4".format(epoch, num_image, i_img), fps=24)
                 else:
-                    export_to_video(image, "./output/text_to_video_sample-{}epoch-{}.mp4".format(epoch, num_image), fps=24)
+                    if accelerator.process_index == 0:
+                        export_to_video(image, "./output/text_to_video_sample-{}epoch-{}.mp4".format(epoch, num_image), fps=24)
             print("Generated video for {} step/{} epoch".format(step, epoch))
             accelerator.wait_for_everyone()
             runner.dit.train()
