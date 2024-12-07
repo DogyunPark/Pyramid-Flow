@@ -117,10 +117,6 @@ def train_one_epoch_with_fsdp(
                 samples = next(data_loader)
                 video =  samples['video'].to(accelerator.device)
                 text = samples['text']
-
-                import pdb; pdb.set_trace()
-                save_video_batch_to_png(video, "./output/video_sample", prefix="train")
-
                 loss, log_loss = runner(video, text, identifier=None, accelerator=accelerator)
 
                 # Check if the loss is nan

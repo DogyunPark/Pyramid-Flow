@@ -282,15 +282,15 @@ class DatasetFromCSVAndJSON2(torch.utils.data.Dataset):
             if os.path.exists(vid_path):
                 video_samples.append([vid_path, vid_caption])
 
-        # Load from JSON
-        # with open(json_path, 'r') as f:
-        #     json_data = json.load(f)
-        # for entry in json_data:
-        #     vid_name = entry['vid']
-        #     vid_path = os.path.join(json_root, f"{vid_name}.mp4")
-        #     vid_caption = entry['caption']
-        #     if os.path.exists(vid_path):
-        #         video_samples.append([vid_path, vid_caption])
+        #Load from JSON
+        with open(json_path, 'r') as f:
+            json_data = json.load(f)
+        for entry in json_data:
+            vid_name = entry['vid']
+            vid_path = os.path.join(json_root, f"{vid_name}.mp4")
+            vid_caption = entry['caption']
+            if os.path.exists(vid_path):
+                video_samples.append([vid_path, vid_caption])
         
         self.image_files = [f for f in os.listdir(laion_folder) if f.endswith('.jpg') or f.endswith('.png')]
         self.samples = video_samples
@@ -330,8 +330,8 @@ class DatasetFromCSVAndJSON2(torch.utils.data.Dataset):
             image = transforms.functional.center_crop(image, (size[1], size[0]))
 
             image_transform = get_image_transform()
-            #image = image_transform(image)
-            image = image / 255
+            image = image_transform(image)
+            #image = image / 255
             video = image.unsqueeze(0).repeat(self.num_frames, 1, 1, 1)
             
             text_name = img_name.rsplit('.', 1)[0] + '.txt'
