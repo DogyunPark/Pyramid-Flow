@@ -894,6 +894,7 @@ class PyramidDiTForVideoGeneration:
                     last_clean_latent_2 = rearrange(last_clean_latent_2, '(b t) c h w -> b c t h w', t=last_clean_latent_2_dim)
                     #upsample the last clean latent
                     last_clean_latent = last_clean_latent_2 + last_clean_latent_1 + last_clean_latent
+                    
                     last_clean_latent_dim = last_clean_latent.shape[2]
                     last_clean_latent = rearrange(last_clean_latent, 'b c t h w -> (b t) c h w')
                     last_clean_latent = torch.nn.functional.interpolate(last_clean_latent, size=(last_clean_latent.shape[-2] * 2, last_clean_latent.shape[-1] * 2), mode='nearest')
@@ -905,17 +906,20 @@ class PyramidDiTForVideoGeneration:
                     start_noise_1 = rearrange(start_noise_1, 'b c t h w -> (b t) c h w')
                     start_noise_1 = torch.nn.functional.interpolate(start_noise_1, size=(start_noise_1.shape[-2]//2, start_noise_1.shape[-1]//2), mode='bilinear') * 2
                     start_noise_1 = rearrange(start_noise_1, '(b t) c h w -> b c t h w', t=start_noise_1_dim)
-                    start_noise = start_noise + start_noise_1
-
+                    #start_noise = start_noise + start_noise_1
+                    
                     start_point = start_sigma * start_noise + (1 - start_sigma) * last_clean_latent
 
-                    end_point_1 = latents_list[2][index::column_size]
+                    #start_noise_laplacian = laplacian_pyramid_noises[1][index::column_size] * 4
+                    #start_point = 0.5*start_noise_laplacian + 0.5 * start_point
+
+                    end_point = latents_list[2][index::column_size]
                     end_point_2 = laplacian_pyramid_latents[2][index::column_size]
                     end_point_2_dim = end_point_2.shape[2]
                     end_point_2 = rearrange(end_point_2, 'b c t h w -> (b t) c h w')
                     end_point_2 = torch.nn.functional.interpolate(end_point_2, size=(end_point_2.shape[-2]//2, end_point_2.shape[-1]//2), mode='bilinear')
                     end_point_2 = rearrange(end_point_2, '(b t) c h w -> b c t h w', t=end_point_2_dim)
-                    end_point = end_point_2 + end_point_1
+                    end_point = end_point_2 + end_point
 
                     end_point = end_sigma * start_noise + (1 - end_sigma) * end_point
 
@@ -2598,44 +2602,44 @@ class PyramidDiTForVideoGeneration:
 
                 if self.continuous_flow:
                     #Fix the stage
-                    ori_sigma = self.validation_scheduler.ori_start_sigmas[i_s]
-                    if i_s == 1:
-                        latents_add_1 = laplacian_latents[1]
-                        latents_add_2 = laplacian_latents[2]
-                        latents_add_2_temp_dim = latents_add_2.shape[2]
-                        latents_add_2 = rearrange(latents_add_2, 'b c t h w -> (b t) c h w')
-                        latents_add_2 = torch.nn.functional.interpolate(latents_add_2, size=(latents_add_2.shape[-2]//2, latents_add_2.shape[-1]//2), mode='bilinear') * 2
-                        latents_add_2 = rearrange(latents_add_2, '(b t) c h w -> b c t h w', t=latents_add_2_temp_dim)
+                    # ori_sigma = self.validation_scheduler.ori_start_sigmas[i_s]
+                    # if i_s == 1:
+                    #     latents_add_1 = laplacian_latents[1]
+                    #     latents_add_2 = laplacian_latents[2]
+                    #     latents_add_2_temp_dim = latents_add_2.shape[2]
+                    #     latents_add_2 = rearrange(latents_add_2, 'b c t h w -> (b t) c h w')
+                    #     latents_add_2 = torch.nn.functional.interpolate(latents_add_2, size=(latents_add_2.shape[-2]//2, latents_add_2.shape[-1]//2), mode='bilinear') * 2
+                    #     latents_add_2 = rearrange(latents_add_2, '(b t) c h w -> b c t h w', t=latents_add_2_temp_dim)
                         
-                        latents1_temp_dim = latents1.shape[2]
-                        latents1 = rearrange(latents1, 'b c t h w -> (b t) c h w')
-                        latents1 = torch.nn.functional.interpolate(latents1, size=(latents.shape[-2], latents.shape[-1]), mode='nearest')
-                        latents1 = rearrange(latents1, '(b t) c h w -> b c t h w', t=latents1_temp_dim)
+                    #     latents1_temp_dim = latents1.shape[2]
+                    #     latents1 = rearrange(latents1, 'b c t h w -> (b t) c h w')
+                    #     latents1 = torch.nn.functional.interpolate(latents1, size=(latents.shape[-2], latents.shape[-1]), mode='nearest')
+                    #     latents1 = rearrange(latents1, '(b t) c h w -> b c t h w', t=latents1_temp_dim)
 
-                        latents2_temp_dim = latents2.shape[2]
-                        latents2 = rearrange(latents2, 'b c t h w -> (b t) c h w')
-                        latents2 = torch.nn.functional.interpolate(latents2, size=(latents.shape[-2], latents.shape[-1]), mode='nearest')
-                        latents2 = rearrange(latents2, '(b t) c h w -> b c t h w', t=latents2_temp_dim)
+                    #     latents2_temp_dim = latents2.shape[2]
+                    #     latents2 = rearrange(latents2, 'b c t h w -> (b t) c h w')
+                    #     latents2 = torch.nn.functional.interpolate(latents2, size=(latents.shape[-2], latents.shape[-1]), mode='nearest')
+                    #     latents2 = rearrange(latents2, '(b t) c h w -> b c t h w', t=latents2_temp_dim)
 
-                        latents = latents + ori_sigma * (-latents1 - latents2 + latents_add_2 + latents_add_1)
-                    else:
-                        latents_add_2 = laplacian_latents[i_s]
-                        latents3_temp_dim = latents3.shape[2]
-                        latents3 = rearrange(latents3, 'b c t h w -> (b t) c h w')
-                        latents3 = torch.nn.functional.interpolate(latents3, size=(latents.shape[-2], latents.shape[-1]), mode='nearest')
-                        latents3 = rearrange(latents3, '(b t) c h w -> b c t h w', t=latents3_temp_dim)
+                    #     latents = latents + ori_sigma * (-latents1 - latents2 + latents_add_2 + latents_add_1)
+                    # else:
+                    #     latents_add_2 = laplacian_latents[i_s]
+                    #     latents3_temp_dim = latents3.shape[2]
+                    #     latents3 = rearrange(latents3, 'b c t h w -> (b t) c h w')
+                    #     latents3 = torch.nn.functional.interpolate(latents3, size=(latents.shape[-2], latents.shape[-1]), mode='nearest')
+                    #     latents3 = rearrange(latents3, '(b t) c h w -> b c t h w', t=latents3_temp_dim)
 
-                        latents = latents + ori_sigma * (-latents3 + latents_add_2)
+                    #     latents = latents + ori_sigma * (-latents3 + latents_add_2)
 
-                    # ori_sigma = 1 - self.validation_scheduler.ori_start_sigmas[i_s]   # the original coeff of signal
-                    # gamma = self.validation_scheduler.config.gamma
-                    # alpha = 1 / (math.sqrt(1 + (1 / gamma)) * (1 - ori_sigma) + ori_sigma)
-                    # beta = alpha * (1 - ori_sigma) / math.sqrt(gamma)
+                    ori_sigma = 1 - self.validation_scheduler.ori_start_sigmas[i_s]   # the original coeff of signal
+                    gamma = self.validation_scheduler.config.gamma
+                    alpha = 1 / (math.sqrt(1 + (1 / gamma)) * (1 - ori_sigma) + ori_sigma)
+                    beta = alpha * (1 - ori_sigma) / math.sqrt(gamma)
 
-                    # bs, ch, temp, height, width = latents.shape
-                    # noise = self.sample_block_noise(bs, ch, temp, height, width)
-                    # noise = noise.to(device=device, dtype=dtype)
-                    # latents = alpha * latents + beta * noise    # To fix the block artifact
+                    bs, ch, temp, height, width = latents.shape
+                    noise = self.sample_block_noise(bs, ch, temp, height, width)
+                    noise = noise.to(device=device, dtype=dtype)
+                    latents = alpha * latents + beta * noise    # To fix the block artifact
 
                     latents = latents
                 else:
