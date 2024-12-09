@@ -932,7 +932,7 @@ class PyramidDiTForVideoGeneration:
                     last_clean_latent = torch.nn.functional.interpolate(last_clean_latent, size=(last_clean_latent.shape[-2] * 2, last_clean_latent.shape[-1] * 2), mode='nearest')
                     last_clean_latent = rearrange(last_clean_latent, '(b t) c h w -> b c t h w', t=last_clean_latent_dim)
 
-                    start_point = last_clean_latent * laplacian_pyramid_noises[1][index::column_size] * 4
+                    start_point = last_clean_latent + laplacian_pyramid_noises[1][index::column_size] * 4
 
                     end_point = latents_list[2][index::column_size]
 
@@ -981,7 +981,7 @@ class PyramidDiTForVideoGeneration:
                     last_clean_latent = torch.nn.functional.interpolate(last_clean_latent, size=(last_clean_latent.shape[-2] * 2, last_clean_latent.shape[-1] * 2), mode='nearest')
                     last_clean_latent = rearrange(last_clean_latent, '(b t) c h w -> b c t h w', t=last_clean_latent_dim)
 
-                    start_point = last_clean_latent * laplacian_pyramid_noises[2][index::column_size] * 2
+                    start_point = last_clean_latent + laplacian_pyramid_noises[2][index::column_size] * 2
 
                     end_point = latents_list[3][index::column_size]
 
