@@ -911,13 +911,13 @@ class PyramidDiTForVideoGeneration:
                     # last_clean_latent = torch.nn.functional.interpolate(last_clean_latent, size=(last_clean_latent.shape[-2] * 2, last_clean_latent.shape[-1] * 2), mode='nearest')
                     # last_clean_latent = rearrange(last_clean_latent, '(b t) c h w -> b c t h w', t=last_clean_latent_dim)
 
-                    # start_noise = noise_list[1][index::column_size]
-                    # start_noise_1 = laplacian_pyramid_noises[2][index::column_size]
-                    # start_noise_1_dim = start_noise_1.shape[2]
-                    # start_noise_1 = rearrange(start_noise_1, 'b c t h w -> (b t) c h w')
-                    # start_noise_1 = torch.nn.functional.interpolate(start_noise_1, size=(start_noise_1.shape[-2]//2, start_noise_1.shape[-1]//2), mode='bilinear') * 2
-                    # start_noise_1 = rearrange(start_noise_1, '(b t) c h w -> b c t h w', t=start_noise_1_dim)
-                    # #start_noise = start_noise + start_noise_1
+                    start_noise = noise_list[1][index::column_size] * 2
+                    start_noise_1 = laplacian_pyramid_noises[2][index::column_size]
+                    start_noise_1_dim = start_noise_1.shape[2]
+                    start_noise_1 = rearrange(start_noise_1, 'b c t h w -> (b t) c h w')
+                    start_noise_1 = torch.nn.functional.interpolate(start_noise_1, size=(start_noise_1.shape[-2]//2, start_noise_1.shape[-1]//2), mode='bilinear') * 2
+                    start_noise_1 = rearrange(start_noise_1, '(b t) c h w -> b c t h w', t=start_noise_1_dim)
+                    #start_noise = start_noise + start_noise_1
                     
                     # start_point = start_sigma * start_noise + (1 - start_sigma) * last_clean_latent
                     # start_point = start_point + laplacian_pyramid_noises[1][index::column_size]
