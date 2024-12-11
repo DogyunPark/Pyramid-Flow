@@ -607,6 +607,9 @@ class DatasetFromCSV2(torch.utils.data.Dataset):
         filtered_frames = video_transform(filtered_frames)
         video = filtered_frames.permute(1, 0, 2, 3)
 
+        video = video * 2 - 1.0
+        video = video.clamp(-1.0, 1.0)
+
         return {"video": video, "text": text}
 
     def __getitem__(self, index):
