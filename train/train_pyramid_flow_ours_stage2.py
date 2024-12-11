@@ -253,7 +253,7 @@ def get_args():
     parser.add_argument('--temporal_differencing', action='store_true')
     parser.add_argument('--continuous_flow', action='store_true')
     parser.add_argument('--laion_data_root', default='/data/cvpr25/laion/laion-hq/', type=str, help='The laion data root')
-    parser.add_argument('--jsonl_root', default='/data/cvpr25/journaldb/JourneyDB/data/train/img/', type=str, help='The jsonl root')
+    parser.add_argument('--jsonl_root', default='/data/cvpr25/journaldb/JourneyDB/data/train/imgs/', type=str, help='The jsonl root')
     parser.add_argument('--mix_laion_ratio', default=0.0, type=float, help='The ratio of laion data in the training batch')
     parser.add_argument('--initialize_weights', action='store_true')
     return parser.parse_args()
