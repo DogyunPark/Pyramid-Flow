@@ -357,7 +357,7 @@ class DatasetFromCSVAndJSON2(torch.utils.data.Dataset):
             #text_path = os.path.join(self.laion_folder, text_name)
             #with open(text_path, 'r') as file:
             #    text = file.read().strip()
-            text = sample['task2']['caption']
+            text = sample['Task2']['caption']
         else:
             sample = self.samples[index]
             path = sample[0]
