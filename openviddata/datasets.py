@@ -265,6 +265,7 @@ class DatasetFromCSVAndJSON2(torch.utils.data.Dataset):
         csv_root=None,
         json_root=None,
         laion_folder=None,
+        jsonl_file=None,
         sizes=[(512, 512), (384, 640), (640, 384)],
         ratios=[1/1, 3/5, 5/3],
         mix_laion_ratio=0.0,
@@ -292,7 +293,15 @@ class DatasetFromCSVAndJSON2(torch.utils.data.Dataset):
             if os.path.exists(vid_path):
                 video_samples.append([vid_path, vid_caption])
         
-        self.image_files = [f for f in os.listdir(laion_folder) if f.endswith('.jpg') or f.endswith('.png')]
+        #self.image_files = [f for f in os.listdir(laion_folder) if f.endswith('.jpg') or f.endswith('.png')]
+        self.image_files = []
+        with open(jsonl_file, "r") as f:
+            for line in f:
+                sample = json.loads(line)
+                img_path = sample.get("img_path")
+                if img_path and os.path.exists(img_path):  # Check if image exists
+                    self.image_files.append(sample)
+        
         self.samples = video_samples
         self.is_video = True
         self.sizes = sizes
@@ -319,9 +328,15 @@ class DatasetFromCSVAndJSON2(torch.utils.data.Dataset):
     def getitem(self, index):
         if random.random() < self.mix_laion_ratio and self.mix_laion_ratio > 0:
             random_index = random.randint(0, len(self.image_files)-1)
-            img_name = self.image_files[random_index]
-            img_path = os.path.join(self.laion_folder, img_name)
-            image = Image.open(img_path).convert('RGB')
+            sample = self.image_files[random_index]
+
+            img_path = sample['image_path']
+            if not os.path.exists(img_path):
+                raise FileNotFoundError(f"Image not found: {img_path}")
+            image = Image.open(img_path).convert("RGB")
+
+            # img_path = os.path.join(self.laion_folder, img_name)
+            # image = Image.open(img_path).convert('RGB')
             width, height = image.size
             
             size = self.get_closest_size(width, height)
@@ -334,10 +349,11 @@ class DatasetFromCSVAndJSON2(torch.utils.data.Dataset):
             #image = image / 255
             video = image.unsqueeze(1).repeat(1, self.num_frames, 1, 1)
             
-            text_name = img_name.rsplit('.', 1)[0] + '.txt'
-            text_path = os.path.join(self.laion_folder, text_name)
-            with open(text_path, 'r') as file:
-                text = file.read().strip()
+            #text_name = img_name.rsplit('.', 1)[0] + '.txt'
+            #text_path = os.path.join(self.laion_folder, text_name)
+            #with open(text_path, 'r') as file:
+            #    text = file.read().strip()
+            text = sample['prompt']
         else:
             sample = self.samples[index]
             path = sample[0]
