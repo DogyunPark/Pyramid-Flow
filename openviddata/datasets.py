@@ -265,7 +265,7 @@ class DatasetFromCSVAndJSON2(torch.utils.data.Dataset):
         csv_root=None,
         json_root=None,
         laion_folder=None,
-        jsonl_file=None,
+        jsonl_root=None,
         sizes=[(512, 512), (384, 640), (640, 384)],
         ratios=[1/1, 3/5, 5/3],
         mix_laion_ratio=0.0,
@@ -295,10 +295,12 @@ class DatasetFromCSVAndJSON2(torch.utils.data.Dataset):
         
         #self.image_files = [f for f in os.listdir(laion_folder) if f.endswith('.jpg') or f.endswith('.png')]
         self.image_files = []
+        jsonl_file = os.path.join(jsonl_root, "train_anno_realease_repath.jsonl")
         with open(jsonl_file, "r") as f:
             for line in f:
                 sample = json.loads(line)
                 img_path = sample.get("img_path")
+                img_path = os.path.join(jsonl_root, img_path)
                 if img_path and os.path.exists(img_path):  # Check if image exists
                     self.image_files.append(sample)
         
@@ -353,7 +355,7 @@ class DatasetFromCSVAndJSON2(torch.utils.data.Dataset):
             #text_path = os.path.join(self.laion_folder, text_name)
             #with open(text_path, 'r') as file:
             #    text = file.read().strip()
-            text = sample['prompt']
+            text = sample['task2']['caption']
         else:
             sample = self.samples[index]
             path = sample[0]
