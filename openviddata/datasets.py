@@ -332,7 +332,7 @@ class DatasetFromCSVAndJSON2(torch.utils.data.Dataset):
             random_index = random.randint(0, len(self.image_files)-1)
             sample = self.image_files[random_index]
 
-            img_path = sample['image_path']
+            img_path = sample['img_path']
             if not os.path.exists(img_path):
                 raise FileNotFoundError(f"Image not found: {img_path}")
             image = Image.open(img_path).convert("RGB")
