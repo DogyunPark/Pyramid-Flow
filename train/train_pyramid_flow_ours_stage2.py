@@ -464,8 +464,8 @@ def main(args):
                 csv_root=args.root,
                 json_root=args.json_root,
                 laion_folder=args.laion_data_root,
-                sizes=[(512, 512)],
-                ratios=[1/1],
+                sizes=[(512, 512), (384, 640), (640, 384)],
+                ratios=[1/1, 3/5, 5/3],
                 mix_laion_ratio=args.mix_laion_ratio,
             )
 
