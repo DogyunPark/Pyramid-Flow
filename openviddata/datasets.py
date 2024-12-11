@@ -295,6 +295,7 @@ class DatasetFromCSVAndJSON2(torch.utils.data.Dataset):
         
         #self.image_files = [f for f in os.listdir(laion_folder) if f.endswith('.jpg') or f.endswith('.png')]
         self.image_files = []
+        self.jsonl_root = jsonl_root
         jsonl_file = os.path.join(jsonl_root, "train_anno_realease_repath.jsonl")
         with open(jsonl_file, "r") as f:
             for line in f:
@@ -333,6 +334,7 @@ class DatasetFromCSVAndJSON2(torch.utils.data.Dataset):
             sample = self.image_files[random_index]
 
             img_path = sample['img_path']
+            img_path = os.path.join(self.jsonl_root, img_path)
             if not os.path.exists(img_path):
                 raise FileNotFoundError(f"Image not found: {img_path}")
             image = Image.open(img_path).convert("RGB")
