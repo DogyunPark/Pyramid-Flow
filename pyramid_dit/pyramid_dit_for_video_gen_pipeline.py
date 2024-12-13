@@ -863,9 +863,9 @@ class PyramidDiTForVideoGeneration:
                     # end_point_temp = rearrange(end_point_temp, '(b t) c h w -> b c t h w', t=end_point_temp_dim)
                     # end_point += end_point_temp
 
-                if self.temporal_differencing:
-                    end_point_diff = end_point[:,:,1:] - end_point[:,:,:1].repeat(1, 1, end_point.shape[2]-1, 1, 1)
-                    end_point[:,:,1:] = end_point_diff
+                # if self.temporal_differencing:
+                #     end_point_diff = end_point[:,:,1:] - end_point[:,:,:1].repeat(1, 1, end_point.shape[2]-1, 1, 1)
+                #     end_point[:,:,1:] = end_point_diff
 
                 if self.temporal_autoregressive:
                     start_point = start_point[:,:,temp_init+1:]
@@ -948,14 +948,14 @@ class PyramidDiTForVideoGeneration:
 
                     end_point = latents_list[2][index::column_size]
 
-                if self.temporal_differencing:
-                    start_point_diff = start_point_0[:,:,1:] - start_point_0[:,:,:1].repeat(1, 1, start_point_0.shape[2]-1, 1, 1)
-                    #start_point_diff = start_point_0[:,:,1:] - start_point_0[:,:,:-1]
-                    start_point_0[:,:,1:] = start_point_diff
+                # if self.temporal_differencing:
+                #     start_point_diff = start_point_0[:,:,1:] - start_point_0[:,:,:1].repeat(1, 1, start_point_0.shape[2]-1, 1, 1)
+                #     #start_point_diff = start_point_0[:,:,1:] - start_point_0[:,:,:-1]
+                #     start_point_0[:,:,1:] = start_point_diff
                 
-                if self.temporal_differencing:
-                    end_point_diff = end_point[:,:,1:] - end_point[:,:,:1].repeat(1, 1, end_point.shape[2]-1, 1, 1)
-                    end_point[:,:,1:] = end_point_diff
+                # if self.temporal_differencing:
+                #     end_point_diff = end_point[:,:,1:] - end_point[:,:,:1].repeat(1, 1, end_point.shape[2]-1, 1, 1)
+                #     end_point[:,:,1:] = end_point_diff
 
                 while len(ratios.shape) < start_point.ndim:
                     ratios = ratios.unsqueeze(-1)
@@ -1006,15 +1006,15 @@ class PyramidDiTForVideoGeneration:
 
                     end_point = latents_list[3][index::column_size]
 
-                if self.temporal_differencing:
-                    start_point_diff = start_point_1[:,:,1:] - start_point_1[:,:,:1].repeat(1, 1, start_point_1.shape[2]-1, 1, 1)
-                    #start_point_diff = start_point_1[:,:,1:] - start_point_1[:,:,:-1]
-                    start_point_1[:,:,1:] = start_point_diff
+                # if self.temporal_differencing:
+                #     start_point_diff = start_point_1[:,:,1:] - start_point_1[:,:,:1].repeat(1, 1, start_point_1.shape[2]-1, 1, 1)
+                #     #start_point_diff = start_point_1[:,:,1:] - start_point_1[:,:,:-1]
+                #     start_point_1[:,:,1:] = start_point_diff
 
                
-                if self.temporal_differencing:
-                    end_point_diff = end_point[:,:,1:] - end_point[:,:,:1].repeat(1, 1, end_point.shape[2]-1, 1, 1)
-                    end_point[:,:,1:] = end_point_diff
+                # if self.temporal_differencing:
+                #     end_point_diff = end_point[:,:,1:] - end_point[:,:,:1].repeat(1, 1, end_point.shape[2]-1, 1, 1)
+                #     end_point[:,:,1:] = end_point_diff
 
                 while len(ratios.shape) < start_point.ndim:
                     ratios = ratios.unsqueeze(-1)
@@ -1557,14 +1557,14 @@ class PyramidDiTForVideoGeneration:
             # Compute the loss.
             loss_weight = torch.ones_like(target)
 
-            # if self.temporal_differencing:
-            #     model_pred_diff = torch.zeros_like(model_pred)
-            #     for temp_idx in range(0, model_pred.shape[2]):
-            #         if temp_idx == 0:
-            #             model_pred_diff[:,:,temp_idx] = model_pred[:,:,temp_idx]
-            #         else:
-            #             model_pred_diff[:,:,temp_idx] = model_pred[:,:,0] + model_pred[:,:,temp_idx]
-            #     model_pred = model_pred_diff
+            if self.temporal_differencing:
+                model_pred_diff = torch.zeros_like(model_pred)
+                for temp_idx in range(0, model_pred.shape[2]):
+                    if temp_idx == 0:
+                        model_pred_diff[:,:,temp_idx] = model_pred[:,:,temp_idx]
+                    else:
+                        model_pred_diff[:,:,temp_idx] = model_pred[:,:,0] + model_pred[:,:,temp_idx]
+                model_pred = model_pred_diff
             
             loss = torch.mean(
                 (loss_weight.float() * (model_pred.float() - target.float()) ** 2).reshape(target.shape[0], -1),
