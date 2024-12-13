@@ -92,6 +92,7 @@ def train_one_epoch_with_fsdp(
     validation_image=None,
     save_intermediate_latents=False,
     fix_latents=None,
+    img_dataloader=None,
 ):
     runner.dit.train()
     metric_logger = MetricLogger(delimiter="  ")
@@ -115,7 +116,13 @@ def train_one_epoch_with_fsdp(
 
             with accelerator.accumulate(runner.dit):
                 # To fetch the data sample and Move the input to device
-                samples = next(data_loader)
+                if img_dataloader is not None:
+                    if random.random() < 0.1:
+                        samples = next(img_dataloader)
+                    else:
+                        samples = next(data_loader)
+                else:
+                    samples = next(data_loader)
                 video =  samples['video'].to(accelerator.device)
                 text = samples['text']
                 loss, log_loss = runner(video, text, identifier=None, accelerator=accelerator)
