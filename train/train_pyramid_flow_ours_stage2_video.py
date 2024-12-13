@@ -515,8 +515,8 @@ def main(args):
     if args.task == 't2i':
         train_dataloader = create_image_text_dataloaders(dataset, args.batch_size, args.num_workers, multi_aspect_ratio=True, epoch=0, sizes=[(512, 512), (384, 640), (640, 384)], use_distributed=True, world_size=accelerator.num_processes, rank=accelerator.process_index)
     elif args.task == 't2v':
-        train_dataloader = create_image_text_dataloaders(dataset, args.batch_size, args.num_workers, multi_aspect_ratio=True, epoch=0, sizes=[args.image_size], use_distributed=True, world_size=accelerator.num_processes, rank=accelerator.process_index)
-        img_dataloader = create_image_text_dataloaders(img_dataset, args.batch_size, args.num_workers, multi_aspect_ratio=True, epoch=0, sizes=[args.image_size], use_distributed=True, world_size=accelerator.num_processes, rank=accelerator.process_index)
+        train_dataloader = create_image_text_dataloaders(dataset, args.batch_size, args.num_workers, multi_aspect_ratio=False, epoch=0, sizes=[args.image_size], use_distributed=True, world_size=accelerator.num_processes, rank=accelerator.process_index)
+        img_dataloader = create_image_text_dataloaders(img_dataset, args.batch_size, args.num_workers, multi_aspect_ratio=False, epoch=0, sizes=[args.image_size], use_distributed=True, world_size=accelerator.num_processes, rank=accelerator.process_index)
     # train_dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, drop_last=True)
     
     accelerator.wait_for_everyone()
