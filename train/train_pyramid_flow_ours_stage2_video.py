@@ -21,7 +21,7 @@ import glob
 
 from einops import rearrange
 
-from openviddata.datasets import DatasetFromCSV, get_transforms_video, load_data_prompts, DatasetFromCSVAndJSON, DatasetFromCSVAndJSON2, DatasetFromCSV2, create_webdataset, dataset_to_dataloader, WebDatasetSampler
+from openviddata.datasets import DatasetFromCSV, get_transforms_video, load_data_prompts, DatasetFromCSVAndJSON, DatasetFromCSVAndJSON2, DatasetFromCSV2, DatasetFromCSVAndJSON_forvideo
 from diffusers.utils import export_to_video
 from torch.utils.data.distributed import DistributedSampler
 
@@ -472,22 +472,25 @@ def main(args):
             )
 
         elif args.task == 't2v':
-            dataset = DatasetFromCSVAndJSON2(
+            dataset = DatasetFromCSVAndJSON_forvideo(
                 args.data_root,
                 args.json_path,
                 num_frames=args.num_frames,
                 sample_fps=args.sample_fps,
                 csv_root=args.root,
                 json_root=args.json_root,
-                sizes=[(640, 384)],
-                ratios=[5/3],
+                laion_folder=args.laion_data_root,
+                jsonl_root=args.jsonl_root,
+                sizes=[args.image_size],
+                ratios=[1/1],
+                mix_laion_ratio=args.mix_laion_ratio,
             )
         else:
             raise NotImplementedError(f"Not Implemented for task {args.task}")
 
     else:
         print('Loading the dataset only from OpenVid-1M')
-        dataset = DatasetFromCSV2(
+        dataset = DatasetFromCSVAndJSON_forvideo(
             args.data_root,
             num_frames=args.num_frames,
             sample_fps=args.sample_fps,
@@ -499,7 +502,7 @@ def main(args):
     if args.task == 't2i':
         train_dataloader = create_image_text_dataloaders(dataset, args.batch_size, args.num_workers, multi_aspect_ratio=True, epoch=0, sizes=[(512, 512), (384, 640), (640, 384)], use_distributed=True, world_size=accelerator.num_processes, rank=accelerator.process_index)
     elif args.task == 't2v':
-        train_dataloader = create_video_text_dataloaders(dataset, args.batch_size, args.num_workers, multi_aspect_ratio=True, epoch=0, sizes=[(512, 512), (384, 640), (640, 384)], use_distributed=True, world_size=accelerator.num_processes, rank=accelerator.process_index)
+        train_dataloader = create_image_text_dataloaders(dataset, args.batch_size, args.num_workers, multi_aspect_ratio=True, epoch=0, sizes=[args.image_size], use_distributed=True, world_size=accelerator.num_processes, rank=accelerator.process_index)
     # train_dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, drop_last=True)
     
     accelerator.wait_for_everyone()

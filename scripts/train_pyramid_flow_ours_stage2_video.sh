@@ -24,7 +24,7 @@ NUM_FRAMES=16         # e.g., 16 for 5s, 32 for 10s
 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 accelerate launch --multi_gpu --num_processes $GPUS \
     train/train_pyramid_flow_ours_stage2_video.py \
     --num_workers 8 \
-    --task t2i \
+    --task t2v \
     --use_fsdp \
     --use_temporal_causal \
     --fsdp_shard_strategy $SHARD_STRATEGY \
