@@ -852,6 +852,10 @@ class PyramidDiTForVideoGeneration:
                     #start_point = start_point_2 + start_point_1 + start_point
                     #end_point = end_point_2 + end_point_1 + end_point
 
+                    if self.temporal_differencing:
+                        end_point_diff = end_point[:,:,1:] - end_point[:,:,:1].repeat(1, 1, end_point.shape[2]-1, 1, 1)
+                        end_point[:,:,1:] = end_point_diff
+
                     end_point = end_sigma * start_point + (1 - end_sigma) * end_point
                     
                     # start_point_temp = laplacian_pyramid_noises[i_s+1][index::column_size]
@@ -895,6 +899,10 @@ class PyramidDiTForVideoGeneration:
                     #upsample the last clean latent
                     #last_clean_latent = last_clean_latent_2 + last_clean_latent_1 + last_clean_latent
 
+                    if self.temporal_differencing:
+                        last_clean_latent_diff = last_clean_latent[:,:,1:] - last_clean_latent[:,:,:1].repeat(1, 1, last_clean_latent.shape[2]-1, 1, 1)
+                        last_clean_latent[:,:,1:] = last_clean_latent_diff
+
                     start_noise = noise_list[0][index::column_size] * 4
                     start_point = start_sigma * start_noise + (1 - start_sigma) * last_clean_latent
                     start_point_dim = start_point.shape[2]
@@ -932,6 +940,10 @@ class PyramidDiTForVideoGeneration:
                     end_point_2 = torch.nn.functional.interpolate(end_point_2, size=(end_point_2.shape[-2]//2, end_point_2.shape[-1]//2), mode='bilinear')
                     end_point_2 = rearrange(end_point_2, '(b t) c h w -> b c t h w', t=end_point_2_dim)
                     #end_point = end_point_2 + end_point
+
+                    if self.temporal_differencing:
+                        end_point_diff = end_point[:,:,1:] - end_point[:,:,:1].repeat(1, 1, end_point.shape[2]-1, 1, 1)
+                        end_point[:,:,1:] = end_point_diff
 
                     end_point = end_sigma * start_noise + (1 - end_sigma) * end_point
 
@@ -977,6 +989,9 @@ class PyramidDiTForVideoGeneration:
                     #last_clean_latent = last_clean_latent + last_clean_latent_1
 
                     start_noise = noise_list[1][index::column_size] * 2
+                    if self.temporal_differencing:
+                        last_clean_latent_diff = last_clean_latent[:,:,1:] - last_clean_latent[:,:,:1].repeat(1, 1, last_clean_latent.shape[2]-1, 1, 1)
+                        last_clean_latent[:,:,1:] = last_clean_latent_diff
                     start_point = start_sigma * start_noise + (1 - start_sigma) * last_clean_latent
                     start_point_dim = start_point.shape[2]
                     start_point = rearrange(start_point, 'b c t h w -> (b t) c h w')
@@ -995,6 +1010,9 @@ class PyramidDiTForVideoGeneration:
                     # start_point = start_sigma * start_noise + (1 - start_sigma) * last_clean_latent
 
                     end_point = latents_list[3][index::column_size]
+                    if self.temporal_differencing:
+                        end_point_diff = end_point[:,:,1:] - end_point[:,:,:1].repeat(1, 1, end_point.shape[2]-1, 1, 1)
+                        end_point[:,:,1:] = end_point_diff
                 else:
                     last_clean_latent = latents_list[2][index::column_size]
                     last_clean_latent_dim = last_clean_latent.shape[2]
@@ -1557,14 +1575,14 @@ class PyramidDiTForVideoGeneration:
             # Compute the loss.
             loss_weight = torch.ones_like(target)
 
-            if self.temporal_differencing:
-                model_pred_diff = torch.zeros_like(model_pred)
-                for temp_idx in range(0, model_pred.shape[2]):
-                    if temp_idx == 0:
-                        model_pred_diff[:,:,temp_idx] = model_pred[:,:,temp_idx]
-                    else:
-                        model_pred_diff[:,:,temp_idx] = model_pred[:,:,0] + model_pred[:,:,temp_idx]
-                model_pred = model_pred_diff
+            # if self.temporal_differencing:
+            #     model_pred_diff = torch.zeros_like(model_pred)
+            #     for temp_idx in range(0, model_pred.shape[2]):
+            #         if temp_idx == 0:
+            #             model_pred_diff[:,:,temp_idx] = model_pred[:,:,temp_idx]
+            #         else:
+            #             model_pred_diff[:,:,temp_idx] = model_pred[:,:,0] + model_pred[:,:,temp_idx]
+            #     model_pred = model_pred_diff
             
             loss = torch.mean(
                 (loss_weight.float() * (model_pred.float() - target.float()) ** 2).reshape(target.shape[0], -1),
