@@ -911,6 +911,7 @@ class PyramidDiTForVideoGeneration:
                     start_point = rearrange(start_point, '(b t) c h w -> b c t h w', t=start_point_dim)
                     c, temp_next, height_next, width_next = noise_list[1].shape[1], noise_list[1].shape[2], noise_list[1].shape[3], noise_list[1].shape[4]
 
+                    import pdb; pdb.set_trace()
                     if temp_next != 1:
                         ones_tensor = torch.ones(start_point.shape[0], c, temp_next, height_next, width_next).to(noise_list[1].device)
                         ones_tensor[:,:,:temp_next] = start_point
