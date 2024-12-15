@@ -911,11 +911,10 @@ class PyramidDiTForVideoGeneration:
                     start_point = rearrange(start_point, '(b t) c h w -> b c t h w', t=start_point_dim)
                     c, temp_next, height_next, width_next = noise_list[1].shape[1], noise_list[1].shape[2], noise_list[1].shape[3], noise_list[1].shape[4]
 
-                    import pdb; pdb.set_trace()
                     if temp_next != 1:
                         ones_tensor = torch.ones(start_point.shape[0], c, temp_next, height_next, width_next).to(noise_list[1].device)
-                        ones_tensor[:,:,:temp_next] = start_point
-                        ones_tensor[:,:,temp_next:] = start_point[:,:,-1:].repeat(1, 1, temp_next - start_point_dim, 1, 1)
+                        ones_tensor[:,:,:start_point_dim] = start_point
+                        ones_tensor[:,:,start_point_dim:] = start_point[:,:,-1:].repeat(1, 1, temp_next - start_point_dim, 1, 1)
                         start_point = ones_tensor
 
                     start_point = start_point + 2 * start_sigma * laplacian_pyramid_noises[1][index::column_size]
@@ -1014,9 +1013,9 @@ class PyramidDiTForVideoGeneration:
                     c, temp_next, height_next, width_next = noise_list[2].shape[1], noise_list[2].shape[2], noise_list[2].shape[3], noise_list[2].shape[4]
 
                     if temp_next != 1:
-                        ones_tensor = torch.ones(batch_size, c, temp_next, height_next, width_next).to(noise_list[2].device)
-                        ones_tensor[:,:,:temp_next] = start_point
-                        ones_tensor[:,:,temp_next:] = start_point[:,:,-1:].repeat(1, 1, temp_next - start_point_dim, 1, 1)
+                        ones_tensor = torch.ones(start_point.shape[0], c, temp_next, height_next, width_next).to(noise_list[2].device)
+                        ones_tensor[:,:,:start_point_dim] = start_point
+                        ones_tensor[:,:,start_point_dim:] = start_point[:,:,-1:].repeat(1, 1, temp_next - start_point_dim, 1, 1)
                         start_point = ones_tensor
 
                     start_point = start_point + 2 * start_sigma * laplacian_pyramid_noises[2][index::column_size]
@@ -1621,14 +1620,13 @@ class PyramidDiTForVideoGeneration:
                     video[:, :, 1:] =  (video[:, :, 1:] - self.vae_video_shift_factor) * self.vae_video_scale_factor
                     vae_latent_list = self.get_pyramid_latent_with_temporal_downsample(video, len(self.stages))
                     upsample_vae_latent_list = self.get_pyramid_latent_with_temporal_upsample(vae_latent_list)
-        import pdb; pdb.set_trace()
+
         #if use_temporal_pyramid:
         #    noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_with_temporal_pyramid(vae_latent_list, self.sample_ratios)
         if self.use_perflow:
             noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_ours3(vae_latent_list, upsample_vae_latent_list, noise_list, laplacian_pyramid_latents, laplacian_pyramid_noises, self.sample_ratios)
         else:
             noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_ours2(vae_latent_list, upsample_vae_latent_list, self.sample_ratios)
-        import pdb; pdb.set_trace()
         return noisy_latents_list, ratios_list, timesteps_list, targets_list
 
     @torch.no_grad()
@@ -2732,8 +2730,8 @@ class PyramidDiTForVideoGeneration:
                 batch_size, c, temp_next, height_next, width_next = latents_list[i_s].shape[0], latents_list[i_s].shape[1], latents_list[i_s].shape[2], latents_list[i_s].shape[3], latents_list[i_s].shape[4]
                 if temp_next != 1:
                     ones_tensor = torch.ones(batch_size, c, temp_next, height_next, width_next).to(latents_list[i_s].device)
-                    ones_tensor[:,:,:temp_next] = latents
-                    ones_tensor[:,:,temp_next:] = latents[:,:,:,-1:].repeat(1, 1, temp_next - temp_current, 1, 1)
+                    ones_tensor[:,:,:temp_current] = latents
+                    ones_tensor[:,:,temp_current:] = latents[:,:,:,-1:].repeat(1, 1, temp_next - temp_current, 1, 1)
                     latents_list[i_s] = ones_tensor
 
                 if self.continuous_flow:
