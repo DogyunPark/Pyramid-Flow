@@ -2725,7 +2725,7 @@ class PyramidDiTForVideoGeneration:
                     ones_tensor = torch.ones(batch_size, c, temp_next, height_next, width_next).to(latents_list[i_s].device)
                     ones_tensor[:,:,:temp_current] = latents
                     ones_tensor[:,:,temp_current:] = latents[:,:,-1:].repeat(1, 1, temp_next - temp_current, 1, 1)
-                    latents_list[i_s] = ones_tensor
+                    latents = ones_tensor
 
                 if self.continuous_flow:
                     #Fix the stage
