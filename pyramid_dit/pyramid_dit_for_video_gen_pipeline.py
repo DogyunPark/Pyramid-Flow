@@ -1003,13 +1003,6 @@ class PyramidDiTForVideoGeneration:
                     start_point = rearrange(start_point, 'b c t h w -> (b t) c h w')
                     start_point = torch.nn.functional.interpolate(start_point, size=(start_point.shape[-2] * 2, start_point.shape[-1] * 2), mode='nearest')
                     start_point = rearrange(start_point, '(b t) c h w -> b c t h w', t=start_point_dim)
-
-                    start_noise = noise_list[0][index::column_size] * 4
-                    start_point = start_sigma * start_noise + (1 - start_sigma) * last_clean_latent
-                    start_point_dim = start_point.shape[2]
-                    start_point = rearrange(start_point, 'b c t h w -> (b t) c h w')
-                    start_point = torch.nn.functional.interpolate(start_point, size=(start_point.shape[-2] * 2, start_point.shape[-1] * 2), mode='nearest')
-                    start_point = rearrange(start_point, '(b t) c h w -> b c t h w', t=start_point_dim)
                     c, temp_next, height_next, width_next = noise_list[2].shape[1], noise_list[2].shape[2], noise_list[2].shape[3], noise_list[2].shape[4]
 
                     if temp_next != 1:
