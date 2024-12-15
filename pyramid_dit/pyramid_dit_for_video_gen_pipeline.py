@@ -912,7 +912,7 @@ class PyramidDiTForVideoGeneration:
                     c, temp_next, height_next, width_next = noise_list[1].shape[1], noise_list[1].shape[2], noise_list[1].shape[3], noise_list[1].shape[4]
 
                     if temp_next != 1:
-                        ones_tensor = torch.ones(batch_size, c, temp_next, height_next, width_next).to(noise_list[1].device)
+                        ones_tensor = torch.ones(start_point.shape[0], c, temp_next, height_next, width_next).to(noise_list[1].device)
                         ones_tensor[:,:,:temp_next] = start_point
                         ones_tensor[:,:,temp_next:] = start_point[:,:,-1:].repeat(1, 1, temp_next - start_point_dim, 1, 1)
                         start_point = ones_tensor
@@ -1627,7 +1627,7 @@ class PyramidDiTForVideoGeneration:
             noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_ours3(vae_latent_list, upsample_vae_latent_list, noise_list, laplacian_pyramid_latents, laplacian_pyramid_noises, self.sample_ratios)
         else:
             noisy_latents_list, ratios_list, timesteps_list, targets_list = self.add_pyramid_noise_ours2(vae_latent_list, upsample_vae_latent_list, self.sample_ratios)
-
+        import pdb; pdb.set_trace()
         return noisy_latents_list, ratios_list, timesteps_list, targets_list
 
     @torch.no_grad()
