@@ -198,16 +198,16 @@ def train_one_epoch_with_fsdp(
         if step % 20 == 0:
             runner.dit.eval()
             print("Generating the video for text: {}".format(text[0]))
-            image = runner.generate_laplacian_video(
+            image = runner.generate_laplacian_video_autoregressive(
                 prompt=text[0],
                 input_image=video[:1, :, :1],
                 num_inference_steps=[20, 20, 20],
                 output_type="pil",
                 save_memory=True,
                 guidance_scale=6.0,
+                video_guidance_scale=4.0,
                 generation_height=256,
                 generation_width=384,
-                fix_latents=fix_latents[num_image].unsqueeze(0) if fix_latents is not None else None
             )
             if save_intermediate_latents:
                 for i_img, img in enumerate(image):
@@ -220,16 +220,16 @@ def train_one_epoch_with_fsdp(
                 img = validation_image[num_image][:,0].to(accelerator.device)
                 img = img.unsqueeze(0).unsqueeze(2)
 
-                image = runner.generate_laplacian_video(
+                image = runner.generate_laplacian_video_autoregressive(
                     prompt=prompt,
                     input_image=img,
                     num_inference_steps=[20, 20, 20],
                     output_type="pil",
                     save_memory=True,
                     guidance_scale=6.0,
+                    video_guidance_scale=4.0,
                     generation_height=256,
                     generation_width=384,
-                    fix_latents=fix_latents[num_image].unsqueeze(0) if fix_latents is not None else None,
                 )
                 if save_intermediate_latents:
                     for i_img, img in enumerate(image):

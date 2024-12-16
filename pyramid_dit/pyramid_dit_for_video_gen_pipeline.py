@@ -1059,9 +1059,9 @@ class PyramidDiTForVideoGeneration:
             if self.temporal_autoregressive:
                 stage_latent_condition = latents_list[i_s][index::column_size]
                 stage_latent_condition = stage_latent_condition[:,:,:temp_init+1]
-                #noise_ratio2 = torch.rand(size=(batch_size,), device=device) / 3
-                #noise_ratio2 = noise_ratio2[:, None, None, None, None]
-                #stage_latent_condition = noise_ratio2 * torch.randn_like(stage_latent_condition) + (1 - noise_ratio2) * stage_latent_condition
+                noise_ratio2 = torch.rand(size=(batch_size,), device=device) / 3
+                noise_ratio2 = noise_ratio2[:, None, None, None, None]
+                stage_latent_condition = noise_ratio2 * torch.randn_like(stage_latent_condition) + (1 - noise_ratio2) * stage_latent_condition
                                                                                          
             if self.condition_original_image:
                 original_latent_condition = latents_list[i_s+1][index::column_size]
@@ -2575,7 +2575,7 @@ class PyramidDiTForVideoGeneration:
         sampling_scheduler: PyramidFlowMatchEulerDiscreteScheduler = None,
         generation_height: int = 512,
         generation_width: int = 512,
-        fix_latents: Optional[torch.Tensor] = None,
+        input_latents: Optional[torch.Tensor] = None,
     ):
         if self.sequential_offload_enabled and not cpu_offloading:
             print("Warning: overriding cpu_offloading set to false, as it's needed for sequential cpu offload")
@@ -2635,49 +2635,28 @@ class PyramidDiTForVideoGeneration:
         stages = self.stages
         stage_num = len(stages)
 
-        if self.temporal_autoregressive:
-            original_latent_condition = (self.vae.encode(input_image.to(self.vae.device, dtype=self.vae.dtype), temporal_chunk=False, tile_sample_min_size=1024).latent_dist.sample() - self.vae_shift_factor) * self.vae_scale_factor  # [b c t h w] 
-            original_latent_condition_list = self.get_pyramid_latent_with_spatial_downsample(original_latent_condition, stage_num)
-
         # Create the initial random noise
-        # height, width = input_image.shape[-2:]
-        #latent_height = height // self.vae.config.downsample_scale
-        #latent_width = width // self.vae.config.downsample_scale
-        latent_temp = int(self.num_frames // self.vae.config.downsample_scale + 1)
-        #latent_temp = 1
-        if self.temporal_autoregressive:
+        latent_temp = int(temp // self.vae.config.downsample_scale + 1)
+        if self.temporal_autoregressive and latent_temp > 1 and input_latents is not None:
             latent_temp += -1
 
         num_channels_latents = (self.dit.config.in_channels // 4) if self.model_name == "pyramid_flux" else  self.dit.config.in_channels
-        if fix_latents is None:
-            latents = self.prepare_latents(
-                batch_size * num_images_per_prompt,
-                num_channels_latents,
-                latent_temp,
-                generation_height, 
-                generation_width,
-                prompt_embeds.dtype,
-                device,
-                generator,
-            )
-        else:
-            latents = fix_latents
+        latents = self.prepare_latents(
+            batch_size * num_images_per_prompt,
+            num_channels_latents,
+            latent_temp,
+            generation_height, 
+            generation_width,
+            prompt_embeds.dtype,
+            device,
+            generator,
+        )
 
         temp, height, width = latents.shape[-3], latents.shape[-2], latents.shape[-1]
-        # by defalut, we needs to start from the block noise
-        # latents_list = self.get_pyramid_noise_with_spatial_downsample(latents, stage_num)
-        # upsample_latents = self.get_pyramid_noise_with_spatial_upsample(latents_list, stage_num)
-        # laplacian_latents = self.get_laplacian_pyramid_noises(latents_list, upsample_latents)
 
         latents_list = self.get_pyramid_noise_with_temporal_downsample(latents, stage_num)
         upsample_latents = self.get_pyramid_noise_with_temporal_upsample(latents_list, stage_num)
         laplacian_latents = self.get_laplacian_pyramid_noises(latents_list, upsample_latents)
-        
-        # latents = rearrange(latents, 'b c t h w -> (b t) c h w')
-        # for _ in range(len(self.stages)-1):
-        #     height //= 2;width //= 2
-        #     latents = F.interpolate(latents, size=(height, width), mode='bilinear') * 2
-        # latents = rearrange(latents, '(b t) c h w -> b c t h w', t=temp)
 
         latents = laplacian_latents[0] * 4
         # if self.continuous_flow:
@@ -2705,9 +2684,9 @@ class PyramidDiTForVideoGeneration:
         height, width = latents.shape[-2:]
         fixed_heights, fixed_widths = generation_height // self.vae.config.downsample_scale, generation_width // self.vae.config.downsample_scale
         
-        generated_latents_list = []    # The generated results
-        if self.temporal_autoregressive:
-            concat_latents_list = [original_latent_condition_list[-1]]
+        if self.temporal_autoregressive and input_latents is not None:
+            generated_latents_list = [input_latents]    # The generated results
+            concat_latents_list = [input_latents]
 
         for i_s in range(len(stages)):
             self.validation_scheduler.set_timesteps(num_inference_steps[i_s], i_s, device=device)
@@ -2776,8 +2755,8 @@ class PyramidDiTForVideoGeneration:
                 # expand the latents if we are doing classifier free guidance
                 latent_model_input = torch.cat([latents] * 2) if self.do_classifier_free_guidance else latents
                 
-                if self.temporal_autoregressive:
-                    stage_latent_condition_input = torch.cat([original_latent_condition_list[i_s]] * 2) if self.do_classifier_free_guidance else original_latent_condition_list[i_s]
+                if self.temporal_autoregressive and input_latents is not None:
+                    stage_latent_condition_input = torch.cat([input_latents] * 2) if self.do_classifier_free_guidance else input_latents
                     total_input = [stage_latent_condition_input, latent_model_input]
                 else:
                     total_input = [latent_model_input]
@@ -2797,9 +2776,12 @@ class PyramidDiTForVideoGeneration:
                 noise_pred = noise_pred[0]
                     
                 # perform guidanceS
-                if self.do_classifier_free_guidance:
+                if self.do_classifier_free_guidance and input_latents is None:
                     noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
                     noise_pred = noise_pred_uncond + self.guidance_scale * (noise_pred_text - noise_pred_uncond)
+                else:
+                    noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
+                    noise_pred = noise_pred_uncond + self.video_guidance_scale * (noise_pred_text - noise_pred_uncond)
                     
                 # compute the previous noisy sample x_t -> x_t-1
                 latents = self.validation_scheduler.step(
@@ -2809,8 +2791,11 @@ class PyramidDiTForVideoGeneration:
                     generator=generator,
                 ).prev_sample
 
-            generated_latents_list.append(latents.detach().clone().to(torch.bfloat16))
         latents = latents.to(torch.bfloat16)
+
+        if self.temporal_autoregressive and input_latents is not None:
+            generated_latents_list.append(latents.detach().clone().to(torch.bfloat16))
+            latents = torch.cat(generated_latents_list, dim=2)
 
         if self.temporal_differencing:
             if self.temporal_autoregressive:
@@ -2837,6 +2822,68 @@ class PyramidDiTForVideoGeneration:
                     image.append(self.decode_latent(lts, save_memory=save_memory, inference_multigpu=inference_multigpu))
             else:
                 image = self.decode_latent(latents, save_memory=save_memory, inference_multigpu=inference_multigpu)
+            if cpu_offloading:
+                self.vae.to("cpu")
+                torch.cuda.empty_cache()
+                # not technically necessary, but returns the pipeline to its original state
+        return image
+    
+
+    @torch.no_grad()
+    def generate_laplacian_video_autoregressive(
+        self,
+        prompt: Union[str, List[str]] = '',
+        input_image: PIL.Image = None,
+        temp: int = 1,
+        num_inference_steps: Optional[Union[int, List[int]]] = 28,
+        guidance_scale: float = 7.0,
+        video_guidance_scale: float = 4.0,
+        min_guidance_scale: float = 2.0,
+        use_linear_guidance: bool = False,
+        alpha: float = 0.5,
+        negative_prompt: Optional[Union[str, List[str]]]="cartoon style, worst quality, low quality, blurry, absolute black, absolute white, low res, extra limbs, extra digits, misplaced objects, mutated anatomy, monochrome, horror",
+        num_images_per_prompt: Optional[int] = 1,
+        generator: Optional[Union[torch.Generator, List[torch.Generator]]] = None,
+        output_type: Optional[str] = "pil",
+        save_memory: bool = True,
+        cpu_offloading: bool = False, # If true, reload device will be cuda.
+        inference_multigpu: bool = False,
+        callback: Optional[Callable[[int, int, Dict], None]] = None,
+        sampling_scheduler: PyramidFlowMatchEulerDiscreteScheduler = None,
+        generation_height: int = 512,
+        generation_width: int = 512,
+    ):
+        
+        latents = self.generate_laplacian_video(prompt=prompt,
+                                            temp=1,
+                                            num_inference_steps=num_inference_steps,
+                                            generation_height=generation_height,
+                                            generation_width=generation_width,
+                                            output_type='latent')
+        
+        latents = self.generate_laplacian_video(prompt=prompt,
+                                                temp=temp,
+                                                num_inference_steps=num_inference_steps,
+                                                generation_height=generation_height,
+                                                generation_width=generation_width,
+                                                input_latents=latents,
+                                                )
+
+        if output_type == "latent":
+            image = latents
+        else:
+            if cpu_offloading:
+                if not self.sequential_offload_enabled:
+                    self.dit.to("cpu")
+                self.vae.to("cuda")
+                torch.cuda.empty_cache()
+            
+            # if self.save_intermediate_latents:
+            #     image = []
+            #     for lts in generated_latents_list:
+            #         image.append(self.decode_latent(lts, save_memory=save_memory, inference_multigpu=inference_multigpu))
+            # else:
+            image = self.decode_latent(latents, save_memory=save_memory, inference_multigpu=inference_multigpu)
             if cpu_offloading:
                 self.vae.to("cpu")
                 torch.cuda.empty_cache()

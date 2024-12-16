@@ -230,7 +230,7 @@ def get_args():
     # Added by us
     parser.add_argument('--num_frames', default=65, type=int, help='number of frames in a video')
     parser.add_argument('--frame_interval', default=1, type=int, help='frame interval')
-    parser.add_argument('--image_size', default=(512, 512), type=tuple, help='image size')
+    parser.add_argument('--image_size', default=(384, 256), type=tuple, help='image size')
     parser.add_argument('--data_root', default='./train_data/data/train/OpenVid-1M.csv', type=str, help='The data root')
     parser.add_argument('--root', default='./train_data/video', type=str, help='The root')
     parser.add_argument('--promptdir', default='/data/cvpr25/prompts/1024/', type=str, help='The prompt directory')
@@ -564,18 +564,20 @@ def main(args):
     accelerator.wait_for_everyone()
     runner.dit.eval()
 
-    validation_prompts = ["shoulder and full head portrait of a beautiful 19 year old girl, brunette, smiling, stunning, highly detailed, glamour lighting, HDR, photorealistic, hyperrealism, octane render, unreal engine", 
-                          "A female painter with a brush in hand, white background, painting, looking very powerful.",
-                          "Half human, half robot, repaired human, human flesh warrior, mech display, man in mech, cyberpunk.",
-                          "A baby painter trying to draw very simple picture, white background",
-                          "A vibrant yellow banana-shaped couch sits in a cozy living room, its curve cradling a pile of colorful cushions. on the wooden floor, a patterned rug adds a touch of eclectic charm, and a potted plant sits in the corner, reaching towards the sunlight filtering through the window.",
-                          "A alpaca made of colorful building blocks, cyberpunk",
-                          "Luffy from ONEPIECE, handsome face, fantasy.",
-                          "A parrot with a pearl earring, Vermeer style",
-                          "A Pikachu with an angry expression and red eyes, with lightning around it, hyper realistic style.",
-                          "Moonlight Maiden, cute girl in school uniform, long white hair, standing under the moon, celluloid style, Japanese manga style.",
-                          "Street shot of a fashionable Chinese lady in Shanghai, wearing black high-waisted trousers"]
-    NFE = 50
+    # validation_prompts = ["shoulder and full head portrait of a beautiful 19 year old girl, brunette, smiling, stunning, highly detailed, glamour lighting, HDR, photorealistic, hyperrealism, octane render, unreal engine", 
+    #                       "A female painter with a brush in hand, white background, painting, looking very powerful.",
+    #                       "Half human, half robot, repaired human, human flesh warrior, mech display, man in mech, cyberpunk.",
+    #                       "A baby painter trying to draw very simple picture, white background",
+    #                       "A vibrant yellow banana-shaped couch sits in a cozy living room, its curve cradling a pile of colorful cushions. on the wooden floor, a patterned rug adds a touch of eclectic charm, and a potted plant sits in the corner, reaching towards the sunlight filtering through the window.",
+    #                       "A alpaca made of colorful building blocks, cyberpunk",
+    #                       "Luffy from ONEPIECE, handsome face, fantasy.",
+    #                       "A parrot with a pearl earring, Vermeer style",
+    #                       "A Pikachu with an angry expression and red eyes, with lightning around it, hyper realistic style.",
+    #                       "Moonlight Maiden, cute girl in school uniform, long white hair, standing under the moon, celluloid style, Japanese manga style.",
+    #                       "Street shot of a fashionable Chinese lady in Shanghai, wearing black high-waisted trousers"]
+    validation_prompts = ["a woman is walking",
+                          "A movie trailer featuring the adventures of the 30 year old space man wearing a red wool knitted motorcycle helmet, blue sky, salt desert, cinematic style, shot on 35mm film, vivid colors"]
+    NFE = 20
     for i in range(len(validation_prompts)):
         validation_prompt = validation_prompts[i]
         print('validation_prompt:', validation_prompt)
@@ -587,12 +589,13 @@ def main(args):
             images = runner.generate_laplacian_video(
                 prompt=validation_prompt,
                 input_image=validation_image,
+                temp=args.num_frames,
                 num_inference_steps=[NFE, NFE, NFE],
                 output_type="pil",
-                guidance_scale=9.0,
+                guidance_scale=4.0,
                 save_memory=False,
-                generation_height=args.image_size[0],
-                generation_width=args.image_size[1],
+                generation_height=args.image_size[1],
+                generation_width=args.image_size[0],
             )
         else:
             images = runner.generate(

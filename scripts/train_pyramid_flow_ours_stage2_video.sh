@@ -26,6 +26,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 accelerate launch --multi_gpu --num_process
     --num_workers 8 \
     --task t2v \
     --use_fsdp \
+    --use_temporal_causal \
     --fsdp_shard_strategy $SHARD_STRATEGY \
     --interp_condition_pos \
     --load_text_encoder \
@@ -60,6 +61,6 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 accelerate launch --multi_gpu --num_process
     --gradient_checkpointing \
     --downsample_latent \
     --use_temporal_downsample \
+    --temporal_autoregressive \
     --continuous_flow \
     --mix_laion_ratio 0.0 \
-    --dit_pretrained_weight /data/cvpr25/Pyramid-Flow/result/stage3-laplacian-image-multiratio-discrete3/checkpoint-999-3/pytorch_model_fsdp.bin
