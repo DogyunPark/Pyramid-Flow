@@ -201,6 +201,7 @@ def train_one_epoch_with_fsdp(
             image = runner.generate_laplacian_video_autoregressive(
                 prompt=text[0],
                 input_image=video[:1, :, :1],
+                temp=65,
                 num_inference_steps=[20, 20, 20],
                 output_type="pil",
                 save_memory=True,
@@ -223,6 +224,7 @@ def train_one_epoch_with_fsdp(
                 image = runner.generate_laplacian_video_autoregressive(
                     prompt=prompt,
                     input_image=img,
+                    temp=65,
                     num_inference_steps=[20, 20, 20],
                     output_type="pil",
                     save_memory=True,
