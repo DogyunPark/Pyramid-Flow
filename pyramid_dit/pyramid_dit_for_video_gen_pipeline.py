@@ -2874,6 +2874,7 @@ class PyramidDiTForVideoGeneration:
                                                 generation_height=generation_height,
                                                 generation_width=generation_width,
                                                 input_latents=latents,
+                                                output_type='latent'
                                                 )
 
         if output_type == "latent":
