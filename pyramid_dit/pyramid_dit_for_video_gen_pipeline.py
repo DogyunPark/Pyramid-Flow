@@ -1064,7 +1064,7 @@ class PyramidDiTForVideoGeneration:
                 stage_latent_condition = noise_ratio2 * torch.randn_like(stage_latent_condition) + (1 - noise_ratio2) * stage_latent_condition
             else:
                 stage_latent_condition = None
-                
+
             if self.condition_original_image:
                 original_latent_condition = latents_list[i_s+1][index::column_size]
                 original_latent_condition = original_latent_condition[:,:,0].unsqueeze(2)
@@ -2656,10 +2656,14 @@ class PyramidDiTForVideoGeneration:
 
         temp, height, width = latents.shape[-3], latents.shape[-2], latents.shape[-1]
 
-        latents_list = self.get_pyramid_noise_with_temporal_downsample(latents, stage_num)
-        upsample_latents = self.get_pyramid_noise_with_temporal_upsample(latents_list, stage_num)
+        if temp == 1:
+            latents_list = self.get_pyramid_latent_with_spatial_downsample(latents, stage_num)
+            upsample_latents = self.get_pyramid_noise_with_spatial_upsample(latents_list, stage_num)
+        else:
+            latents_list = self.get_pyramid_noise_with_temporal_downsample(latents, stage_num)
+            upsample_latents = self.get_pyramid_noise_with_temporal_upsample(latents_list, stage_num)
+        
         laplacian_latents = self.get_laplacian_pyramid_noises(latents_list, upsample_latents)
-
         latents = laplacian_latents[0] * 4
         # if self.continuous_flow:
         #     latents3 = laplacian_latents[2]
