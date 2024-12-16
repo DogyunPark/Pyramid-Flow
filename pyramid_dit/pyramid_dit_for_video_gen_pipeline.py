@@ -1062,7 +1062,9 @@ class PyramidDiTForVideoGeneration:
                 noise_ratio2 = torch.rand(size=(batch_size,), device=device) / 3
                 noise_ratio2 = noise_ratio2[:, None, None, None, None]
                 stage_latent_condition = noise_ratio2 * torch.randn_like(stage_latent_condition) + (1 - noise_ratio2) * stage_latent_condition
-                                                                                         
+            else:
+                stage_latent_condition = None
+                
             if self.condition_original_image:
                 original_latent_condition = latents_list[i_s+1][index::column_size]
                 original_latent_condition = original_latent_condition[:,:,0].unsqueeze(2)
