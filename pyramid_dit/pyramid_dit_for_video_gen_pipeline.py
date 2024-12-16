@@ -871,7 +871,7 @@ class PyramidDiTForVideoGeneration:
                 #     end_point_diff = end_point[:,:,1:] - end_point[:,:,:1].repeat(1, 1, end_point.shape[2]-1, 1, 1)
                 #     end_point[:,:,1:] = end_point_diff
 
-                if self.temporal_autoregressive:
+                if self.temporal_autoregressive and start_point.shape[2] > 1:
                     start_point = start_point[:,:,temp_init+1:]
                     end_point = end_point[:,:,temp_init+1:]
 
@@ -977,7 +977,7 @@ class PyramidDiTForVideoGeneration:
                 while len(ratios.shape) < start_point.ndim:
                     ratios = ratios.unsqueeze(-1)
                 
-                if self.temporal_autoregressive:
+                if self.temporal_autoregressive and start_point.shape[2] > 1:
                     start_point = start_point[:,:,temp_init+1:]
                     end_point = end_point[:,:,temp_init+1:]
 
@@ -1050,13 +1050,13 @@ class PyramidDiTForVideoGeneration:
                 while len(ratios.shape) < start_point.ndim:
                     ratios = ratios.unsqueeze(-1)
 
-                if self.temporal_autoregressive:
+                if self.temporal_autoregressive and start_point.shape[2] > 1:
                     start_point = start_point[:,:,temp_init+1:]
                     end_point = end_point[:,:,temp_init+1:]
 
                 noisy_latents = ratios * start_point + (1 - ratios) * end_point
 
-            if self.temporal_autoregressive:
+            if self.temporal_autoregressive and start_point.shape[2] > 1:
                 stage_latent_condition = latents_list[i_s][index::column_size]
                 stage_latent_condition = stage_latent_condition[:,:,:temp_init+1]
                 noise_ratio2 = torch.rand(size=(batch_size,), device=device) / 3
@@ -1350,7 +1350,7 @@ class PyramidDiTForVideoGeneration:
         temp, height, width = x.shape[-3], x.shape[-2], x.shape[-1]
 
         #temp_list = self.get_temp_stage(stage_num, downsample=True)
-        temp_list = [3, 1]
+        temp_list = [6, 2]
         for _ in range(stage_num-1):
             height //= 2
             width //= 2
@@ -1463,7 +1463,7 @@ class PyramidDiTForVideoGeneration:
         noise_list = [noise]
         cur_noise = noise
         #temp_list = self.get_temp_stage(stage_num, downsample=True)
-        temp_list = [3, 1]
+        temp_list = [6, 2]
         for i_s in range(stage_num-1):
             height //= 2;width //= 2
             temp = temp_list[i_s]
@@ -2685,6 +2685,7 @@ class PyramidDiTForVideoGeneration:
         fixed_heights, fixed_widths = generation_height // self.vae.config.downsample_scale, generation_width // self.vae.config.downsample_scale
         
         if self.temporal_autoregressive and input_latents is not None:
+            input_latents_list = self.get_pyramid_latent_with_spatial_downsample(input_latents, stage_num)
             generated_latents_list = [input_latents]    # The generated results
             concat_latents_list = [input_latents]
 
@@ -2756,7 +2757,7 @@ class PyramidDiTForVideoGeneration:
                 latent_model_input = torch.cat([latents] * 2) if self.do_classifier_free_guidance else latents
                 
                 if self.temporal_autoregressive and input_latents is not None:
-                    stage_latent_condition_input = torch.cat([input_latents] * 2) if self.do_classifier_free_guidance else input_latents
+                    stage_latent_condition_input = torch.cat([input_latents_list[i_s]] * 2) if self.do_classifier_free_guidance else input_latents_list[i_s]
                     total_input = [stage_latent_condition_input, latent_model_input]
                 else:
                     total_input = [latent_model_input]
