@@ -198,7 +198,7 @@ def train_one_epoch_with_fsdp(
         if step % 20 == 0:
             runner.dit.eval()
             print("Generating the video for text: {}".format(text[0]))
-            image = runner.generate_laplacian_video_autoregressive(
+            image = runner.generate_laplacian_video(
                 prompt=text[0],
                 input_image=video[:1, :, :1],
                 temp=65,
@@ -221,7 +221,7 @@ def train_one_epoch_with_fsdp(
                 img = validation_image[num_image][:,0].to(accelerator.device)
                 img = img.unsqueeze(0).unsqueeze(2)
 
-                image = runner.generate_laplacian_video_autoregressive(
+                image = runner.generate_laplacian_video(
                     prompt=prompt,
                     input_image=img,
                     temp=65,
