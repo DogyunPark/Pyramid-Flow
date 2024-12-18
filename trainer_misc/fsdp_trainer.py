@@ -125,38 +125,38 @@ def train_one_epoch_with_fsdp(
                     samples = next(data_loader)
                 video =  samples['video'].to(accelerator.device)
 
-                image = video.mul(127.5).add(127.5).clamp(0, 255).byte()
-                image = rearrange(image, "B C T H W -> (B T) H W C")
-                image = image.cpu().numpy()
-                image = runner.numpy_to_pil(image)
-                export_to_video(image, "./output/video_sample-{}epoch-train.mp4".format(epoch), fps=24)
+                # image = video.mul(127.5).add(127.5).clamp(0, 255).byte()
+                # image = rearrange(image, "B C T H W -> (B T) H W C")
+                # image = image.cpu().numpy()
+                # image = runner.numpy_to_pil(image)
+                # export_to_video(image, "./output/video_sample-{}epoch-train.mp4".format(epoch), fps=24)
                 
-                with torch.no_grad(), accelerator.autocast():
-                    video = runner.vae.encode(video, temporal_chunk=True, window_size=8, tile_sample_min_size=1024).latent_dist.sample()
-                import pdb; pdb.set_trace()
+                # with torch.no_grad(), accelerator.autocast():
+                #     video = runner.vae.encode(video, temporal_chunk=True, window_size=8, tile_sample_min_size=1024).latent_dist.sample()
+                # import pdb; pdb.set_trace()
 
-                with torch.no_grad():
-                    video = video.to(torch.bfloat16)
-                    image = runner.vae.decode(video, temporal_chunk=True, window_size=2, tile_sample_min_size=256).sample
-                    import pdb; pdb.set_trace()
-                    image = image.mul(127.5).add(127.5).clamp(0, 255).byte()
-                    image = rearrange(image, "B C T H W -> (B T) H W C")
-                    image = image.cpu().numpy()
-                    image = runner.numpy_to_pil(image)
-                    export_to_video(image, "./output/video_sample-{}epoch-train-recon.mp4".format(epoch), fps=24)
+                # with torch.no_grad():
+                #     video = video.to(torch.bfloat16)
+                #     image = runner.vae.decode(video, temporal_chunk=True, window_size=2, tile_sample_min_size=256).sample
+                #     import pdb; pdb.set_trace()
+                #     image = image.mul(127.5).add(127.5).clamp(0, 255).byte()
+                #     image = rearrange(image, "B C T H W -> (B T) H W C")
+                #     image = image.cpu().numpy()
+                #     image = runner.numpy_to_pil(image)
+                #     export_to_video(image, "./output/video_sample-{}epoch-train-recon.mp4".format(epoch), fps=24)
                 
-                with torch.no_grad():
-                    video = video[:,:,:8]
-                    image = runner.vae.decode(video, temporal_chunk=True, window_size=2, tile_sample_min_size=256).sample
-                    import pdb; pdb.set_trace()
-                    image = image.mul(127.5).add(127.5).clamp(0, 255).byte()
-                    image = rearrange(image, "B C T H W -> (B T) H W C")
-                    image = image.cpu().numpy()
-                    image = runner.numpy_to_pil(image)
-                    export_to_video(image, "./output/video_sample-{}epoch-train-recon-8.mp4".format(epoch), fps=24)
+                # with torch.no_grad():
+                #     video = video[:,:,:8]
+                #     image = runner.vae.decode(video, temporal_chunk=True, window_size=2, tile_sample_min_size=256).sample
+                #     import pdb; pdb.set_trace()
+                #     image = image.mul(127.5).add(127.5).clamp(0, 255).byte()
+                #     image = rearrange(image, "B C T H W -> (B T) H W C")
+                #     image = image.cpu().numpy()
+                #     image = runner.numpy_to_pil(image)
+                #     export_to_video(image, "./output/video_sample-{}epoch-train-recon-8.mp4".format(epoch), fps=24)
 
                 
-                import pdb; pdb.set_trace()
+                # import pdb; pdb.set_trace()
 
 
                 text = samples['text']
@@ -236,7 +236,7 @@ def train_one_epoch_with_fsdp(
             image = runner.generate_laplacian_video(
                 prompt=text[0],
                 input_image=video[:1, :, :1],
-                temp=16,
+                temp=9,
                 num_inference_steps=[20, 20, 20],
                 output_type="pil",
                 save_memory=True,
@@ -259,7 +259,7 @@ def train_one_epoch_with_fsdp(
                 image = runner.generate_laplacian_video(
                     prompt=prompt,
                     input_image=img,
-                    temp=16,
+                    temp=9,
                     num_inference_steps=[20, 20, 20],
                     output_type="pil",
                     save_memory=True,

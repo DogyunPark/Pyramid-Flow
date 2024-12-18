@@ -1352,7 +1352,7 @@ class PyramidDiTForVideoGeneration:
         temp, height, width = x.shape[-3], x.shape[-2], x.shape[-1]
 
         #temp_list = self.get_temp_stage(stage_num, downsample=True)
-        temp_list = [8, 1]
+        temp_list = [5, 1]
         for _ in range(stage_num-1):
             height //= 2
             width //= 2
@@ -1465,7 +1465,7 @@ class PyramidDiTForVideoGeneration:
         noise_list = [noise]
         cur_noise = noise
         #temp_list = self.get_temp_stage(stage_num, downsample=True)
-        temp_list = [8, 1]
+        temp_list = [5, 1]
         for i_s in range(stage_num-1):
             height //= 2;width //= 2
             temp = temp_list[i_s]
