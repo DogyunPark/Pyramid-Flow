@@ -125,11 +125,11 @@ def train_one_epoch_with_fsdp(
                     samples = next(data_loader)
                 video =  samples['video'].to(accelerator.device)
 
-                video = video.mul(127.5).add(127.5).clamp(0, 255).byte()
-                video = rearrange(video, "B C T H W -> (B T) H W C")
-                video = video.cpu().numpy()
-                video = runner.numpy_to_pil(video)
-                export_to_video(video, "./output/video_sample-{}epoch-train.mp4".format(epoch), fps=24)
+                image = video.mul(127.5).add(127.5).clamp(0, 255).byte()
+                image = rearrange(image, "B C T H W -> (B T) H W C")
+                image = image.cpu().numpy()
+                image = runner.numpy_to_pil(image)
+                export_to_video(image, "./output/video_sample-{}epoch-train.mp4".format(epoch), fps=24)
                 
                 import pdb; pdb.set_trace()
 
