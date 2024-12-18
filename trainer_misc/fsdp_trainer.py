@@ -117,7 +117,7 @@ def train_one_epoch_with_fsdp(
             with accelerator.accumulate(runner.dit):
                 # To fetch the data sample and Move the input to device
                 if img_dataloader is not None:
-                    if random.random() < 0.1:
+                    if random.random() < 0.0:
                         samples = next(img_dataloader)
                     else:
                         samples = next(data_loader)
