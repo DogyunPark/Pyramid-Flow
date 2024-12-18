@@ -1352,7 +1352,7 @@ class PyramidDiTForVideoGeneration:
         temp, height, width = x.shape[-3], x.shape[-2], x.shape[-1]
 
         #temp_list = self.get_temp_stage(stage_num, downsample=True)
-        temp_list = [6, 2]
+        temp_list = [8, 1]
         for _ in range(stage_num-1):
             height //= 2
             width //= 2
@@ -1465,7 +1465,7 @@ class PyramidDiTForVideoGeneration:
         noise_list = [noise]
         cur_noise = noise
         #temp_list = self.get_temp_stage(stage_num, downsample=True)
-        temp_list = [6, 2]
+        temp_list = [8, 1]
         for i_s in range(stage_num-1):
             height //= 2;width //= 2
             temp = temp_list[i_s]
@@ -1570,7 +1570,8 @@ class PyramidDiTForVideoGeneration:
                                 video[:, :, 1:] =  (video[:, :, 1:] - self.vae_video_shift_factor) * self.vae_video_scale_factor
                                 #video = (video - self.vae_video_shift_factor) * self.vae_video_scale_factor
                             #video = video / self.vae_video_scale_factor + self.vae_video_shift_factor
-
+                            
+                            video = video[:,:,:16]
                             vae_latent_list.append(video)
                     else:
                         video = self.vae.encode(video, temporal_chunk=True, window_size=8, tile_sample_min_size=1024).latent_dist.sample() # [b c t h w]
@@ -1582,6 +1583,7 @@ class PyramidDiTForVideoGeneration:
                             video[:, :, :1] = (video[:, :, :1] - self.vae_shift_factor) * self.vae_scale_factor
                             video[:, :, 1:] =  (video[:, :, 1:] - self.vae_video_shift_factor) * self.vae_video_scale_factor
                             #video = (video - self.vae_video_shift_factor) * self.vae_video_scale_factor
+                            video = video[:,:,:16]
                         
                         if self.temporal_downsample:
                             vae_latent_list = self.get_pyramid_latent_with_temporal_downsample(video, len(self.stages))
@@ -2638,7 +2640,8 @@ class PyramidDiTForVideoGeneration:
         stage_num = len(stages)
 
         # Create the initial random noise
-        latent_temp = int(temp // self.vae.config.downsample_scale + 1)
+        #latent_temp = int(temp // self.vae.config.downsample_scale)
+        latent_temp = temp
         if self.temporal_autoregressive and latent_temp > 1 and input_latents is not None:
             latent_temp += -1
 
