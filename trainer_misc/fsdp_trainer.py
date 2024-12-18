@@ -124,6 +124,16 @@ def train_one_epoch_with_fsdp(
                 else:
                     samples = next(data_loader)
                 video =  samples['video'].to(accelerator.device)
+
+                video = video.mul(127.5).add(127.5).clamp(0, 255).byte()
+                video = rearrange(video, "B C T H W -> (B T) H W C")
+                video = video.cpu().numpy()
+                video = runner.numpy_to_pil(video)
+                export_to_video(video, "./output/video_sample-{}epoch-train.mp4".format(epoch), fps=24)
+                
+                import pdb; pdb.set_trace()
+
+
                 text = samples['text']
                 loss, log_loss = runner(video, text, identifier=None, accelerator=accelerator)
 

@@ -21,7 +21,7 @@ import glob
 
 from einops import rearrange
 
-from openviddata.datasets import DatasetFromCSV, get_transforms_video, load_data_prompts, DatasetFromCSVAndJSON, DatasetFromCSVAndJSON2, DatasetFromCSV2, DatasetFromCSVAndJSON_forvideo, DatasetFromCSVAndJSON_forimage
+from openviddata.datasets import DatasetFromCSV, get_transforms_video, load_data_prompts, DatasetFromCSVAndJSON, DatasetFromCSVAndJSON2, DatasetFromCSV2, DatasetFromCSVAndJSON_forvideo, DatasetFromCSVAndJSON_forimage, DatasetFromCSV_forvideo
 from diffusers.utils import export_to_video
 from torch.utils.data.distributed import DistributedSampler
 
@@ -485,7 +485,25 @@ def main(args):
                 ratios=[1/1],
                 mix_laion_ratio=args.mix_laion_ratio,
             )
-            img_dataset = DatasetFromCSVAndJSON_forimage(
+            # img_dataset = DatasetFromCSVAndJSON_forimage(
+            #     args.data_root,
+            #     args.json_path,
+            #     num_frames=args.num_frames,
+            #     sample_fps=args.sample_fps,
+            #     csv_root=args.root,
+            #     json_root=args.json_root,
+            #     laion_folder=args.laion_data_root,
+            #     jsonl_root=args.jsonl_root,
+            #     sizes=[args.image_size],
+            #     ratios=[1/1],
+            #     mix_laion_ratio=args.mix_laion_ratio,
+            # )
+        else:
+            raise NotImplementedError(f"Not Implemented for task {args.task}")
+
+    else:
+        print('Loading the dataset only from OpenVid-1M')
+        dataset = DatasetFromCSV_forvideo(
                 args.data_root,
                 args.json_path,
                 num_frames=args.num_frames,
@@ -498,25 +516,12 @@ def main(args):
                 ratios=[1/1],
                 mix_laion_ratio=args.mix_laion_ratio,
             )
-        else:
-            raise NotImplementedError(f"Not Implemented for task {args.task}")
-
-    else:
-        print('Loading the dataset only from OpenVid-1M')
-        dataset = DatasetFromCSVAndJSON_forvideo(
-            args.data_root,
-            num_frames=args.num_frames,
-            sample_fps=args.sample_fps,
-            csv_root=args.root,
-            sizes=[(512, 512), (384, 640), (640, 384)],
-            ratios=[1/1, 3/5, 5/3],
-        )   
 
     if args.task == 't2i':
         train_dataloader = create_image_text_dataloaders(dataset, args.batch_size, args.num_workers, multi_aspect_ratio=True, epoch=0, sizes=[(512, 512), (384, 640), (640, 384)], use_distributed=True, world_size=accelerator.num_processes, rank=accelerator.process_index)
     elif args.task == 't2v':
         train_dataloader = create_image_text_dataloaders(dataset, args.batch_size, args.num_workers, multi_aspect_ratio=False, epoch=0, sizes=[args.image_size], use_distributed=True, world_size=accelerator.num_processes, rank=accelerator.process_index)
-        img_dataloader = create_image_text_dataloaders(img_dataset, args.batch_size, args.num_workers, multi_aspect_ratio=False, epoch=0, sizes=[args.image_size], use_distributed=True, world_size=accelerator.num_processes, rank=accelerator.process_index)
+        #img_dataloader = create_image_text_dataloaders(img_dataset, args.batch_size, args.num_workers, multi_aspect_ratio=False, epoch=0, sizes=[args.image_size], use_distributed=True, world_size=accelerator.num_processes, rank=accelerator.process_index)
     # train_dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, drop_last=True)
     
     accelerator.wait_for_everyone()
@@ -672,8 +677,8 @@ def main(args):
             validation_prompt=validation_prompts,
             validation_image=validation_images,
             save_intermediate_latents=args.save_intermediate_latents,
-            img_dataloader=img_dataloader if args.task == 't2v' else None,
-            #img_dataloader=None
+            #img_dataloader=img_dataloader if args.task == 't2v' else None,
+            img_dataloader=None
         )
 
         log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},

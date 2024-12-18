@@ -891,6 +891,142 @@ class DatasetFromCSV2(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.samples)
 
+class DatasetFromCSV_forvideo(torch.utils.data.Dataset):
+    """Load video according to both csv and json files.
+
+    Args:
+        csv_path (str): Path to the CSV file.
+        json_path (str): Path to the JSON file.
+        num_frames (int): Number of video frames to load.
+        frame_interval (int): Interval between frames.
+        transform (callable): Transform to apply to video frames.
+        csv_root (str): Root directory containing video files from CSV.
+        json_root (str): Root directory containing video files from JSON.
+    """
+
+    def __init__(
+        self,
+        csv_path,
+        json_path,
+        num_frames=16,
+        sample_fps=24,
+        csv_root=None,
+        json_root=None,
+        laion_folder=None,
+        jsonl_root=None,
+        sizes=[(512, 512), (384, 640), (640, 384)],
+        ratios=[1/1, 3/5, 5/3],
+        mix_laion_ratio=0.0,
+    ):
+        video_samples = []
+
+        # Load from CSV
+        with open(csv_path, "r") as f:
+            reader = csv.reader(f)
+            csv_list = list(reader)
+        for vid in csv_list[1:]:  # no csv head
+            vid_name = vid[0]
+            vid_path = os.path.join(csv_root, vid_name)
+            vid_caption = vid[1]
+            if os.path.exists(vid_path):
+                video_samples.append([vid_path, vid_caption])
+
+        #Load from JSON
+        # with open(json_path, 'r') as f:
+        #     json_data = json.load(f)
+        # for entry in json_data:
+        #     vid_name = entry['vid']
+        #     vid_path = os.path.join(json_root, f"{vid_name}.mp4")
+        #     vid_caption = entry['caption']
+        #     if os.path.exists(vid_path):
+        #         video_samples.append([vid_path, vid_caption])
+        
+        self.samples = video_samples
+        self.is_video = True
+        self.sizes = sizes
+        self.ratios = ratios
+        self.num_frames = num_frames
+        self.sample_fps = sample_fps
+        self.mix_laion_ratio = mix_laion_ratio
+        self.laion_folder = laion_folder
+        self.totensor = transforms.ToTensor()
+    
+    def get_resize_size(self, orig_size, tgt_size):
+        if (tgt_size[1]/tgt_size[0] - 1) * (orig_size[1]/orig_size[0] - 1) >= 0:
+            alt_min = int(math.ceil(max(tgt_size)*min(orig_size)/max(orig_size)))
+            resize_size = max(alt_min, min(tgt_size))
+        else:
+            alt_max = int(math.ceil(min(tgt_size)*max(orig_size)/min(orig_size)))
+            resize_size = max(alt_max, max(tgt_size))
+        return resize_size
+
+    def get_closest_size(self, width, height):
+        best_size_idx = np.argmin([abs(width/height-r) for r in self.ratios])
+        return self.sizes[best_size_idx]
+    
+    def getitem(self, index):
+        sample = self.samples[index]
+        path = sample[0]
+        text = sample[1]
+        
+        video_capture = cv2.VideoCapture(path)
+        fps = video_capture.get(cv2.CAP_PROP_FPS)
+        frames = []
+
+        while True:
+            flag, frame = video_capture.read()
+            if not flag:
+                break
+
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frame = torch.from_numpy(frame)
+            frame = frame.permute(2, 0, 1)
+            frames.append(frame)
+
+        video_capture.release()
+        sample_fps = self.sample_fps
+        interval = max(int(fps / sample_fps), 1)
+        frames = frames[::interval]
+
+        if len(frames) < self.num_frames:
+            num_frame_to_pack = self.num_frames - len(frames)
+            recurrent_num = num_frame_to_pack // len(frames)
+            frames = frames + recurrent_num * frames + frames[:(num_frame_to_pack % len(frames))]
+            assert len(frames) >= self.num_frames, f'{len(frames)}'
+
+        start_indexs = list(range(0, max(0, len(frames) - self.num_frames + 1)))            
+        start_index = random.choice(start_indexs)
+
+        filtered_frames = frames[start_index : start_index+self.num_frames]
+        assert len(filtered_frames) == self.num_frames, f"The sampled frames should equals to {self.num_frames}"
+
+        filtered_frames = torch.stack(filtered_frames).float() / 255
+        height, width = filtered_frames.shape[2], filtered_frames.shape[3]
+        
+        size = self.get_closest_size(width, height)
+        resize_size = self.get_resize_size((width, height), size)
+        video_transform = get_transform(resize_size, size[0], size[1], resize=True)
+
+        filtered_frames = video_transform(filtered_frames)
+        video = filtered_frames.permute(1, 0, 2, 3)
+
+        video = video * 2 - 1.0
+        video = video.clamp(-1.0, 1.0)
+
+        return {"video": video, "text": text}
+
+    def __getitem__(self, index):
+        for _ in range(20):
+            try:
+                return self.getitem(index)
+            except Exception as e:
+                print(e)
+                index = np.random.randint(len(self))
+        raise RuntimeError("Too many bad data.")
+        #return self.getitem(index)
+
+    def __len__(self):
+        return len(self.samples)
 
 ### Laion dataset
 def create_webdataset(
