@@ -115,7 +115,7 @@ class PyramidFluxTransformer(ModelMixin, ConfigMixin):
         pooled_projection_dim: int = 768,
         axes_dims_rope: List[int] = [16, 24, 24],
         use_flash_attn: bool = False,
-        use_temporal_causal: bool = True,
+        use_temporal_causal: bool = False,
         interp_condition_pos: bool = True,
         use_gradient_checkpointing: bool = False,
         gradient_checkpointing_ratio: float = 0.6,
