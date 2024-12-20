@@ -10,7 +10,7 @@ SHARD_STRATEGY=zero2   # zero2 or zero3
 MODEL_NAME=pyramid_flux     # The model name, `pyramid_flux` or `pyramid_mmdit`
 MODEL_PATH=/data/cvpr25/Pyramid-Flow/output/pyramid-flow-miniflux  # The downloaded ckpt dir. IMPORTANT: It should match with model_name, flux or mmdit (sd3)
 VARIANT=diffusion_transformer_image  # The DiT Variant
-OUTPUT_DIR=/data/cvpr25/Pyramid-Flow/result/stage3-laplacian-video-temporal-downsample    # The checkpoint saving dir
+OUTPUT_DIR=/data/cvpr25/Pyramid-Flow/result/stage3-downsample-autoregressive-noise    # The checkpoint saving dir
 
 BATCH_SIZE=4    # It should satisfy batch_size % 4 == 0
 GRAD_ACCU_STEPS=2
@@ -21,13 +21,11 @@ NUM_FRAMES=16         # e.g., 16 for 5s, 32 for 10s
 # For the 768p version, make sure to add the args:  --gradient_checkpointing
 
 #CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 python \
-CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 accelerate launch --multi_gpu --num_processes $GPUS \
-    train/train_pyramid_flow_ours_stage2_video.py \
+CUDA_VISIBLE_DEVICES=7 python \
+    train/eval_pyramid_flow_ours_stage2.py \
     --num_workers 8 \
     --task t2v \
-    --use_fsdp \
     --use_flash_attn \
-    --fsdp_shard_strategy $SHARD_STRATEGY \
     --interp_condition_pos \
     --load_text_encoder \
     --model_name $MODEL_NAME \
@@ -50,16 +48,16 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 accelerate launch --multi_gpu --num_process
     --clip_grad 1.0 \
     --lr 5e-5 \
     --warmup_steps 1000 \
-    --epochs 40 \
+    --epochs 20 \
     --iters_per_epoch 2000 \
     --report_to tensorboard \
     --print_freq 40 \
     --save_ckpt_freq 1 \
     --load_vae \
+    --gradient_checkpointing \
     --num_frames 65 \
     --use_perflow \
-    --gradient_checkpointing \
     --downsample_latent \
     --use_temporal_downsample \
     --continuous_flow \
-    --mix_laion_ratio 0.0 \
+    --dit_pretrained_weight /data/cvpr25/Pyramid-Flow/pytorch_model_fsdp.bin \
