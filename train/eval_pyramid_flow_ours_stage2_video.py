@@ -614,8 +614,7 @@ def main(args):
             for i_img, img in enumerate(images):
                 img[0].save("./output/eval_video_NFE%d_%d_%d.png" % (NFE, i, i_img))
         else:
-            images[0].save("./output/eval_video_NFE%d_%d.png" % (NFE, i))
-        #export_to_video(image, "./output/eval_video_%d.mp4" % i, fps=24)
+            export_to_video(images, "./output/eval_video_NFE%d_%d.mp4" % (NFE, i), fps=24)
 
     runner.dit.train()
     accelerator.end_training()

@@ -93,7 +93,7 @@ def build_pyramid_dit(
     use_mixed_training: bool,
     interp_condition_pos: bool = True,
     use_gradient_checkpointing: bool = False,
-    use_temporal_causal: bool = True,
+    use_temporal_causal: bool = False,
     gradient_checkpointing_ratio: float = 0.6,
     trilinear_interpolation: bool = False,
     condition_original_image: bool = False,
@@ -154,7 +154,7 @@ class PyramidDiTForVideoGeneration:
     def __init__(self, model_path, model_dtype='bf16', model_name='pyramid_mmdit', use_gradient_checkpointing=False, 
         return_log=True, model_variant="diffusion_transformer_768p", timestep_shift=1.0, stage_range=[0, 1/3, 2/3, 1],
         sample_ratios=[1, 1, 1], scheduler_gamma=1/3, use_mixed_training=False, use_flash_attn=False, 
-        load_text_encoder=True, load_vae=True, max_temporal_length=31, frame_per_unit=1, use_temporal_causal=True, 
+        load_text_encoder=True, load_vae=True, max_temporal_length=31, frame_per_unit=1, use_temporal_causal=False, 
         corrupt_ratio=1/3, interp_condition_pos=True, stages=[1, 2, 4], video_sync_group=8, gradient_checkpointing_ratio=0.6, 
         temporal_autoregressive=False, deterministic_noise=False, condition_original_image=False, num_frames=49, height=256, width=384,
         trilinear_interpolation=False, temporal_downsample=False, downsample_latent=False, random_noise=False, 
@@ -1595,7 +1595,7 @@ class PyramidDiTForVideoGeneration:
                     else:
                         upsample_vae_latent_list = self.get_pyramid_latent_with_spatial_upsample(vae_latent_list)
                 
-                if self.temporal_downsample:
+                if self.temporal_downsample and video.shape[2] != 1:
                     noise_list = self.get_pyramid_noise_with_temporal_downsample(vae_latent_list[-1], len(self.stages))
                     upsample_noise_list = self.get_pyramid_noise_with_temporal_upsample(noise_list, len(self.stages))
                 else:

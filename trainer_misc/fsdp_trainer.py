@@ -228,7 +228,7 @@ def train_one_epoch_with_fsdp(
 
         accelerator.wait_for_everyone()
 
-        #validation_prompt = ["a Emu, focused yet playful, ready for a competitive matchup, photorealistic quality with cartoon vibes","real beautiful woman, Chinese", "marvel movie character, iron man, dress up to match movie character, full body photo, American apartment, lying down, life in distress, messy, lost hope, food, wine, hd, 8k, real, reality, super detail, 8k post photo manipulation, real photo"]
+        validation_prompt = ["a woman is walking", "A movie trailer featuring the adventures of the 30 year old space man wearing a red wool knitted motorcycle helmet, blue sky, salt desert, cinematic style, shot on 35mm film, vivid colors", "At dusk, a car is driving on the highway, with the rearview mirror reflecting a colorful sunset and serene scenery"]
         # Generate the video for validation
         if step % 20 == 0:
             runner.dit.eval()
